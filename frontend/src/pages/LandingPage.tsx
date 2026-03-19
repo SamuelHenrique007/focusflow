@@ -1,6 +1,5 @@
-"use client";
-
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   CheckCircle2,
@@ -42,9 +41,10 @@ function FeatureCard({
 }
 
 export default function LandingPage() {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Topbar (mesmo padrão do AppShell mobile) */}
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -62,10 +62,18 @@ export default function LandingPage() {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            <Button variant="outline" className="rounded-2xl">
+            <Button
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => navigate("/login")}
+            >
               Login
             </Button>
-            <Button className="rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+
+            <Button
+              className="rounded-2xl bg-blue-600 font-semibold text-white hover:bg-blue-700"
+              onClick={() => navigate("/register")}
+            >
               Cadastre-se
             </Button>
           </div>
@@ -73,7 +81,6 @@ export default function LandingPage() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:py-10">
-        {/* HERO (card com gradient, como nos highlights do Dashboard) */}
         <section className="relative overflow-hidden rounded-2xl border border-slate-200 bg-linear-to-r from-blue-600 to-indigo-600 p-6 text-white shadow-sm sm:p-8">
           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/15 blur-2xl" />
           <div className="absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
@@ -95,7 +102,10 @@ export default function LandingPage() {
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Button className="rounded-2xl bg-white text-slate-900 hover:bg-white/90">
+              <Button
+                className="rounded-2xl bg-white text-slate-900 hover:bg-white/90"
+                onClick={() => navigate("/register")}
+              >
                 Comece agora
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
@@ -106,6 +116,7 @@ export default function LandingPage() {
                   "rounded-2xl border-white/25 bg-white/10 text-white",
                   "hover:bg-white/15 hover:text-white",
                 )}
+                onClick={() => navigate("/login")}
               >
                 Já tenho conta
               </Button>
@@ -128,7 +139,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Features */}
         <section className="mt-10">
           <div className="text-center">
             <p className="inline-flex rounded-full bg-blue-600/10 px-3 py-1 text-xs font-semibold text-blue-700">
@@ -171,7 +181,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Sobre */}
         <section className="mt-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <div className="mx-auto max-w-3xl text-center">
             <p className="inline-flex rounded-full bg-slate-900/5 px-3 py-1 text-xs font-semibold text-slate-700">
@@ -213,14 +222,16 @@ export default function LandingPage() {
             </div>
 
             <div className="mt-8">
-              <Button className="rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+              <Button
+                className="rounded-2xl bg-blue-600 font-semibold text-white hover:bg-blue-700"
+                onClick={() => navigate("/register")}
+              >
                 Criar minha conta
               </Button>
             </div>
           </div>
         </section>
 
-        {/* Footer */}
         <footer className="mt-10 border-t border-slate-200 pt-6 text-sm text-slate-500">
           © {new Date().getFullYear()} FocusFlow — Projeto acadêmico (TCC).
         </footer>
