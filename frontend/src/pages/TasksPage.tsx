@@ -28,22 +28,12 @@ import {
 import { Badge } from "@/components/common/Badge";
 import { ProgressBar } from "@/components/common/ProgressBar";
 import { cn } from "@/lib/cn";
-
-type TaskStatus = "pendente" | "em_progresso" | "concluida";
-
-type Task = {
-  id: string;
-  title: string;
-  description?: string;
-  category: "estudo" | "trabalho" | "pessoal";
-  priority: "alta" | "media" | "baixa";
-  dueLabel: string;
-  pomodoroDone: number;
-  pomodoroTotal: number;
-  progress?: number; // 0..1
-  status: TaskStatus;
-  subtasks?: string[];
-};
+import {
+  listTasks,
+  createTask,
+  deleteTask,
+  type Task,
+} from "@/services/tasks";
 
 /* =========================
    Small hook: click outside
@@ -217,10 +207,10 @@ function RowMenu({
   const btnRef = React.useRef<HTMLButtonElement | null>(null);
   const menuRef = React.useRef<HTMLDivElement | null>(null);
 
- useEffect(() => {
-  const id = requestAnimationFrame(() => setMounted(true));
-  return () => cancelAnimationFrame(id);
-}, []);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const computePos = () => {
     const el = btnRef.current;
@@ -547,63 +537,26 @@ export default function TasksPage() {
     "todas" | Task["priority"]
   >("todas");
 
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "t1",
-      title: "Ler artigos sobre Machine Learning",
-      category: "estudo",
-      priority: "media",
-      dueLabel: "27 de fev",
-      pomodoroDone: 3,
-      pomodoroTotal: 2,
-      status: "pendente",
-    },
-    {
-      id: "t2",
-      title: "Estudar Cálculo II - Derivadas",
-      description:
-        "Revisar capítulos 3 e 4 do livro, resolver exercícios práticos",
-      category: "estudo",
-      priority: "alta",
-      dueLabel: "24 de fev",
-      pomodoroDone: 4,
-      pomodoroTotal: 4,
-      status: "pendente",
-    },
-    {
-      id: "t3",
-      title: "Atualizar currículo",
-      category: "trabalho",
-      priority: "media",
-      dueLabel: "Hoje",
-      pomodoroDone: 1,
-      pomodoroTotal: 1,
-      status: "concluida",
-    },
-    {
-      id: "t4",
-      title: "Academia - Treino de pernas",
-      category: "pessoal",
-      priority: "baixa",
-      dueLabel: "23 de fev",
-      pomodoroDone: 0,
-      pomodoroTotal: 2,
-      status: "concluida",
-    },
-    {
-      id: "t5",
-      title: "Preparar apresentação de TCC",
-      description: "Criar slides para a defesa parcial",
-      category: "estudo",
-      priority: "alta",
-      dueLabel: "Hoje",
-      pomodoroDone: 0,
-      pomodoroTotal: 3,
-      progress: 1 / 3,
-      status: "pendente",
-    },
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
+  useEffect(() => {
+    async function loadTasks() {
+      try {
+        setLoading(true);
+        setErrorMessage("");
+        const data = await listTasks();
+        setTasks(data);
+      } catch {
+        setErrorMessage("Não foi possível carregar as tarefas.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadTasks();
+  }, []);
 
   const counts = useMemo(() => {
     const pend = tasks.filter((t) => t.status !== "concluida").length;
@@ -696,15 +649,20 @@ export default function TasksPage() {
       },
     ];
 
-  function handleDeleteTask(taskId: string) {
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+  async function handleDeleteTask(taskId: string) {
+    try {
+      await deleteTask(taskId);
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    } catch {
+      alert("Não foi possível excluir a tarefa.");
+    }
   }
 
   function handleEditTask(taskId: string) {
     alert(`Editar tarefa: ${taskId} (implementar modal de edição)`);
   }
 
-    return (
+  return (
     <>
       <div className="mb-4 lg:hidden">
         <div className="flex items-start justify-between gap-3">
@@ -807,37 +765,56 @@ export default function TasksPage() {
         ))}
       </div>
 
-      <div className="mt-5 space-y-3 pb-10">
-        {filtered.map((t) => (
-          <TaskRow
-            key={t.id}
-            task={t}
-            onEdit={() => handleEditTask(t.id)}
-            onDelete={() => handleDeleteTask(t.id)}
-          />
-        ))}
+      <div className="mt-5 pb-10">
+        {loading ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
+            Carregando tarefas...
+          </div>
+        ) : errorMessage ? (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-sm">
+            {errorMessage}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
+            Nenhuma tarefa encontrada.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((t) => (
+              <TaskRow
+                key={t.id}
+                task={t}
+                onEdit={() => handleEditTask(t.id)}
+                onDelete={() => handleDeleteTask(t.id)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <CreateTaskModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreate={(payload: CreateTaskPayload) => {
-          setTasks((prev) => [
-            {
-              id: String(Date.now()),
+        onCreate={async (payload: CreateTaskPayload) => {
+          try {
+            const newTask = await createTask({
               title: payload.title,
               description: payload.description,
               category: payload.category,
               priority: payload.priority,
-              dueLabel: payload.dueLabel,
-              pomodoroDone: 0,
-              pomodoroTotal: payload.pomodoros,
-              progress: 0,
               status: "pendente",
-              subtasks: payload.subtasks,
-            },
-            ...prev,
-          ]);
+              due_date: payload.dueDate,
+              pomodoro_total: payload.pomodoros,
+              pomodoro_done: 0,
+              subtasks:
+                payload.subtasks?.map((title) => ({ title })) ?? [],
+            });
+
+            setTasks((prev) => [newTask, ...prev]);
+            setCreateOpen(false);
+          } catch {
+            alert("Não foi possível criar a tarefa.");
+          }
         }}
       />
     </>

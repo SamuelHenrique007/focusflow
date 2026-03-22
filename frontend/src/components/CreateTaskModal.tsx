@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -25,6 +23,7 @@ export type CreateTaskPayload = {
   category: "estudo" | "trabalho" | "pessoal";
   priority: "alta" | "media" | "baixa";
   dueLabel: string;
+  dueDate: string | null;
   pomodoros: number;
   splitSubtasks: boolean;
   subtasks?: string[];
@@ -33,6 +32,20 @@ export type CreateTaskPayload = {
 /* =========================
    Utils
 ========================= */
+function toIsoDateTime(date: Date | null, timeValue: string) {
+  if (!date) return null;
+
+  const result = new Date(date);
+
+  if (timeValue) {
+    const [hours, minutes] = timeValue.split(":").map(Number);
+    result.setHours(hours || 0, minutes || 0, 0, 0);
+  } else {
+    result.setHours(0, 0, 0, 0);
+  }
+
+  return result.toISOString();
+}
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -47,10 +60,6 @@ function formatPtBR(d: Date) {
     month: "short",
     year: "numeric",
   }).format(d);
-}
-
-function formatTime(d: Date) {
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
 function formatDateTimeLabel(d: Date | null, timeValue: string) {
@@ -154,16 +163,13 @@ function ModalPortal({
   children: React.ReactNode;
   title: string;
 }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
   useBodyScrollLock(open);
   useEscToClose(open, onClose);
 
-  if (!open || !mounted) return null;
+  if (!open || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999]">
+    <div className="fixed inset-0 z-9999">
       <div className="absolute inset-0 bg-black/45" onClick={onClose} />
       <div className="relative flex h-full w-full items-start justify-center p-4 sm:items-center">
         <div
@@ -286,7 +292,7 @@ function Toggle({
 }
 
 /* =========================
-   Professional Select (custom)
+   Professional Select
 ========================= */
 type SelectOption<T extends string> = {
   label: string;
@@ -350,7 +356,7 @@ function SelectPro<T extends string>({
       </button>
 
       {open ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-[10000] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-10000 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
           <div className="max-h-64 overflow-y-auto p-2">
             {options.map((o) => {
               const isActive = o.value === value;
@@ -433,17 +439,6 @@ function DateTimePicker({
   const [view, setView] = useState<Date>(() => value ?? new Date());
   const [tempDate, setTempDate] = useState<Date | null>(value);
   const [tempTime, setTempTime] = useState<string>(timeValue);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-
-  useEffect(() => {
-    if (open) {
-      setTempDate(value);
-      setTempTime(timeValue);
-      setView(value ?? new Date());
-    }
-  }, [open, value, timeValue]);
 
   useBodyScrollLock(open);
   useEscToClose(open, () => setOpen(false));
@@ -457,6 +452,13 @@ function DateTimePicker({
 
   const dow = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
+  function handleOpen() {
+    setTempDate(value);
+    setTempTime(timeValue);
+    setView(value ?? new Date());
+    setOpen(true);
+  }
+
   function applySelection() {
     onChangeDate(tempDate);
     onChangeTime(tempTime);
@@ -467,7 +469,7 @@ function DateTimePicker({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
         className={cx(
           "mt-2 flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold shadow-sm outline-none",
           "ring-blue-200 focus:border-blue-500 focus:ring-4",
@@ -491,9 +493,9 @@ function DateTimePicker({
         <ChevronDown className="h-5 w-5 text-slate-400" />
       </button>
 
-      {mounted && open
+      {open && typeof document !== "undefined"
         ? createPortal(
-            <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-10001 flex items-center justify-center p-4">
               <div
                 className="absolute inset-0 bg-black/20"
                 onClick={() => setOpen(false)}
@@ -675,19 +677,6 @@ export function CreateTaskModal({
   const [subEnabled, setSubEnabled] = useState(false);
   const [subtasks, setSubtasks] = useState<string[]>([""]);
 
-  useEffect(() => {
-    if (!open) return;
-    setTitle("");
-    setDesc("");
-    setCat("estudo");
-    setPri("media");
-    setDueDate(null);
-    setDueTime("");
-    setPom("1");
-    setSubEnabled(false);
-    setSubtasks([""]);
-  }, [open]);
-
   const canCreate = title.trim().length > 0;
 
   function normalizeSubtasks(list: string[]) {
@@ -705,10 +694,35 @@ export function CreateTaskModal({
       category: cat,
       priority: pri,
       dueLabel: formatDateTimeLabel(dueDate, dueTime),
+      dueDate: toIsoDateTime(dueDate, dueTime),
       pomodoros: Number(pom) || 1,
       splitSubtasks: subEnabled,
       subtasks: cleanedSubtasks.length ? cleanedSubtasks : undefined,
     });
+
+    setTitle("");
+    setDesc("");
+    setCat("estudo");
+    setPri("media");
+    setDueDate(null);
+    setDueTime("");
+    setPom("1");
+    setSubEnabled(false);
+    setSubtasks([""]);
+
+    onClose();
+  }
+
+  function handleCancel() {
+    setTitle("");
+    setDesc("");
+    setCat("estudo");
+    setPri("media");
+    setDueDate(null);
+    setDueTime("");
+    setPom("1");
+    setSubEnabled(false);
+    setSubtasks([""]);
 
     onClose();
   }
@@ -789,7 +803,7 @@ export function CreateTaskModal({
   ];
 
   return (
-    <ModalPortal open={open} onClose={onClose} title="Nova Tarefa">
+    <ModalPortal open={open} onClose={handleCancel} title="Nova Tarefa">
       <div className="space-y-5">
         <div>
           <FieldLabel required hint="Obrigatório">
@@ -928,7 +942,7 @@ export function CreateTaskModal({
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCancel}
             className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
           >
             Cancelar

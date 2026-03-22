@@ -169,10 +169,10 @@ export default function AuthFocusFlow() {
         return;
       }
 
-      await login({
-        email,
-        password,
-      });
+     await login({
+      email,
+      password,
+    });
 
       navigate("/dashboard", { replace: true });
     } catch (error: unknown) {

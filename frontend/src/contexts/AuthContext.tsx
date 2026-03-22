@@ -43,6 +43,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     clearTokens();
     setUser(null);
     setAccessTokenState(null);
+    delete api.defaults.headers.common.Authorization;
   }, []);
 
   const fetchMe = useCallback(async () => {
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         setAccessToken(newAccess);
         setAccessTokenState(newAccess);
+        api.defaults.headers.common.Authorization = `Bearer ${newAccess}`;
 
         return newAccess;
       } catch {
@@ -91,6 +93,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       setTokens(response.access, response.refresh);
       setAccessTokenState(response.access);
+      api.defaults.headers.common.Authorization = `Bearer ${response.access}`;
 
       if (response.user) {
         setUser(response.user);
@@ -107,6 +110,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       setTokens(response.access, response.refresh);
       setAccessTokenState(response.access);
+      api.defaults.headers.common.Authorization = `Bearer ${response.access}`;
 
       if (response.user) {
         setUser(response.user);
@@ -173,11 +177,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const access = getAccessToken();
 
         if (access) {
+          api.defaults.headers.common.Authorization = `Bearer ${access}`;
           await fetchMe();
         } else {
           const newAccess = await refreshAccessToken();
 
           if (newAccess) {
+            api.defaults.headers.common.Authorization = `Bearer ${newAccess}`;
             await fetchMe();
           }
         }
