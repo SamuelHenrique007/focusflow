@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo, useState } from "react";
 import {
   Play,
@@ -15,12 +13,11 @@ import {
   CreateTaskModal,
   type CreateTaskPayload,
 } from "@/components/CreateTaskModal";
-
-import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/common/Badge";
 import { ProgressBar } from "@/components/common/ProgressBar";
 import { StatCard } from "@/components/common/StatCard";
 import { cn } from "@/lib/cn";
+import { useAuth } from "@/hooks/useAuth";
 
 type Task = {
   id: string;
@@ -30,7 +27,7 @@ type Task = {
   dueLabel: string;
   pomodoroDone: number;
   pomodoroTotal: number;
-  progress?: number; // 0..1
+  progress?: number;
   status: "pendente" | "concluida";
 };
 
@@ -112,11 +109,29 @@ function TaskRow({ task }: { task: Task }) {
 }
 
 export default function FocusFlowDashboard() {
+  const { user } = useAuth();
   const [newTaskOpen, setNewTaskOpen] = useState(false);
 
-  const todayLabel = "quarta-feira, 25 de fevereiro";
-  const userName = "Samuel";
-  const userEmail = "sh0161663@gmail.com";
+  function getGreeting() {
+    const hour = new Date().getHours();
+
+    if (hour >= 5 && hour < 12) return "Bom dia";
+    if (hour >= 12 && hour < 18) return "Boa tarde";
+    return "Boa noite";
+  }
+
+  function getTodayLabel() {
+    const today = new Date();
+
+    return today.toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
+  }
+
+  const userName = user?.username ?? "Usuário";
+  const todayLabel = getTodayLabel();
 
   const xpCurrent = 0;
   const xpTotal = 100;
@@ -162,10 +177,10 @@ export default function FocusFlowDashboard() {
   const dailyProgressPct = dailyGoalMin ? dailyProgressMin / dailyGoalMin : 0;
 
   return (
-    <AppShell activeKey="dashboard" userEmail={userEmail}>
+    <>
       <div className="mb-4 lg:hidden">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-          Bom dia, {userName}! 👋
+          {getGreeting()}, {userName}! 👋
         </h1>
         <p className="mt-1 text-sm text-slate-500">{todayLabel}</p>
 
@@ -190,7 +205,7 @@ export default function FocusFlowDashboard() {
       <div className="hidden items-start justify-between gap-4 lg:flex">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-            Bom dia, {userName}! 👋
+            {getGreeting()}, {userName}! 👋
           </h1>
           <p className="mt-1 text-sm text-slate-500">{todayLabel}</p>
         </div>
@@ -225,6 +240,7 @@ export default function FocusFlowDashboard() {
             {xpCurrent}/{xpTotal} XP
           </p>
         </div>
+
         <div className="mt-3">
           <ProgressBar value={xpPct} />
         </div>
@@ -365,6 +381,6 @@ export default function FocusFlowDashboard() {
           ]);
         }}
       />
-    </AppShell>
+    </>
   );
 }

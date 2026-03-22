@@ -67,7 +67,7 @@ export default function LandingPage() {
               className="rounded-2xl"
               onClick={() => navigate("/login")}
             >
-              Login
+              Entrar
             </Button>
 
             <Button

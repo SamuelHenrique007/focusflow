@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useMemo } from "react";
 import {
   Flame,
@@ -11,7 +9,6 @@ import {
   Calendar,
 } from "lucide-react";
 
-import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/common/Badge";
 import { ProgressBar } from "@/components/common/ProgressBar";
 import { StatCard } from "@/components/common/StatCard";
@@ -217,132 +214,123 @@ export default function EstatisticasPage() {
   const focusMax = 280;
   const pomoMax = 12;
 
-  const userEmail = "sh0161663@gmail.com";
+  
 
   return (
-    <AppShell
-      activeKey="stats"
-      userEmail={userEmail}
-      rightActions={
-        <Badge tone="warning" className="hidden lg:inline-flex">
+  <>
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+          Estatísticas
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Acompanhe seu progresso e desempenho
+        </p>
+      </div>
+
+      <div>
+        <Badge tone="warning">
           <Flame className="h-4 w-4" />
           {streakDays} dia
         </Badge>
-      }
-    >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-            Estatísticas
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Acompanhe seu progresso e desempenho
-          </p>
-        </div>
+      </div>
+    </div>
 
-        <div className="lg:hidden">
-          <Badge tone="warning">
-            <Flame className="h-4 w-4" />
-            {streakDays} dia
-          </Badge>
-        </div>
+    <div className="mt-5 rounded-2xl border border-slate-200 bg-linear-to-r from-slate-50 to-indigo-50 p-4 sm:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <Badge tone="info">
+          <Sparkles className="h-4 w-4" />
+          Nível {level}
+        </Badge>
+        <p className="text-xs font-medium text-slate-500">
+          {xpNow}/{xpMax} XP
+        </p>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-slate-200 bg-linear-to-r from-slate-50 to-indigo-50 p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-3">
-          <Badge tone="info">
-            <Sparkles className="h-4 w-4" />
-            Nível {level}
-          </Badge>
-          <p className="text-xs font-medium text-slate-500">
-            {xpNow}/{xpMax} XP
-          </p>
-        </div>
-
-        <div className="mt-4">
-          <ProgressBar value={xpPct} />
-        </div>
+      <div className="mt-4">
+        <ProgressBar value={xpPct} />
       </div>
+    </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Tempo Total"
-          value={stats.tempoTotal}
-          subtitle="de foco"
-          icon={<Clock3 className="h-5 w-5" />}
-          iconTone="bg-blue-50 text-blue-700"
-        />
-        <StatCard
-          title="Tarefas"
-          value={stats.tarefasConcluidas}
-          subtitle="concluídas"
-          icon={<CheckCircle2 className="h-5 w-5" />}
-          iconTone="bg-emerald-50 text-emerald-700"
-        />
-        <StatCard
-          title="Pomodoros"
-          value={stats.pomodoros}
-          subtitle="completados"
-          icon={<Target className="h-5 w-5" />}
-          iconTone="bg-rose-50 text-rose-700"
-        />
-        <StatCard
-          title="Maior Sequência"
-          value={stats.maiorSequencia}
-          subtitle="de produtividade"
-          icon={<Flame className="h-5 w-5" />}
-          iconTone="bg-amber-50 text-amber-800"
-        />
-      </div>
+    <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        title="Tempo Total"
+        value={stats.tempoTotal}
+        subtitle="de foco"
+        icon={<Clock3 className="h-5 w-5" />}
+        iconTone="bg-blue-50 text-blue-700"
+      />
+      <StatCard
+        title="Tarefas"
+        value={stats.tarefasConcluidas}
+        subtitle="concluídas"
+        icon={<CheckCircle2 className="h-5 w-5" />}
+        iconTone="bg-emerald-50 text-emerald-700"
+      />
+      <StatCard
+        title="Pomodoros"
+        value={stats.pomodoros}
+        subtitle="completados"
+        icon={<Target className="h-5 w-5" />}
+        iconTone="bg-rose-50 text-rose-700"
+      />
+      <StatCard
+        title="Maior Sequência"
+        value={stats.maiorSequencia}
+        subtitle="de produtividade"
+        icon={<Flame className="h-5 w-5" />}
+        iconTone="bg-amber-50 text-amber-800"
+      />
+    </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <ChartFrame
-          title="Tempo Focado"
-          subtitle="Últimos 7 dias"
-          rightIcon={<TrendingUp className="h-5 w-5 text-blue-600" />}
-        >
-          <BarChartMock
-            labels={labels}
-            values={focusMinutes}
-            maxValue={focusMax}
+    <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <ChartFrame
+        title="Tempo Focado"
+        subtitle="Últimos 7 dias"
+        rightIcon={<TrendingUp className="h-5 w-5 text-blue-600" />}
+      >
+        <BarChartMock
+          labels={labels}
+          values={focusMinutes}
+          maxValue={focusMax}
+        />
+      </ChartFrame>
+
+      <ChartFrame
+        title="Pomodoros"
+        subtitle="Por dia"
+        rightIcon={<Calendar className="h-5 w-5 text-emerald-600" />}
+      >
+        <LineChartMock
+          labels={labels}
+          values={pomodorosPerDay}
+          maxValue={pomoMax}
+        />
+      </ChartFrame>
+    </div>
+
+    <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <ChartFrame title="Tarefas por Categoria">
+        <DonutMock aLabel="Trabalho" bLabel="Pessoal" aPct={0.55} />
+      </ChartFrame>
+
+      <ChartFrame title="Desafios Ativos">
+        <div className="space-y-4">
+          <ChallengeCard
+            title="Complete 5 tarefas esta semana"
+            subtitle="🕒 6 dias restantes"
+            progressLabel="2/5"
+            value={2 / 5}
           />
-        </ChartFrame>
-
-        <ChartFrame
-          title="Pomodoros"
-          subtitle="Por dia"
-          rightIcon={<Calendar className="h-5 w-5 text-emerald-600" />}
-        >
-          <LineChartMock
-            labels={labels}
-            values={pomodorosPerDay}
-            maxValue={pomoMax}
+          <ChallengeCard
+            title="Foque por 2 horas hoje"
+            subtitle="🕒 Último dia!"
+            progressLabel="0/120"
+            value={0 / 120}
           />
-        </ChartFrame>
-      </div>
-
-      <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <ChartFrame title="Tarefas por Categoria">
-          <DonutMock aLabel="Trabalho" bLabel="Pessoal" aPct={0.55} />
-        </ChartFrame>
-
-        <ChartFrame title="Desafios Ativos">
-          <div className="space-y-4">
-            <ChallengeCard
-              title="Complete 5 tarefas esta semana"
-              subtitle="🕒 6 dias restantes"
-              progressLabel="2/5"
-              value={2 / 5}
-            />
-            <ChallengeCard
-              title="Foque por 2 horas hoje"
-              subtitle="🕒 Último dia!"
-              progressLabel="0/120"
-              value={0 / 120}
-            />
-          </div>
-        </ChartFrame>
-      </div>
-    </AppShell>
-  );
+        </div>
+      </ChartFrame>
+    </div>
+  </>
+);
 }

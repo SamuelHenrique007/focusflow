@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo } from "react";
 import {
   Trophy,
@@ -10,7 +8,6 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/common/Badge";
 import { ProgressBar } from "@/components/common/ProgressBar";
 import { StatCard } from "@/components/common/StatCard";
@@ -141,135 +138,126 @@ export default function ConquistasPage() {
     ? unlockedCount / achievements.length
     : 0;
 
-  const userEmail = "sh0161663@gmail.com";
+
 
   return (
-    <AppShell
-      activeKey="achievements"
-      userEmail={userEmail}
-      rightActions={
-        <Badge tone="warning" className="hidden lg:inline-flex">
+  <>
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+          Conquistas
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Desbloqueie conquistas completando desafios
+        </p>
+      </div>
+
+      <div>
+        <Badge tone="warning">
           <Flame className="h-4 w-4" />
           {streakDays} dia
         </Badge>
-      }
-    >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-            Conquistas
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Desbloqueie conquistas completando desafios
-          </p>
-        </div>
+      </div>
+    </div>
 
-        <div className="lg:hidden">
-          <Badge tone="warning">
-            <Flame className="h-4 w-4" />
-            {streakDays} dia
-          </Badge>
-        </div>
+    <div className="mt-5 rounded-2xl border border-slate-200 bg-linear-to-r from-slate-50 to-indigo-50 p-4 sm:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <Badge tone="info">
+          <Sparkles className="h-4 w-4" />
+          Nível {level}
+        </Badge>
+        <p className="text-xs font-medium text-slate-500">
+          {xpNow}/{xpMax} XP
+        </p>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-slate-200 bg-linear-to-r from-slate-50 to-indigo-50 p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-3">
-          <Badge tone="info">
-            <Sparkles className="h-4 w-4" />
-            Nível {level}
-          </Badge>
-          <p className="text-xs font-medium text-slate-500">
-            {xpNow}/{xpMax} XP
-          </p>
-        </div>
-
-        <div className="mt-4">
-          <ProgressBar value={xpPct} />
-        </div>
+      <div className="mt-4">
+        <ProgressBar value={xpPct} />
       </div>
+    </div>
 
-      <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-amber-100 text-amber-700 ring-1 ring-amber-200">
-              <Trophy className="h-7 w-7" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">
-                Progresso de Conquistas
-              </p>
-              <p className="mt-1 text-xs text-slate-600">
-                {unlockedCount} de {unlockedCount + lockedCount} desbloqueadas
-              </p>
-            </div>
+    <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-amber-100 text-amber-700 ring-1 ring-amber-200">
+            <Trophy className="h-7 w-7" />
           </div>
-
-          <div className="text-right">
-            <p className="text-3xl font-semibold tracking-tight text-amber-700">
-              {Math.round(achievementsPct * 100)}%
+          <div>
+            <p className="text-sm font-semibold text-slate-900">
+              Progresso de Conquistas
+            </p>
+            <p className="mt-1 text-xs text-slate-600">
+              {unlockedCount} de {unlockedCount + lockedCount} desbloqueadas
             </p>
           </div>
         </div>
 
-        <div className="mt-4">
-          <ProgressBar value={achievementsPct} barClassName="bg-amber-500" />
+        <div className="text-right">
+          <p className="text-3xl font-semibold tracking-tight text-amber-700">
+            {Math.round(achievementsPct * 100)}%
+          </p>
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Desbloqueadas"
-          value={`${unlockedCount}`}
-          icon={<Star className="h-6 w-6" />}
-          iconTone="bg-amber-50 text-amber-700"
-        />
-        <StatCard
-          title="Bloqueadas"
-          value={`${lockedCount}`}
-          icon={<Lock className="h-6 w-6" />}
-          iconTone="bg-slate-100 text-slate-700"
-        />
-        <StatCard
-          title="Pontos Totais"
-          value={`${totalPoints}`}
-          icon={<Sparkles className="h-6 w-6" />}
-          iconTone="bg-indigo-50 text-indigo-700"
-        />
-        <StatCard
-          title="Nível Atual"
-          value={`${level}`}
-          icon={<Trophy className="h-6 w-6" />}
-          iconTone="bg-amber-50 text-amber-700"
-        />
+      <div className="mt-4">
+        <ProgressBar value={achievementsPct} barClassName="bg-amber-500" />
       </div>
+    </div>
 
-      <div className="mt-8">
-        <div className="flex items-center gap-2">
-          <Star className="h-5 w-5 text-amber-600" />
-          <h2 className="text-base font-semibold text-slate-900">
-            Desbloqueadas ({unlocked.length})
-          </h2>
-        </div>
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {unlocked.map((a) => (
-            <AchievementCard key={a.id} a={a} />
-          ))}
-        </div>
-      </div>
+    <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        title="Desbloqueadas"
+        value={`${unlockedCount}`}
+        icon={<Star className="h-6 w-6" />}
+        iconTone="bg-amber-50 text-amber-700"
+      />
+      <StatCard
+        title="Bloqueadas"
+        value={`${lockedCount}`}
+        icon={<Lock className="h-6 w-6" />}
+        iconTone="bg-slate-100 text-slate-700"
+      />
+      <StatCard
+        title="Pontos Totais"
+        value={`${totalPoints}`}
+        icon={<Sparkles className="h-6 w-6" />}
+        iconTone="bg-indigo-50 text-indigo-700"
+      />
+      <StatCard
+        title="Nível Atual"
+        value={`${level}`}
+        icon={<Trophy className="h-6 w-6" />}
+        iconTone="bg-amber-50 text-amber-700"
+      />
+    </div>
 
-      <div className="mt-8">
-        <div className="flex items-center gap-2">
-          <Lock className="h-5 w-5 text-slate-500" />
-          <h2 className="text-base font-semibold text-slate-900">
-            Bloqueadas ({locked.length})
-          </h2>
-        </div>
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {locked.map((a) => (
-            <AchievementCard key={a.id} a={a} />
-          ))}
-        </div>
+    <div className="mt-8">
+      <div className="flex items-center gap-2">
+        <Star className="h-5 w-5 text-amber-600" />
+        <h2 className="text-base font-semibold text-slate-900">
+          Desbloqueadas ({unlocked.length})
+        </h2>
       </div>
-    </AppShell>
-  );
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {unlocked.map((a) => (
+          <AchievementCard key={a.id} a={a} />
+        ))}
+      </div>
+    </div>
+
+    <div className="mt-8">
+      <div className="flex items-center gap-2">
+        <Lock className="h-5 w-5 text-slate-500" />
+        <h2 className="text-base font-semibold text-slate-900">
+          Bloqueadas ({locked.length})
+        </h2>
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {locked.map((a) => (
+          <AchievementCard key={a.id} a={a} />
+        ))}
+      </div>
+    </div>
+  </>
+);
 }

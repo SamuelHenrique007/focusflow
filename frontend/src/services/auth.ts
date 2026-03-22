@@ -1,40 +1,50 @@
 import { api } from "./api";
 
-type RegisterPayload = {
+export type RegisterPayload = {
   username: string;
   email: string;
   password: string;
 };
 
-type LoginPayload = {
+export type LoginPayload = {
   email: string;
   password: string;
 };
 
-export async function register(data: RegisterPayload) {
+export type User = {
+  id: number;
+  username: string;
+  email: string;
+};
+
+export type AuthResponse = {
+  user?: User;
+  access: string;
+  refresh: string;
+};
+
+export async function registerRequest(
+  data: RegisterPayload,
+): Promise<AuthResponse> {
   const response = await api.post("/auth/register/", data);
-
-  if (response.data.access) {
-    localStorage.setItem("access", response.data.access);
-  }
-
-  if (response.data.refresh) {
-    localStorage.setItem("refresh", response.data.refresh);
-  }
-
   return response.data;
 }
 
-export async function login(data: LoginPayload) {
+export async function loginRequest(
+  data: LoginPayload,
+): Promise<AuthResponse> {
   const response = await api.post("/auth/login/", data);
+  return response.data;
+}
 
-  if (response.data.access) {
-    localStorage.setItem("access", response.data.access);
-  }
+export async function meRequest(): Promise<User> {
+  const response = await api.get("/auth/me/");
+  return response.data;
+}
 
-  if (response.data.refresh) {
-    localStorage.setItem("refresh", response.data.refresh);
-  }
-
+export async function refreshRequest(
+  refresh: string,
+): Promise<{ access: string }> {
+  const response = await api.post("/auth/login/refresh/", { refresh });
   return response.data;
 }

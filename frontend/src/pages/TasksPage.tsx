@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -27,7 +25,6 @@ import {
   type CreateTaskPayload,
 } from "@/components/CreateTaskModal";
 
-import { AppShell } from "@/components/layout/AppShell";
 import { Badge } from "@/components/common/Badge";
 import { ProgressBar } from "@/components/common/ProgressBar";
 import { cn } from "@/lib/cn";
@@ -607,7 +604,6 @@ export default function TasksPage() {
     },
   ]);
 
-  const userEmail = "sh0161663@gmail.com";
 
   const counts = useMemo(() => {
     const pend = tasks.filter((t) => t.status !== "concluida").length;
@@ -708,12 +704,19 @@ export default function TasksPage() {
     alert(`Editar tarefa: ${taskId} (implementar modal de edição)`);
   }
 
-  return (
+    return (
     <>
-      <AppShell
-        activeKey="tasks"
-        userEmail={userEmail}
-        rightActions={
+      <div className="mb-4 lg:hidden">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+              Minhas Tarefas
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              {counts.pend} pendentes • {counts.done} concluídas
+            </p>
+          </div>
+
           <button
             className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
             type="button"
@@ -722,111 +725,98 @@ export default function TasksPage() {
             <Plus className="h-4 w-4" />
             Nova Tarefa
           </button>
-        }
-      >
-        <div className="hidden items-start justify-between gap-4 lg:flex">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-              Minhas Tarefas
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {counts.pend} pendentes • {counts.done} concluídas
-            </p>
-          </div>
+        </div>
+      </div>
+
+      <div className="hidden items-start justify-between gap-4 lg:flex">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+            Minhas Tarefas
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {counts.pend} pendentes • {counts.done} concluídas
+          </p>
         </div>
 
-        <div className="mb-4 lg:hidden">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-                Minhas Tarefas
-              </h1>
-              <p className="mt-1 text-sm text-slate-500">
-                {counts.pend} pendentes • {counts.done} concluídas
-              </p>
-            </div>
+        <button
+          className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+          type="button"
+          onClick={() => setCreateOpen(true)}
+        >
+          <Plus className="h-4 w-4" />
+          Nova Tarefa
+        </button>
+      </div>
 
-            <button
-              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-              type="button"
-              onClick={() => setCreateOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-              Nova Tarefa
-            </button>
-          </div>
+      <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar tarefas..."
+            className="w-full rounded-2xl border border-slate-200 bg-white px-10 py-3 text-sm text-slate-900 outline-none ring-blue-200 focus:border-blue-500 focus:ring-4"
+          />
         </div>
 
-        <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar tarefas..."
-              className="w-full rounded-2xl border border-slate-200 bg-white px-10 py-3 text-sm text-slate-900 outline-none ring-blue-200 focus:border-blue-500 focus:ring-4"
-            />
-          </div>
+        <div className="flex gap-3">
+          <SelectPro
+            value={filterCategory}
+            onChange={(v) => setFilterCategory(v)}
+            options={categoryFilterOptions}
+            leftIcon={<Filter className="h-4 w-4" />}
+            placeholder="Categoria"
+            widthClassName="w-full sm:w-44"
+          />
 
-          <div className="flex gap-3">
-            <SelectPro
-              value={filterCategory}
-              onChange={(v) => setFilterCategory(v)}
-              options={categoryFilterOptions}
-              leftIcon={<Filter className="h-4 w-4" />}
-              placeholder="Categoria"
-              widthClassName="w-full sm:w-44"
-            />
-
-            <SelectPro
-              value={filterPriority}
-              onChange={(v) => setFilterPriority(v)}
-              options={priorityFilterOptions}
-              leftIcon={<SlidersHorizontal className="h-4 w-4" />}
-              placeholder="Prioridade"
-              widthClassName="w-full sm:w-44"
-            />
-          </div>
+          <SelectPro
+            value={filterPriority}
+            onChange={(v) => setFilterPriority(v)}
+            options={priorityFilterOptions}
+            leftIcon={<SlidersHorizontal className="h-4 w-4" />}
+            placeholder="Prioridade"
+            widthClassName="w-full sm:w-44"
+          />
         </div>
+      </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          {[
-            { id: "todas", label: "Todas" },
-            { id: "pendentes", label: "Pendentes" },
-            { id: "em_progresso", label: "Em Progresso" },
-            { id: "concluidas", label: "Concluídas" },
-          ].map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() =>
-                setTab(
-                  t.id as "todas" | "pendentes" | "em_progresso" | "concluidas",
-                )
-              }
-              className={cn(
-                "rounded-full px-4 py-2 text-sm font-semibold transition",
-                tab === t.id
-                  ? "bg-white text-slate-900 ring-1 ring-slate-200 shadow-sm"
-                  : "text-slate-600 hover:bg-white hover:ring-1 hover:ring-slate-200",
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {[
+          { id: "todas", label: "Todas" },
+          { id: "pendentes", label: "Pendentes" },
+          { id: "em_progresso", label: "Em Progresso" },
+          { id: "concluidas", label: "Concluídas" },
+        ].map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() =>
+              setTab(
+                t.id as "todas" | "pendentes" | "em_progresso" | "concluidas",
+              )
+            }
+            className={cn(
+              "rounded-full px-4 py-2 text-sm font-semibold transition",
+              tab === t.id
+                ? "bg-white text-slate-900 ring-1 ring-slate-200 shadow-sm"
+                : "text-slate-600 hover:bg-white hover:ring-1 hover:ring-slate-200",
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-        <div className="mt-5 space-y-3 pb-10">
-          {filtered.map((t) => (
-            <TaskRow
-              key={t.id}
-              task={t}
-              onEdit={() => handleEditTask(t.id)}
-              onDelete={() => handleDeleteTask(t.id)}
-            />
-          ))}
-        </div>
-      </AppShell>
+      <div className="mt-5 space-y-3 pb-10">
+        {filtered.map((t) => (
+          <TaskRow
+            key={t.id}
+            task={t}
+            onEdit={() => handleEditTask(t.id)}
+            onDelete={() => handleDeleteTask(t.id)}
+          />
+        ))}
+      </div>
 
       <CreateTaskModal
         open={createOpen}

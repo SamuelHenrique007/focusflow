@@ -1,4 +1,3 @@
-"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
@@ -13,7 +12,7 @@ import {
   SkipForward,
 } from "lucide-react";
 
-import { AppShell } from "@/components/layout/AppShell";
+
 import { ProgressBar } from "@/components/common/ProgressBar";
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -205,7 +204,7 @@ export default function PomodoroTimer() {
 
   return (
     <>
-      <AppShell activeKey="pomodoro" userEmail="sh0161663@gmail.com">
+      <>
         <div className="mb-4 lg:hidden">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -371,7 +370,7 @@ export default function PomodoroTimer() {
             />
           </div>
         </div>
-      </AppShell>
+      </>
 
       <SettingsModal
         open={settingsOpen}

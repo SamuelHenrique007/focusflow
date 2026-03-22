@@ -1,31 +1,66 @@
-"use client";
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Menu, Timer, X } from "lucide-react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { SidebarNav, type NavKey } from "@/components/layout/SidebarNav";
+import { useAuth } from "@/hooks/useAuth";
+
+function getInitials(username?: string, email?: string) {
+  if (username?.trim()) {
+    const parts = username.trim().split(" ").filter(Boolean);
+
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+
+  if (email?.trim()) {
+    return email.slice(0, 2).toUpperCase();
+  }
+
+  return "FF";
+}
+
+function getActiveKey(pathname: string): NavKey {
+  if (pathname.startsWith("/dashboard")) return "dashboard";
+  if (pathname.startsWith("/tasks")) return "tasks";
+  if (pathname.startsWith("/pomodoro")) return "pomodoro";
+  if (pathname.startsWith("/stats")) return "stats";
+  if (pathname.startsWith("/achievements")) return "achievements";
+  if (pathname.startsWith("/notifications")) return "notifications";
+
+  return "dashboard";
+}
 
 export function AppShell({
-  activeKey,
   title = "FocusFlow",
   subtitle = "Produtividade & foco",
-  userEmail,
   rightActions,
-  children,
 }: {
-  activeKey: NavKey;
   title?: string;
   subtitle?: string;
-  userEmail?: string;
   rightActions?: React.ReactNode;
-  children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, logout } = useAuth();
+
+  const activeKey = useMemo(() => getActiveKey(location.pathname), [location.pathname]);
+  const initials = useMemo(
+    () => getInitials(user?.username, user?.email),
+    [user?.username, user?.email],
+  );
+
   useEffect(() => {
     if (!mobileOpen) return;
+
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
     return () => {
       document.body.style.overflow = prev;
     };
@@ -33,12 +68,21 @@ export function AppShell({
 
   useEffect(() => {
     if (!mobileOpen) return;
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setMobileOpen(false);
     };
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [mobileOpen]);
+
+  function handleShellSelect(key: NavKey) {
+    if (key === "logout") {
+      logout();
+      navigate("/login", { replace: true });
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -50,30 +94,28 @@ export function AppShell({
                 <Timer className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-base font-semibold text-slate-900">
-                  {title}
-                </p>
+                <p className="text-base font-semibold text-slate-900">{title}</p>
                 <p className="text-xs text-slate-500">{subtitle}</p>
               </div>
             </div>
 
-            <SidebarNav activeKey={activeKey} />
+            <SidebarNav activeKey={activeKey} onSelect={handleShellSelect} />
 
             <div className="mt-auto">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center gap-3">
                   <div className="grid h-10 w-10 place-items-center rounded-full bg-white ring-1 ring-slate-200">
                     <span className="text-sm font-semibold text-slate-800">
-                      SH
+                      {initials}
                     </span>
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-slate-900">
-                      Samuel Henrique
+                      {user?.username ?? "Usuário"}
                     </p>
-                    {userEmail ? (
+                    {user?.email ? (
                       <p className="truncate text-xs text-slate-500">
-                        {userEmail}
+                        {user.email}
                       </p>
                     ) : null}
                   </div>
@@ -94,9 +136,7 @@ export function AppShell({
                     <p className="truncate text-sm font-semibold text-slate-900">
                       {title}
                     </p>
-                    <p className="truncate text-xs text-slate-500">
-                      {subtitle}
-                    </p>
+                    <p className="truncate text-xs text-slate-500">{subtitle}</p>
                   </div>
                 </div>
 
@@ -149,7 +189,13 @@ export function AppShell({
                     </div>
 
                     <div className="mt-6 flex-1 overflow-y-auto pr-1">
-                      <SidebarNav activeKey={activeKey} />
+                      <SidebarNav
+                        activeKey={activeKey}
+                        onSelect={(key) => {
+                          setMobileOpen(false);
+                          handleShellSelect(key);
+                        }}
+                      />
                     </div>
 
                     <div className="mt-6">
@@ -157,16 +203,16 @@ export function AppShell({
                         <div className="flex items-center gap-3">
                           <div className="grid h-10 w-10 place-items-center rounded-full bg-white ring-1 ring-slate-200">
                             <span className="text-sm font-semibold text-slate-800">
-                              SH
+                              {initials}
                             </span>
                           </div>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-slate-900">
-                              Samuel Henrique
+                              {user?.username ?? "Usuário"}
                             </p>
-                            {userEmail ? (
+                            {user?.email ? (
                               <p className="truncate text-xs text-slate-500">
-                                {userEmail}
+                                {user.email}
                               </p>
                             ) : null}
                           </div>
@@ -183,7 +229,7 @@ export function AppShell({
                 {rightActions ? rightActions : null}
               </div>
 
-              {children}
+              <Outlet />
             </main>
           </div>
         </div>
