@@ -4,9 +4,16 @@ export type TaskStatus = "pendente" | "em_progresso" | "concluida";
 export type TaskCategory = "estudo" | "trabalho" | "pessoal";
 export type TaskPriority = "alta" | "media" | "baixa";
 
+export type TaskSubtaskApi = {
+  id?: number;
+  title: string;
+  isCompleted?: boolean;
+};
+
 export type TaskSubtask = {
   id?: number;
   title: string;
+  isCompleted?: boolean;
 };
 
 type TaskApi = {
@@ -16,14 +23,15 @@ type TaskApi = {
   category: TaskCategory;
   priority: TaskPriority;
   status: TaskStatus;
-  due_date?: string | null;
-  due_label: string;
-  pomodoro_total: number;
-  pomodoro_done: number;
+  dueDate?: string | null;
+  dueLabel: string;
+  pomodoroEstimated: number;
+  pomodoroCompleted: number;
   progress: number;
-  subtasks: TaskSubtask[];
-  created_at: string;
-  updated_at: string;
+  completedAt?: string | null;
+  subtasks: TaskSubtaskApi[];
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type Task = {
@@ -32,13 +40,14 @@ export type Task = {
   description?: string;
   category: TaskCategory;
   priority: TaskPriority;
-  dueLabel: string;
-  pomodoroDone: number;
-  pomodoroTotal: number;
-  progress?: number;
   status: TaskStatus;
-  subtasks?: string[];
+  dueLabel: string;
   dueDate?: string | null;
+  pomodoroEstimated: number;
+  pomodoroCompleted: number;
+  progress: number;
+  completedAt?: string | null;
+  subtasks: TaskSubtask[];
   createdAt: string;
   updatedAt: string;
 };
@@ -48,14 +57,31 @@ export type CreateTaskRequest = {
   description?: string;
   category: TaskCategory;
   priority: TaskPriority;
-  status?: TaskStatus;
-  due_date?: string | null;
-  pomodoro_total: number;
-  pomodoro_done?: number;
+  dueDate?: string | null;
+  pomodoroEstimated: number;
+  pomodoroCompleted?: number;
   subtasks?: TaskSubtask[];
 };
 
-export type UpdateTaskRequest = Partial<CreateTaskRequest>;
+export type UpdateTaskRequest = Partial<CreateTaskRequest> & {
+  completedAt?: string | null;
+};
+
+function mapSubtaskFromApi(subtask: TaskSubtaskApi): TaskSubtask {
+  return {
+    id: subtask.id,
+    title: subtask.title,
+    isCompleted: subtask.isCompleted ?? false,
+  };
+}
+
+function mapSubtaskToApi(subtask: TaskSubtask): TaskSubtaskApi {
+  return {
+    id: subtask.id,
+    title: subtask.title,
+    isCompleted: subtask.isCompleted ?? false,
+  };
+}
 
 function mapTaskFromApi(task: TaskApi): Task {
   return {
@@ -64,15 +90,49 @@ function mapTaskFromApi(task: TaskApi): Task {
     description: task.description ?? undefined,
     category: task.category,
     priority: task.priority,
-    dueLabel: task.due_label,
-    pomodoroDone: task.pomodoro_done,
-    pomodoroTotal: task.pomodoro_total,
-    progress: typeof task.progress === "number" ? task.progress : undefined,
     status: task.status,
-    subtasks: task.subtasks?.map((item) => item.title) ?? [],
-    dueDate: task.due_date ?? null,
-    createdAt: task.created_at,
-    updatedAt: task.updated_at,
+    dueLabel: task.dueLabel,
+    dueDate: task.dueDate ?? null,
+    pomodoroEstimated: task.pomodoroEstimated,
+    pomodoroCompleted: task.pomodoroCompleted,
+    progress: typeof task.progress === "number" ? task.progress : 0,
+    completedAt: task.completedAt ?? null,
+    subtasks: task.subtasks?.map(mapSubtaskFromApi) ?? [],
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+  };
+}
+
+function mapCreateTaskToApi(data: CreateTaskRequest): CreateTaskRequest {
+  return {
+    title: data.title,
+    description: data.description,
+    category: data.category,
+    priority: data.priority,
+    dueDate: data.dueDate,
+    pomodoroEstimated: data.pomodoroEstimated,
+    pomodoroCompleted: data.pomodoroCompleted ?? 0,
+    subtasks: data.subtasks?.map(mapSubtaskToApi) ?? [],
+  };
+}
+
+function mapUpdateTaskToApi(data: UpdateTaskRequest): UpdateTaskRequest {
+  return {
+    ...(data.title !== undefined && { title: data.title }),
+    ...(data.description !== undefined && { description: data.description }),
+    ...(data.category !== undefined && { category: data.category }),
+    ...(data.priority !== undefined && { priority: data.priority }),
+    ...(data.dueDate !== undefined && { dueDate: data.dueDate }),
+    ...(data.pomodoroEstimated !== undefined && {
+      pomodoroEstimated: data.pomodoroEstimated,
+    }),
+    ...(data.pomodoroCompleted !== undefined && {
+      pomodoroCompleted: data.pomodoroCompleted,
+    }),
+    ...(data.completedAt !== undefined && { completedAt: data.completedAt }),
+    ...(data.subtasks !== undefined && {
+      subtasks: data.subtasks.map(mapSubtaskToApi),
+    }),
   };
 }
 
@@ -82,7 +142,8 @@ export async function listTasks(): Promise<Task[]> {
 }
 
 export async function createTask(data: CreateTaskRequest): Promise<Task> {
-  const response = await api.post<TaskApi>("/tasks/", data);
+  const payload = mapCreateTaskToApi(data);
+  const response = await api.post<TaskApi>("/tasks/", payload);
   return mapTaskFromApi(response.data);
 }
 
@@ -90,7 +151,8 @@ export async function updateTask(
   id: string | number,
   data: UpdateTaskRequest,
 ): Promise<Task> {
-  const response = await api.patch<TaskApi>(`/tasks/${id}/`, data);
+  const payload = mapUpdateTaskToApi(data);
+  const response = await api.patch<TaskApi>(`/tasks/${id}/`, payload);
   return mapTaskFromApi(response.data);
 }
 

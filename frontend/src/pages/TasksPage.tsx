@@ -20,19 +20,18 @@ import {
   Trash2,
 } from "lucide-react";
 
-import {
-  CreateTaskModal,
-  type CreateTaskPayload,
-} from "@/components/CreateTaskModal";
-
+import { CreateTaskModal } from "@/components/CreateTaskModal";
 import { Badge } from "@/components/common/Badge";
 import { ProgressBar } from "@/components/common/ProgressBar";
 import { cn } from "@/lib/cn";
 import {
   listTasks,
   createTask,
+  updateTask,
   deleteTask,
   type Task,
+  type CreateTaskRequest,
+  type UpdateTaskRequest,
 } from "@/services/tasks";
 
 /* =========================
@@ -270,6 +269,7 @@ function RowMenu({
 
     window.addEventListener("mousedown", onDown);
     window.addEventListener("keydown", onKey);
+
     return () => {
       window.removeEventListener("mousedown", onDown);
       window.removeEventListener("keydown", onKey);
@@ -286,6 +286,7 @@ function RowMenu({
 
     window.addEventListener("scroll", onRelayout, true);
     window.addEventListener("resize", onRelayout);
+
     return () => {
       window.removeEventListener("scroll", onRelayout, true);
       window.removeEventListener("resize", onRelayout);
@@ -319,7 +320,7 @@ function RowMenu({
         ? createPortal(
             <div
               ref={menuRef}
-              className="fixed z-9999 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+              className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40"
               style={{ top: pos.top, left: pos.left }}
               role="menu"
               onMouseDown={(e) => e.stopPropagation()}
@@ -384,14 +385,17 @@ function CategoryIcon({ category }: { category: Task["category"] }) {
   return <BookOpen className="h-4 w-4" />;
 }
 
+
 function TaskRow({
   task,
   onEdit,
   onDelete,
+  onToggleComplete,
 }: {
   task: Task;
   onEdit: () => void;
   onDelete: () => void;
+  onToggleComplete: () => void;
 }) {
   const isDone = task.status === "concluida";
   const isPending = task.status === "pendente";
@@ -423,7 +427,17 @@ function TaskRow({
         )}
       >
         <div className="flex min-w-0 items-start gap-3">
-          <div className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-200">
+          <button
+            type="button"
+            onClick={onToggleComplete}
+            className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-200"
+            aria-label={
+              isDone
+                ? "Desmarcar tarefa concluída"
+                : "Marcar tarefa como concluída"
+            }
+            title={isDone ? "Desmarcar concluída" : "Marcar concluída"}
+          >
             {isDone ? (
               <CheckCircle2 className="h-6 w-6 text-emerald-500" />
             ) : (
@@ -434,7 +448,7 @@ function TaskRow({
                 )}
               />
             )}
-          </div>
+          </button>
 
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-slate-900">
@@ -472,7 +486,7 @@ function TaskRow({
               <Badge tone="neutral">
                 <span className="inline-flex items-center gap-1">
                   <Timer className="h-4 w-4" />
-                  {task.pomodoroDone}/{task.pomodoroTotal}
+                  {task.pomodoroCompleted}/{task.pomodoroEstimated}
                 </span>
               </Badge>
             </div>
@@ -486,7 +500,7 @@ function TaskRow({
                   />
                 </div>
                 <span className="text-xs font-medium text-slate-600">
-                  {Math.round(task.progress * 100)}%
+                  {task.progress}%
                 </span>
               </div>
             ) : null}
@@ -496,7 +510,7 @@ function TaskRow({
                 <span className="font-semibold text-slate-800">
                   Subtarefas:
                 </span>{" "}
-                {task.subtasks.slice(0, 3).join(" • ")}
+                {task.subtasks.slice(0, 3).map((subtask) => subtask.title).join(" • ")}
                 {task.subtasks.length > 3 ? " • ..." : ""}
               </div>
             ) : null}
@@ -522,6 +536,9 @@ function TaskRow({
 
 export default function TasksPage() {
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [tab, setTab] = useState<
     "todas" | "pendentes" | "em_progresso" | "concluidas"
@@ -568,10 +585,12 @@ export default function TasksPage() {
     let list = [...tasks];
 
     if (tab === "pendentes") list = list.filter((t) => t.status === "pendente");
-    if (tab === "em_progresso")
+    if (tab === "em_progresso") {
       list = list.filter((t) => t.status === "em_progresso");
-    if (tab === "concluidas")
+    }
+    if (tab === "concluidas") {
       list = list.filter((t) => t.status === "concluida");
+    }
 
     if (q.trim()) {
       const qq = q.toLowerCase();
@@ -649,17 +668,82 @@ export default function TasksPage() {
       },
     ];
 
+  async function handleCreateTask(payload: CreateTaskRequest | UpdateTaskRequest) {
+    try {
+      setIsSubmitting(true);
+
+      const newTask = await createTask(payload as CreateTaskRequest);
+
+      setTasks((prev) => [newTask, ...prev]);
+      setCreateOpen(false);
+    } catch {
+      alert("Não foi possível criar a tarefa.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function handleOpenEdit(task: Task) {
+    setSelectedTask(task);
+    setEditOpen(true);
+  }
+
+  async function handleEditTask(payload: CreateTaskRequest | UpdateTaskRequest) {
+    if (!selectedTask) return;
+
+    try {
+      setIsSubmitting(true);
+
+      const updated = await updateTask(
+        selectedTask.id,
+        payload as UpdateTaskRequest,
+      );
+
+      setTasks((prev) =>
+        prev.map((task) => (task.id === updated.id ? updated : task)),
+      );
+
+      setSelectedTask(updated);
+      setEditOpen(false);
+    } catch {
+      alert("Não foi possível atualizar a tarefa.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   async function handleDeleteTask(taskId: string) {
     try {
       await deleteTask(taskId);
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
+
+      if (selectedTask?.id === taskId) {
+        setSelectedTask(null);
+        setEditOpen(false);
+      }
     } catch {
       alert("Não foi possível excluir a tarefa.");
     }
   }
 
-  function handleEditTask(taskId: string) {
-    alert(`Editar tarefa: ${taskId} (implementar modal de edição)`);
+  async function handleToggleComplete(task: Task) {
+    try {
+      const isCurrentlyDone = task.status === "concluida";
+
+      const updated = await updateTask(task.id, {
+        completedAt: isCurrentlyDone ? null : new Date().toISOString(),
+      });
+
+      setTasks((prev) =>
+        prev.map((item) => (item.id === updated.id ? updated : item)),
+      );
+
+      if (selectedTask?.id === updated.id) {
+        setSelectedTask(updated);
+      }
+    } catch {
+      alert("Não foi possível atualizar a conclusão da tarefa.");
+    }
   }
 
   return (
@@ -784,8 +868,9 @@ export default function TasksPage() {
               <TaskRow
                 key={t.id}
                 task={t}
-                onEdit={() => handleEditTask(t.id)}
+                onEdit={() => handleOpenEdit(t)}
                 onDelete={() => handleDeleteTask(t.id)}
+                onToggleComplete={() => handleToggleComplete(t)}
               />
             ))}
           </div>
@@ -795,27 +880,21 @@ export default function TasksPage() {
       <CreateTaskModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreate={async (payload: CreateTaskPayload) => {
-          try {
-            const newTask = await createTask({
-              title: payload.title,
-              description: payload.description,
-              category: payload.category,
-              priority: payload.priority,
-              status: "pendente",
-              due_date: payload.dueDate,
-              pomodoro_total: payload.pomodoros,
-              pomodoro_done: 0,
-              subtasks:
-                payload.subtasks?.map((title) => ({ title })) ?? [],
-            });
+        onSubmit={handleCreateTask}
+        mode="create"
+        isSubmitting={isSubmitting}
+      />
 
-            setTasks((prev) => [newTask, ...prev]);
-            setCreateOpen(false);
-          } catch {
-            alert("Não foi possível criar a tarefa.");
-          }
+      <CreateTaskModal
+        open={editOpen}
+        onClose={() => {
+          setEditOpen(false);
+          setSelectedTask(null);
         }}
+        onSubmit={handleEditTask}
+        mode="edit"
+        initialData={selectedTask}
+        isSubmitting={isSubmitting}
       />
     </>
   );
