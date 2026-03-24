@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import {
+  AlertTriangle,
   CheckSquare,
   X,
   ChevronDown,
@@ -15,6 +16,12 @@ import {
   Pause,
   RotateCcw,
   SkipForward,
+  Minus,
+  Plus,
+  Timer,
+  Coffee,
+  Moon,
+  RefreshCcw,
 } from "lucide-react";
 
 type PomodoroMode = "focus" | "short_break" | "long_break";
@@ -45,11 +52,40 @@ type TodayMetrics = {
   total_minutes: number;
 };
 
+type PomodoroLimit = {
+  min: number;
+  recommendedMax: number;
+  absoluteMax: number;
+};
+
 const STORAGE_KEYS = {
   settings: "pomodoro_settings",
   stats: "pomodoro_stats",
   today: "pomodoro_today_metrics",
 };
+
+const LIMITS = {
+  focus_duration: {
+    min: 15,
+    recommendedMax: 60,
+    absoluteMax: 90,
+  },
+  short_break: {
+    min: 3,
+    recommendedMax: 10,
+    absoluteMax: 15,
+  },
+  long_break: {
+    min: 15,
+    recommendedMax: 30,
+    absoluteMax: 40,
+  },
+  cycles_before_long_break: {
+    min: 1,
+    recommendedMax: 8,
+    absoluteMax: 12,
+  },
+} satisfies Record<keyof PomodoroSettings, PomodoroLimit>;
 
 const DEFAULT_SETTINGS: PomodoroSettings = {
   focus_duration: 25,
@@ -205,7 +241,10 @@ function SettingsModal({
       aria-modal="true"
       aria-label={title}
     >
-      <div className="absolute inset-0 bg-black/45" onClick={onClose} />
+      <div
+        className="absolute inset-0 cursor-pointer bg-black/45"
+        onClick={onClose}
+      />
 
       <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6">
@@ -213,7 +252,7 @@ function SettingsModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
+            className="grid h-10 w-10 cursor-pointer place-items-center rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
             aria-label="Fechar"
           >
             <X className="h-5 w-5" />
@@ -226,27 +265,6 @@ function SettingsModal({
       </div>
     </div>,
     document.body,
-  );
-}
-
-function SettingField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div>
-      <label className="text-sm font-semibold text-slate-800">{label}</label>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none ring-blue-200 focus:border-blue-500 focus:bg-white focus:ring-4"
-      />
-    </div>
   );
 }
 
@@ -264,8 +282,233 @@ function writeLocalStorage<T>(key: string, value: T) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // ignora erros de storage
+    //
   }
+}
+
+function toPositiveInteger(value: string, fallback: number) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.floor(parsed);
+}
+
+function normalizeSettings(source: PomodoroSettings): PomodoroSettings {
+  return {
+    focus_duration: Math.min(
+      Math.max(source.focus_duration, LIMITS.focus_duration.min),
+      LIMITS.focus_duration.absoluteMax,
+    ),
+    short_break: Math.min(
+      Math.max(source.short_break, LIMITS.short_break.min),
+      LIMITS.short_break.absoluteMax,
+    ),
+    long_break: Math.min(
+      Math.max(source.long_break, LIMITS.long_break.min),
+      LIMITS.long_break.absoluteMax,
+    ),
+    cycles_before_long_break: Math.min(
+      Math.max(
+        source.cycles_before_long_break,
+        LIMITS.cycles_before_long_break.min,
+      ),
+      LIMITS.cycles_before_long_break.absoluteMax,
+    ),
+  };
+}
+
+function validateSettingValue(
+  label: string,
+  rawValue: string,
+  limits: PomodoroLimit,
+) {
+  if (rawValue.trim() === "") {
+    return `${label} é obrigatório.`;
+  }
+
+  const parsed = Number(rawValue);
+
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+    return `${label} deve ser um número inteiro.`;
+  }
+
+  if (parsed < limits.min) {
+    return `${label} deve ser no mínimo ${limits.min}.`;
+  }
+
+  if (parsed > limits.absoluteMax) {
+    return `${label} deve ser no máximo ${limits.absoluteMax}.`;
+  }
+
+  return null;
+}
+
+function getRecommendedWarning(
+  label: string,
+  rawValue: string,
+  limits: PomodoroLimit,
+) {
+  const parsed = Number(rawValue);
+
+  if (!Number.isFinite(parsed)) return null;
+  if (parsed > limits.recommendedMax && parsed <= limits.absoluteMax) {
+    return `${label} acima de ${limits.recommendedMax} não é o mais recomendado, embora ainda seja permitido.`;
+  }
+
+  return null;
+}
+
+function getFieldStatusColor({
+  error,
+  warning,
+}: {
+  error?: string | null;
+  warning?: string | null;
+}) {
+  if (error) return "border-red-300 bg-red-50";
+  if (warning) return "border-amber-300 bg-amber-50";
+  return "border-slate-200 bg-white";
+}
+
+function SettingField({
+  icon,
+  label,
+  description,
+  value,
+  onChange,
+  min,
+  recommendedMax,
+  absoluteMax,
+  helperText,
+  suffix,
+  error,
+  warning,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+  value: string;
+  onChange: (v: string) => void;
+  min: number;
+  recommendedMax: number;
+  absoluteMax: number;
+  helperText?: string;
+  suffix?: string;
+  error?: string | null;
+  warning?: string | null;
+}) {
+  const numericValue = Number(value);
+  const safeValue = Number.isFinite(numericValue) ? numericValue : min;
+
+  function handleStep(delta: number) {
+    const next = Math.min(absoluteMax, Math.max(min, safeValue + delta));
+    onChange(String(next));
+  }
+
+  return (
+    <div
+      className={cx(
+        "rounded-2xl border p-4 transition",
+        getFieldStatusColor({ error, warning }),
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-700">
+          {icon}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-sm font-semibold text-slate-800">
+              {label}
+            </label>
+
+            {!error && !warning && (
+              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                Dentro do limite
+              </span>
+            )}
+
+            {warning && !error && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+                Acima do recomendado
+              </span>
+            )}
+
+            {error && (
+              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700">
+                Valor inválido
+              </span>
+            )}
+          </div>
+
+          <p className="mt-1 text-xs text-slate-500">{description}</p>
+
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleStep(-1)}
+              className="grid h-10 w-10 cursor-pointer place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+              aria-label={`Diminuir ${label}`}
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+
+            <div className="relative flex-1">
+              <input
+                type="number"
+                inputMode="numeric"
+                min={min}
+                max={absoluteMax}
+                step={1}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className={cx(
+                  "w-full rounded-xl border bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none ring-blue-200 focus:bg-white focus:ring-4",
+                  error
+                    ? "border-red-300 focus:border-red-500"
+                    : "border-slate-200 focus:border-blue-500",
+                )}
+              />
+              {suffix && (
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400">
+                  {suffix}
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleStep(1)}
+              className="grid h-10 w-10 cursor-pointer place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+              aria-label={`Aumentar ${label}`}
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+
+          <p className="mt-2 text-xs text-slate-500">
+            Mínimo: <strong>{min}</strong> · Recomendado até:{" "}
+            <strong>{recommendedMax}</strong> · Máximo absoluto:{" "}
+            <strong>{absoluteMax}</strong>
+            {helperText ? ` · ${helperText}` : ""}
+          </p>
+
+          {warning && !error && (
+            <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{warning}</span>
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              {error}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function PomodoroTimer({
@@ -297,6 +540,75 @@ export default function PomodoroTimer({
 
   const isFocusMode = mode === "focus";
   const isFocusSessionActive = mode === "focus" && isRunning;
+
+  const focusError = validateSettingValue(
+    "Foco",
+    focusMin,
+    LIMITS.focus_duration,
+  );
+  const shortBreakError = validateSettingValue(
+    "Pausa curta",
+    shortBreakMin,
+    LIMITS.short_break,
+  );
+  const longBreakError = validateSettingValue(
+    "Pausa longa",
+    longBreakMin,
+    LIMITS.long_break,
+  );
+  const cyclesError = validateSettingValue(
+    "Ciclos",
+    cyclesBeforeLong,
+    LIMITS.cycles_before_long_break,
+  );
+
+  const focusWarning = getRecommendedWarning(
+    "Foco",
+    focusMin,
+    LIMITS.focus_duration,
+  );
+  const shortBreakWarning = getRecommendedWarning(
+    "Pausa curta",
+    shortBreakMin,
+    LIMITS.short_break,
+  );
+  const longBreakWarning = getRecommendedWarning(
+    "Pausa longa",
+    longBreakMin,
+    LIMITS.long_break,
+  );
+  const cyclesWarning = getRecommendedWarning(
+    "Ciclos",
+    cyclesBeforeLong,
+    LIMITS.cycles_before_long_break,
+  );
+
+  const hasSettingsError = Boolean(
+    focusError || shortBreakError || longBreakError || cyclesError,
+  );
+
+  const previewSettings = useMemo(
+    () =>
+      normalizeSettings({
+        focus_duration: toPositiveInteger(focusMin, settingsData.focus_duration),
+        short_break: toPositiveInteger(shortBreakMin, settingsData.short_break),
+        long_break: toPositiveInteger(longBreakMin, settingsData.long_break),
+        cycles_before_long_break: toPositiveInteger(
+          cyclesBeforeLong,
+          settingsData.cycles_before_long_break,
+        ),
+      }),
+    [
+      focusMin,
+      shortBreakMin,
+      longBreakMin,
+      cyclesBeforeLong,
+      settingsData.focus_duration,
+      settingsData.short_break,
+      settingsData.long_break,
+      settingsData.cycles_before_long_break,
+    ],
+  );
 
   const getSecondsForMode = useCallback(
     (targetMode: PomodoroMode, source = settingsData) => {
@@ -343,10 +655,12 @@ export default function PomodoroTimer({
     try {
       setLoading(true);
 
-      const savedSettings = readLocalStorage<PomodoroSettings>(
+      const savedSettingsRaw = readLocalStorage<PomodoroSettings>(
         STORAGE_KEYS.settings,
         DEFAULT_SETTINGS,
       );
+
+      const savedSettings = normalizeSettings(savedSettingsRaw);
 
       const savedStats = readLocalStorage<UserStats>(
         STORAGE_KEYS.stats,
@@ -385,6 +699,7 @@ export default function PomodoroTimer({
         setTimeLeft(savedSettings.long_break * 60);
       }
 
+      writeLocalStorage(STORAGE_KEYS.settings, savedSettings);
       writeLocalStorage(STORAGE_KEYS.today, normalizedToday);
     } finally {
       setLoading(false);
@@ -400,10 +715,7 @@ export default function PomodoroTimer({
         total_points: prev.total_points + 10,
         total_focus_minutes: prev.total_focus_minutes + settingsData.focus_duration,
         total_pomodoros: prev.total_pomodoros + 1,
-        current_streak:
-          prev.last_active_date === today || prev.last_active_date === null
-            ? prev.current_streak + 1
-            : prev.current_streak + 1,
+        current_streak: prev.current_streak + 1,
         longest_streak: Math.max(prev.longest_streak, prev.current_streak + 1),
         last_active_date: today,
       };
@@ -532,17 +844,20 @@ export default function PomodoroTimer({
     setTimeLeft(settingsData.focus_duration * 60);
   }
 
-  function toPositiveInteger(value: string, fallback: number) {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed) || parsed < 1) return fallback;
-    return Math.floor(parsed);
+  function resetFormToCurrentSettings() {
+    setFocusMin(String(settingsData.focus_duration));
+    setShortBreakMin(String(settingsData.short_break));
+    setLongBreakMin(String(settingsData.long_break));
+    setCyclesBeforeLong(String(settingsData.cycles_before_long_break));
   }
 
   async function handleSaveSettings() {
+    if (hasSettingsError) return;
+
     try {
       setSavingSettings(true);
 
-      const payload: PomodoroSettings = {
+      const payload: PomodoroSettings = normalizeSettings({
         focus_duration: toPositiveInteger(
           focusMin,
           settingsData.focus_duration || 25,
@@ -559,7 +874,7 @@ export default function PomodoroTimer({
           cyclesBeforeLong,
           settingsData.cycles_before_long_break || 4,
         ),
-      };
+      });
 
       setSettingsData(payload);
       writeLocalStorage(STORAGE_KEYS.settings, payload);
@@ -602,7 +917,7 @@ export default function PomodoroTimer({
                 </div>
 
                 <button
-                  className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                  className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
                   type="button"
                   onClick={() => setSettingsOpen(true)}
                 >
@@ -623,7 +938,7 @@ export default function PomodoroTimer({
               </div>
 
               <button
-                className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
                 type="button"
                 onClick={() => setSettingsOpen(true)}
               >
@@ -645,7 +960,7 @@ export default function PomodoroTimer({
           >
             <button
               type="button"
-              className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-3 text-left"
+              className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-3 text-left"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-700">
@@ -711,7 +1026,7 @@ export default function PomodoroTimer({
 
           <div className="mt-6 flex items-center gap-4 sm:mt-8">
             <button
-              className="grid h-12 w-12 place-items-center rounded-full bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+              className="grid h-12 w-12 cursor-pointer place-items-center rounded-full bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
               type="button"
               aria-label="Reiniciar"
               onClick={resetCurrentMode}
@@ -720,7 +1035,7 @@ export default function PomodoroTimer({
             </button>
 
             <button
-              className="grid h-16 w-16 place-items-center rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-700"
+              className="grid h-16 w-16 cursor-pointer place-items-center rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-700"
               type="button"
               aria-label={isRunning ? "Pausar" : "Iniciar"}
               onClick={toggleTimer}
@@ -733,7 +1048,7 @@ export default function PomodoroTimer({
             </button>
 
             <button
-              className="grid h-12 w-12 place-items-center rounded-full bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+              className="grid h-12 w-12 cursor-pointer place-items-center rounded-full bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
               type="button"
               aria-label="Próximo"
               onClick={handleSkip}
@@ -818,34 +1133,155 @@ export default function PomodoroTimer({
           title="Configurações do Pomodoro"
         >
           <div className="space-y-5">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Resumo atual
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Veja rapidamente como sua rotina ficará com os valores abaixo.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={resetFormToCurrentSettings}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                  Restaurar atual
+                </button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-xl bg-white px-3 py-3 ring-1 ring-slate-200">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Foco
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
+                    {previewSettings.focus_duration} min
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-white px-3 py-3 ring-1 ring-slate-200">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Curta
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
+                    {previewSettings.short_break} min
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-white px-3 py-3 ring-1 ring-slate-200">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Longa
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
+                    {previewSettings.long_break} min
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-white px-3 py-3 ring-1 ring-slate-200">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Ciclos
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
+                    {previewSettings.cycles_before_long_break}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <SettingField
-              label="Duração do Foco (min)"
+              icon={<Timer className="h-5 w-5" />}
+              label="Duração do foco"
+              description="Tempo principal de concentração antes de iniciar uma pausa."
               value={focusMin}
               onChange={setFocusMin}
+              min={LIMITS.focus_duration.min}
+              recommendedMax={LIMITS.focus_duration.recommendedMax}
+              absoluteMax={LIMITS.focus_duration.absoluteMax}
+              suffix="min"
+              error={focusError}
+              warning={focusWarning}
             />
 
             <SettingField
-              label="Pausa Curta (min)"
+              icon={<Coffee className="h-5 w-5" />}
+              label="Pausa curta"
+              description="Pequeno intervalo entre sessões de foco."
               value={shortBreakMin}
               onChange={setShortBreakMin}
+              min={LIMITS.short_break.min}
+              recommendedMax={LIMITS.short_break.recommendedMax}
+              absoluteMax={LIMITS.short_break.absoluteMax}
+              suffix="min"
+              error={shortBreakError}
+              warning={shortBreakWarning}
             />
 
             <SettingField
-              label="Pausa Longa (min)"
+              icon={<Moon className="h-5 w-5" />}
+              label="Pausa longa"
+              description="Descanso maior após completar alguns ciclos."
               value={longBreakMin}
               onChange={setLongBreakMin}
+              min={LIMITS.long_break.min}
+              recommendedMax={LIMITS.long_break.recommendedMax}
+              absoluteMax={LIMITS.long_break.absoluteMax}
+              helperText="faixa padrão sugerida: 15 a 20"
+              suffix="min"
+              error={longBreakError}
+              warning={longBreakWarning}
             />
 
             <SettingField
+              icon={<RotateCcw className="h-5 w-5" />}
               label="Ciclos antes da pausa longa"
+              description="Quantidade de sessões de foco antes de ativar a pausa longa."
               value={cyclesBeforeLong}
               onChange={setCyclesBeforeLong}
+              min={LIMITS.cycles_before_long_break.min}
+              recommendedMax={LIMITS.cycles_before_long_break.recommendedMax}
+              absoluteMax={LIMITS.cycles_before_long_break.absoluteMax}
+              suffix="ciclos"
+              error={cyclesError}
+              warning={cyclesWarning}
             />
 
-            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              Regras atuais:
+              <div className="mt-2 space-y-1 text-xs sm:text-sm">
+                <p>
+                  <strong>Foco:</strong> mínimo 15, padrão 25, recomendado até 60,
+                  máximo absoluto 90
+                </p>
+                <p>
+                  <strong>Pausa curta:</strong> mínimo 3, padrão 5, recomendado até
+                  10, máximo absoluto 15
+                </p>
+                <p>
+                  <strong>Pausa longa:</strong> mínimo 15, padrão 15–20,
+                  recomendado até 30, máximo absoluto 40
+                </p>
+                <p>
+                  <strong>Ciclos:</strong> mínimo 1, padrão 4, recomendado até 8,
+                  máximo absoluto 12
+                </p>
+              </div>
+            </div>
+
+            {hasSettingsError && (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                Corrija os campos inválidos antes de salvar.
+              </div>
+            )}
+
+            <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end">
               <button
                 type="button"
-                className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+                className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer"
                 onClick={() => setSettingsOpen(false)}
               >
                 Cancelar
@@ -853,9 +1289,9 @@ export default function PomodoroTimer({
 
               <button
                 type="button"
-                className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                 onClick={handleSaveSettings}
-                disabled={savingSettings}
+                disabled={savingSettings || hasSettingsError}
               >
                 {savingSettings ? "Salvando..." : "Salvar Configurações"}
               </button>
