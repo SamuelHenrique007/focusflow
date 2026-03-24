@@ -1,6 +1,6 @@
 export interface User {
   id: number;
-  username: string;
+  name: string;
   email: string;
 }
 
@@ -10,15 +10,14 @@ export interface AuthTokens {
 }
 
 export interface LoginPayload {
-  username: string;
+  email: string;
   password: string;
 }
 
 export interface RegisterPayload {
-  username: string;
+  name: string;
   email: string;
   password: string;
-  password2?: string;
 }
 
 export interface AuthContextType {

@@ -265,7 +265,7 @@ function ModalPortal({
             <button
               type="button"
               onClick={onClose}
-              className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
+              className="cursor-pointer grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
               aria-label="Fechar"
             >
               <X className="h-5 w-5" />
@@ -357,7 +357,7 @@ function Toggle({
       type="button"
       onClick={() => onChange(!checked)}
       className={cx(
-        "relative inline-flex h-7 w-12 items-center rounded-full transition",
+        "cursor-pointer relative inline-flex h-7 w-12 items-center rounded-full transition",
         checked ? "bg-blue-600" : "bg-slate-200",
       )}
       aria-label="Alternar"
@@ -410,7 +410,7 @@ function SelectPro<T extends string>({
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cx(
-          "flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm outline-none",
+          "cursor-pointer flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm outline-none",
           "ring-blue-200 focus:border-blue-500 focus:ring-4",
         )}
         aria-haspopup="listbox"
@@ -452,7 +452,7 @@ function SelectPro<T extends string>({
                     setOpen(false);
                   }}
                   className={cx(
-                    "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition",
+                    "cursor-pointer flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition",
                     isActive
                       ? "bg-blue-50 text-blue-800"
                       : "text-slate-800 hover:bg-slate-50",
@@ -534,7 +534,7 @@ function DateTimePicker({
         type="button"
         onClick={handleOpen}
         className={cx(
-          "mt-2 flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold shadow-sm outline-none",
+          "cursor-pointer mt-2 flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold shadow-sm outline-none",
           "ring-blue-200 focus:border-blue-500 focus:ring-4",
         )}
         aria-haspopup="dialog"
@@ -612,7 +612,7 @@ function DateTimePickerContent({
           <button
             type="button"
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
+            className="cursor-pointer grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
             aria-label="Fechar"
           >
             <X className="h-4 w-4" />
@@ -628,7 +628,7 @@ function DateTimePickerContent({
                 setTempDate(d);
                 setTempTime("");
               }}
-              className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+              className="cursor-pointer rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
             >
               Hoje
             </button>
@@ -640,7 +640,7 @@ function DateTimePickerContent({
                 d.setDate(d.getDate() + 1);
                 setTempDate(d);
               }}
-              className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+              className="cursor-pointer rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
             >
               Amanhã
             </button>
@@ -651,7 +651,7 @@ function DateTimePickerContent({
                 setTempDate(null);
                 setTempTime("");
               }}
-              className="ml-auto rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+              className="cursor-pointer ml-auto rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100"
             >
               Limpar
             </button>
@@ -661,7 +661,7 @@ function DateTimePickerContent({
             <button
               type="button"
               onClick={() => setView((v) => addMonths(v, -1))}
-              className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+              className="cursor-pointer rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200"
             >
               ←
             </button>
@@ -673,7 +673,7 @@ function DateTimePickerContent({
             <button
               type="button"
               onClick={() => setView((v) => addMonths(v, 1))}
-              className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+              className="cursor-pointer rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200"
             >
               →
             </button>
@@ -692,6 +692,7 @@ function DateTimePickerContent({
             {days.map((d) => {
               const muted = !isSameMonth(d, view);
               const selected = tempDate ? isSameDay(d, tempDate) : false;
+              const isToday = isSameDay(d, new Date());
 
               return (
                 <button
@@ -699,10 +700,13 @@ function DateTimePickerContent({
                   type="button"
                   onClick={() => setTempDate(d)}
                   className={cx(
-                    "h-8 rounded-lg text-[11px] font-semibold transition",
+                    "cursor-pointer h-8 rounded-lg text-[11px] font-semibold transition",
                     muted
                       ? "text-slate-400 hover:bg-slate-50"
                       : "text-slate-800 hover:bg-slate-100",
+                    isToday
+                     ? "bg-blue-200 + ring-blue-300"
+                     : "",
                     selected
                       ? "bg-blue-600 text-white hover:bg-blue-700"
                       : "",
@@ -724,7 +728,7 @@ function DateTimePickerContent({
               type="time"
               value={tempTime}
               onChange={(e) => setTempTime(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none ring-blue-200 focus:border-blue-500 focus:ring-4"
+              className="cursor-pointer w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none ring-blue-200 focus:border-blue-500 focus:ring-4"
             />
           </div>
 
@@ -732,7 +736,7 @@ function DateTimePickerContent({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+              className="cursor-pointer rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
             >
               Cancelar
             </button>
@@ -740,7 +744,7 @@ function DateTimePickerContent({
             <button
               type="button"
               onClick={() => onApply(tempDate, tempTime)}
-              className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+              className="cursor-pointer rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
             >
               Aplicar
             </button>
@@ -1069,7 +1073,7 @@ function CreateTaskModalForm({
                       };
                     })
                   }
-                  className="grid h-11 w-11 place-items-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+                  className="cursor-pointer grid h-11 w-11 place-items-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50"
                   aria-label="Remover subtarefa"
                   title="Remover"
                 >
@@ -1094,7 +1098,7 @@ function CreateTaskModalForm({
                     ],
                   }))
                 }
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
               >
                 <Plus className="h-4 w-4" />
                 Adicionar
@@ -1109,7 +1113,7 @@ function CreateTaskModalForm({
           type="button"
           onClick={onClose}
           disabled={isSubmitting}
-          className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="cursor-pointer rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Cancelar
         </button>
@@ -1119,7 +1123,7 @@ function CreateTaskModalForm({
           disabled={!canSubmit || isSubmitting}
           onClick={handleSubmit}
           className={cx(
-            "inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-sm",
+            "cursor-pointer inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-sm",
             canSubmit && !isSubmitting
               ? "bg-blue-600 hover:bg-blue-700"
               : "cursor-not-allowed bg-slate-300",

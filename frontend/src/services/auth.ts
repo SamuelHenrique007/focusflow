@@ -1,7 +1,7 @@
 import { api } from "./api";
 
 export type RegisterPayload = {
-  username: string;
+  name: string;
   email: string;
   password: string;
 };
@@ -13,7 +13,7 @@ export type LoginPayload = {
 
 export type User = {
   id: number;
-  username: string;
+  name: string;
   email: string;
 };
 

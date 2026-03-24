@@ -98,7 +98,7 @@ function SelectPro<T extends string>({
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm outline-none",
+          "cursor-pointer flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition hover:border-slate-300 hover:bg-slate-50",
           "ring-blue-200 focus:border-blue-500 focus:ring-4",
         )}
         aria-haspopup="listbox"
@@ -140,7 +140,7 @@ function SelectPro<T extends string>({
                     setOpen(false);
                   }}
                   className={cn(
-                    "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition",
+                    "cursor-pointer flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition",
                     isActive
                       ? "bg-blue-50 text-blue-800"
                       : "text-slate-800 hover:bg-slate-50",
@@ -193,13 +193,18 @@ function SelectPro<T extends string>({
    Row Menu
 ========================= */
 function RowMenu({
+  open,
+  onOpen,
+  onClose,
   onEdit,
   onDelete,
 }: {
+  open: boolean;
+  onOpen: () => void;
+  onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -244,10 +249,8 @@ function RowMenu({
     const p = computePos();
     if (!p) return;
     setPos(p);
-    setOpen(true);
+    onOpen();
   };
-
-  const closeMenu = () => setOpen(false);
 
   useEffect(() => {
     if (!open) return;
@@ -260,11 +263,11 @@ function RowMenu({
       if (b && b.contains(t)) return;
       if (m && m.contains(t)) return;
 
-      closeMenu();
+      onClose();
     };
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeMenu();
+      if (e.key === "Escape") onClose();
     };
 
     window.addEventListener("mousedown", onDown);
@@ -274,7 +277,7 @@ function RowMenu({
       window.removeEventListener("mousedown", onDown);
       window.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -301,13 +304,13 @@ function RowMenu({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          if (open) closeMenu();
+          if (open) onClose();
           else openMenu();
         }}
         onMouseDown={(e) => {
           e.stopPropagation();
         }}
-        className="grid h-10 w-10 place-items-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+        className="cursor-pointer grid h-10 w-10 place-items-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
         aria-label="Mais ações"
         title="Mais"
         aria-haspopup="menu"
@@ -320,57 +323,55 @@ function RowMenu({
         ? createPortal(
             <div
               ref={menuRef}
-              className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40"
+              className="fixed z-[9999] w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
               style={{ top: pos.top, left: pos.left }}
               role="menu"
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    closeMenu();
-                    onEdit();
-                  }}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50"
-                  role="menuitem"
-                >
-                  <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-50 ring-1 ring-slate-200 text-slate-600">
-                    <Pencil className="h-4 w-4" />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onClose();
+                  onEdit();
+                }}
+                className="cursor-pointer flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                role="menuitem"
+              >
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-50 ring-1 ring-slate-200 text-slate-600">
+                  <Pencil className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block">Editar</span>
+                  <span className="block text-xs font-medium text-slate-500">
+                    Alterar detalhes da tarefa
                   </span>
-                  <span className="min-w-0">
-                    <span className="block">Editar</span>
-                    <span className="block text-xs font-medium text-slate-500">
-                      Alterar detalhes da tarefa
-                    </span>
-                  </span>
-                </button>
+                </span>
+              </button>
 
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    closeMenu();
-                    onDelete();
-                  }}
-                  className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50"
-                  role="menuitem"
-                >
-                  <span className="grid h-9 w-9 place-items-center rounded-xl bg-rose-50 ring-1 ring-rose-100 text-rose-700">
-                    <Trash2 className="h-4 w-4" />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onClose();
+                  onDelete();
+                }}
+                className="cursor-pointer mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                role="menuitem"
+              >
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-rose-50 ring-1 ring-rose-100 text-rose-700">
+                  <Trash2 className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block">Excluir</span>
+                  <span className="block text-xs font-medium text-rose-600/80">
+                    Remover permanentemente
                   </span>
-                  <span className="min-w-0">
-                    <span className="block">Excluir</span>
-                    <span className="block text-xs font-medium text-rose-600/80">
-                      Remover permanentemente
-                    </span>
-                  </span>
-                </button>
-              </div>
+                </span>
+              </button>
             </div>,
             document.body,
           )
@@ -385,17 +386,22 @@ function CategoryIcon({ category }: { category: Task["category"] }) {
   return <BookOpen className="h-4 w-4" />;
 }
 
-
 function TaskRow({
   task,
   onEdit,
   onDelete,
   onToggleComplete,
+  menuOpen,
+  onOpenMenu,
+  onCloseMenu,
 }: {
   task: Task;
   onEdit: () => void;
   onDelete: () => void;
   onToggleComplete: () => void;
+  menuOpen: boolean;
+  onOpenMenu: () => void;
+  onCloseMenu: () => void;
 }) {
   const isDone = task.status === "concluida";
   const isPending = task.status === "pendente";
@@ -415,7 +421,7 @@ function TaskRow({
         : "neutral";
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md">
       {isPending ? (
         <div className="absolute left-0 top-0 h-full w-1.5 bg-rose-500" />
       ) : null}
@@ -430,7 +436,7 @@ function TaskRow({
           <button
             type="button"
             onClick={onToggleComplete}
-            className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-200"
+            className="cursor-pointer mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-200 transition hover:bg-white"
             aria-label={
               isDone
                 ? "Desmarcar tarefa concluída"
@@ -443,7 +449,7 @@ function TaskRow({
             ) : (
               <Circle
                 className={cn(
-                  "h-6 w-6",
+                  "h-6 w-6 transition",
                   isPending ? "text-rose-400" : "text-blue-500",
                 )}
               />
@@ -456,7 +462,7 @@ function TaskRow({
             </p>
 
             {task.description ? (
-              <p className="mt-1 line-clamp-1 text-sm text-slate-500">
+              <p className="mt-1 line-clamp-2 text-sm text-slate-500">
                 {task.description}
               </p>
             ) : null}
@@ -510,24 +516,85 @@ function TaskRow({
                 <span className="font-semibold text-slate-800">
                   Subtarefas:
                 </span>{" "}
-                {task.subtasks.slice(0, 3).map((subtask) => subtask.title).join(" • ")}
+                {task.subtasks
+                  .slice(0, 3)
+                  .map((subtask) => subtask.title)
+                  .join(" • ")}
                 {task.subtasks.length > 3 ? " • ..." : ""}
               </div>
             ) : null}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div
+          className={cn(
+            "flex items-center gap-2 transition-all duration-200",
+            "opacity-0 translate-y-1 pointer-events-none",
+            "group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto",
+            menuOpen ? "opacity-100 translate-y-0 pointer-events-auto" : "",
+          )}
+        >
           <button
             type="button"
-            className="grid h-10 w-10 place-items-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+            className="cursor-pointer grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition hover:bg-blue-100"
             aria-label="Iniciar pomodoro nesta tarefa"
             title="Iniciar"
           >
             <Play className="h-5 w-5" />
           </button>
 
-          <RowMenu onEdit={onEdit} onDelete={onDelete} />
+          <RowMenu
+            open={menuOpen}
+            onOpen={onOpenMenu}
+            onClose={onCloseMenu}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================
+   Empty State
+========================= */
+function EmptyTasksState({
+  hasFilters,
+  onClearFilters,
+}: {
+  hasFilters: boolean;
+  onCreateTask: () => void;
+  onClearFilters: () => void;
+}) {
+  return (
+    <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10 sm:py-14">
+      <div className="mx-auto flex max-w-xl flex-col items-center text-center">
+        <div className="grid h-20 w-20 place-items-center rounded-full bg-slate-100 ring-8 ring-slate-50">
+          <CheckCircle2 className="h-8 w-8 text-slate-500" />
+        </div>
+
+        <h3 className="mt-6 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+          {hasFilters ? "Nenhuma tarefa encontrada" : "Nenhuma tarefa para hoje"}
+        </h3>
+
+        <p className="mt-2 max-w-md text-sm leading-6 text-slate-500 sm:text-base">
+          {hasFilters
+            ? "Tente ajustar os filtros ou a busca para localizar suas tarefas com mais facilidade."
+            : "Crie uma nova tarefa para começar a organizar sua rotina e produzir melhor."}
+        </p>
+
+        <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row">
+
+          {hasFilters ? (
+            <button
+              type="button"
+              onClick={onClearFilters}
+              className="cursor-pointer inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+            >
+              Limpar filtros
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
@@ -539,6 +606,7 @@ export default function TasksPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [openMenuTaskId, setOpenMenuTaskId] = useState<string | null>(null);
 
   const [tab, setTab] = useState<
     "todas" | "pendentes" | "em_progresso" | "concluidas"
@@ -612,6 +680,12 @@ export default function TasksPage() {
     return list;
   }, [tasks, tab, q, filterCategory, filterPriority]);
 
+  const hasActiveFilters =
+    tab !== "todas" ||
+    q.trim() !== "" ||
+    filterCategory !== "todas" ||
+    filterPriority !== "todas";
+
   const categoryFilterOptions: Array<SelectOption<"todas" | Task["category"]>> =
     [
       {
@@ -668,7 +742,9 @@ export default function TasksPage() {
       },
     ];
 
-  async function handleCreateTask(payload: CreateTaskRequest | UpdateTaskRequest) {
+  async function handleCreateTask(
+    payload: CreateTaskRequest | UpdateTaskRequest,
+  ) {
     try {
       setIsSubmitting(true);
 
@@ -746,6 +822,13 @@ export default function TasksPage() {
     }
   }
 
+  function handleClearFilters() {
+    setTab("todas");
+    setQ("");
+    setFilterCategory("todas");
+    setFilterPriority("todas");
+  }
+
   return (
     <>
       <div className="mb-4 lg:hidden">
@@ -760,7 +843,7 @@ export default function TasksPage() {
           </div>
 
           <button
-            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+            className="cursor-pointer inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.97]"
             type="button"
             onClick={() => setCreateOpen(true)}
           >
@@ -781,7 +864,7 @@ export default function TasksPage() {
         </div>
 
         <button
-          className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+          className="cursor-pointer inline-flex shrink-0 items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.97]"
           type="button"
           onClick={() => setCreateOpen(true)}
         >
@@ -838,7 +921,7 @@ export default function TasksPage() {
               )
             }
             className={cn(
-              "rounded-full px-4 py-2 text-sm font-semibold transition",
+              "cursor-pointer rounded-full px-4 py-2 text-sm font-semibold transition",
               tab === t.id
                 ? "bg-white text-slate-900 ring-1 ring-slate-200 shadow-sm"
                 : "text-slate-600 hover:bg-white hover:ring-1 hover:ring-slate-200",
@@ -859,18 +942,31 @@ export default function TasksPage() {
             {errorMessage}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
-            Nenhuma tarefa encontrada.
-          </div>
+          <EmptyTasksState
+            hasFilters={hasActiveFilters || tasks.length > 0}
+            onCreateTask={() => setCreateOpen(true)}
+            onClearFilters={handleClearFilters}
+          />
         ) : (
           <div className="space-y-3">
             {filtered.map((t) => (
               <TaskRow
                 key={t.id}
                 task={t}
-                onEdit={() => handleOpenEdit(t)}
-                onDelete={() => handleDeleteTask(t.id)}
+                onEdit={() => {
+                  setOpenMenuTaskId(null);
+                  handleOpenEdit(t);
+                }}
+                onDelete={() => {
+                  setOpenMenuTaskId(null);
+                  handleDeleteTask(t.id);
+                }}
                 onToggleComplete={() => handleToggleComplete(t)}
+                menuOpen={openMenuTaskId === t.id}
+                onOpenMenu={() => setOpenMenuTaskId(t.id)}
+                onCloseMenu={() =>
+                  setOpenMenuTaskId((prev) => (prev === t.id ? null : prev))
+                }
               />
             ))}
           </div>

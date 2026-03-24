@@ -142,16 +142,6 @@ class TaskSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("O título da tarefa não pode ficar vazio.")
         return value
 
-    def validate_pomodoroEstimated(self, value):
-        if value < 0:
-            raise serializers.ValidationError("pomodoroEstimated não pode ser negativo.")
-        return value
-
-    def validate_pomodoroCompleted(self, value):
-        if value < 0:
-            raise serializers.ValidationError("pomodoroCompleted não pode ser negativo.")
-        return value
-
     def validate(self, attrs):
         estimated = attrs.get("pomodoro_estimated")
         completed = attrs.get("pomodoro_completed")
@@ -161,6 +151,16 @@ class TaskSerializer(serializers.ModelSerializer):
                 estimated = self.instance.pomodoro_estimated
             if completed is None:
                 completed = self.instance.pomodoro_completed
+
+        if estimated is not None and estimated < 0:
+            raise serializers.ValidationError(
+                {"pomodoroEstimated": "pomodoroEstimated não pode ser negativo."}
+            )
+
+        if completed is not None and completed < 0:
+            raise serializers.ValidationError(
+                {"pomodoroCompleted": "pomodoroCompleted não pode ser negativo."}
+            )
 
         if estimated is not None and completed is not None and completed > estimated:
             raise serializers.ValidationError(

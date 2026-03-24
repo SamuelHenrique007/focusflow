@@ -88,38 +88,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [logout]);
 
   const login = useCallback(
-    async (data: LoginPayload) => {
-      const response = await loginRequest(data);
+  async (data: LoginPayload) => {
+    const response = await loginRequest(data);
 
-      setTokens(response.access, response.refresh);
-      setAccessTokenState(response.access);
-      api.defaults.headers.common.Authorization = `Bearer ${response.access}`;
+    setTokens(response.access, response.refresh);
+    setAccessTokenState(response.access);
+    api.defaults.headers.common.Authorization = `Bearer ${response.access}`;
 
-      if (response.user) {
-        setUser(response.user);
-      } else {
-        await fetchMe();
-      }
-    },
-    [fetchMe],
-  );
+    if (response.user) {
+      setUser(response.user);
+    } else {
+      await fetchMe();
+    }
+  },
+  [fetchMe],
+);
 
-  const register = useCallback(
-    async (data: RegisterPayload) => {
-      const response = await registerRequest(data);
+const register = useCallback(
+  async (data: RegisterPayload) => {
+    const response = await registerRequest(data);
 
-      setTokens(response.access, response.refresh);
-      setAccessTokenState(response.access);
-      api.defaults.headers.common.Authorization = `Bearer ${response.access}`;
+    setTokens(response.access, response.refresh);
+    setAccessTokenState(response.access);
+    api.defaults.headers.common.Authorization = `Bearer ${response.access}`;
 
-      if (response.user) {
-        setUser(response.user);
-      } else {
-        await fetchMe();
-      }
-    },
-    [fetchMe],
-  );
+    if (response.user) {
+      setUser(response.user);
+    } else {
+      await fetchMe();
+    }
+  },
+  [fetchMe],
+);
 
   useEffect(() => {
     const requestInterceptor = api.interceptors.request.use(

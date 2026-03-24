@@ -5,11 +5,12 @@ from rest_framework.response import Response
 from rest_framework import generics, status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import RegisterSerializer, MeSerializer
+from .serializers import RegisterSerializer, MeSerializer, LoginSerializer
 
 
 class LoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
+    serializer_class = LoginSerializer
 
 
 class RegisterView(generics.CreateAPIView):
@@ -25,7 +26,11 @@ class RegisterView(generics.CreateAPIView):
 
         return Response(
             {
-                "user": serializer.data,
+                "user": {
+                    "id": user.id,
+                    "name": user.name,
+                    "email": user.email,
+                },
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
             },

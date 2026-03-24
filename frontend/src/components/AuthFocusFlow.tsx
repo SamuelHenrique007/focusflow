@@ -14,7 +14,7 @@ type Mode = "login" | "register";
 type BackendErrorResponse = {
   detail?: string;
   email?: string[];
-  username?: string[];
+  name?: string[];
   password?: string[];
   non_field_errors?: string[];
 };
@@ -34,12 +34,17 @@ function translateErrorMessage(message: string) {
     return "Já existe uma conta com esses dados.";
   }
 
-  if (normalized.includes("password")) {
-    return "A senha informada não atende aos requisitos.";
+  if (
+    normalized.includes("valid email") ||
+    normalized.includes("valid e-mail") ||
+    normalized.includes("enter a valid email") ||
+    normalized.includes("informe um e-mail válido")
+  ) {
+    return "Informe um e-mail válido.";
   }
 
-  if (normalized.includes("email")) {
-    return "Informe um e-mail válido.";
+  if (normalized.includes("password")) {
+    return "A senha informada não atende aos requisitos.";
   }
 
   return message;
@@ -157,22 +162,50 @@ export default function AuthFocusFlow() {
     setSuccessMessage("");
     setLoading(true);
 
+    const payloadName = name.trim();
+    const payloadEmail = email.trim().toLowerCase();
+    const payloadPassword = password.trim();
+
+    if (mode === "register" && !payloadName) {
+      setErrorMessage("Informe seu nome.");
+      setLoading(false);
+      return;
+    }
+
+    if (!payloadEmail) {
+      setErrorMessage("Informe seu e-mail.");
+      setLoading(false);
+      return;
+    }
+
+    if (!payloadEmail.includes("@") || !payloadEmail.includes(".")) {
+      setErrorMessage("Informe um e-mail válido.");
+      setLoading(false);
+      return;
+    }
+
+    if (!payloadPassword) {
+      setErrorMessage("Informe sua senha.");
+      setLoading(false);
+      return;
+    }
+
     try {
       if (mode === "register") {
         await register({
-          username: name,
-          email,
-          password,
+          name: payloadName,
+          email: payloadEmail,
+          password: payloadPassword,
         });
 
         navigate("/dashboard", { replace: true });
         return;
       }
 
-     await login({
-      email,
-      password,
-    });
+      await login({
+        email: payloadEmail,
+        password: payloadPassword,
+      });
 
       navigate("/dashboard", { replace: true });
     } catch (error: unknown) {
@@ -182,7 +215,7 @@ export default function AuthFocusFlow() {
         const rawMessage =
           error.response?.data?.detail ||
           error.response?.data?.email?.[0] ||
-          error.response?.data?.username?.[0] ||
+          error.response?.data?.name?.[0] ||
           error.response?.data?.password?.[0] ||
           error.response?.data?.non_field_errors?.[0] ||
           backendError;
@@ -334,7 +367,7 @@ export default function AuthFocusFlow() {
                   <button
                     type="button"
                     onClick={() => navigate("/forgot-password")}
-                    className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                    className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
                   >
                     Esqueceu a senha?
                   </button>
@@ -348,7 +381,7 @@ export default function AuthFocusFlow() {
                 type="submit"
                 disabled={loading}
                 className={cx(
-                  "inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition",
+                  "cursor-pointer inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition",
                   "bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200",
                   loading && "cursor-not-allowed opacity-70",
                 )}
@@ -364,7 +397,7 @@ export default function AuthFocusFlow() {
                   <button
                     type="button"
                     onClick={() => switchMode("register")}
-                    className="font-semibold text-blue-700 hover:text-blue-800"
+                    className="cursor-pointer font-semibold text-blue-700 hover:text-blue-800"
                   >
                     Criar conta
                   </button>
@@ -375,7 +408,7 @@ export default function AuthFocusFlow() {
                   <button
                     type="button"
                     onClick={() => switchMode("login")}
-                    className="font-semibold text-blue-700 hover:text-blue-800"
+                    className="cursor-pointer font-semibold text-blue-700 hover:text-blue-800"
                   >
                     Entrar
                   </button>

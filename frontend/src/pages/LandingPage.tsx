@@ -61,17 +61,17 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className=" flex shrink-0 items-center gap-2">
             <Button
               variant="outline"
-              className="rounded-2xl"
+              className="cursor-pointer rounded-2xl transition hover:scale-[1.02] active:scale-[0.98]"
               onClick={() => navigate("/login")}
             >
               Entrar
             </Button>
 
             <Button
-              className="rounded-2xl bg-blue-600 font-semibold text-white hover:bg-blue-700"
+              className="cursor-pointer rounded-2xl bg-blue-600 font-semibold text-white transition hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98]"
               onClick={() => navigate("/register")}
             >
               Cadastre-se
@@ -103,7 +103,7 @@ export default function LandingPage() {
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Button
-                className="rounded-2xl bg-white text-slate-900 hover:bg-white/90"
+                className="cursor-pointer rounded-2xl bg-white text-slate-900 hover:bg-white/90"
                 onClick={() => navigate("/register")}
               >
                 Comece agora
@@ -113,7 +113,7 @@ export default function LandingPage() {
               <Button
                 variant="outline"
                 className={cn(
-                  "rounded-2xl border-white/25 bg-white/10 text-white",
+                  "cursor-pointer rounded-2xl border-white/25 bg-white/10 text-white",
                   "hover:bg-white/15 hover:text-white",
                 )}
                 onClick={() => navigate("/login")}
@@ -223,7 +223,7 @@ export default function LandingPage() {
 
             <div className="mt-8">
               <Button
-                className="rounded-2xl bg-blue-600 font-semibold text-white hover:bg-blue-700"
+                className="cursor-pointer rounded-2xl bg-blue-600 font-semibold text-white transition hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98]"
                 onClick={() => navigate("/register")}
               >
                 Criar minha conta

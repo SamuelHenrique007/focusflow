@@ -1,35 +1,33 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
-class Pomodoro(models.Model):
-    STATUS_CHOICES = [
-        ("started", "Iniciado"),
-        ("paused", "Pausado"),
-        ("finished", "Finalizado"),
+class PomodoroSession(models.Model):
+    SESSION_TYPES = [
+        ("focus", "Foco"),
     ]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="pomodoros"
+        related_name="pomodoro_sessions",
     )
     task = models.ForeignKey(
         "tasks.Task",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="pomodoros"
+        related_name="pomodoro_sessions",
     )
-    focus_time = models.PositiveIntegerField(help_text="Tempo de foco em minutos")
-    break_time = models.PositiveIntegerField(help_text="Tempo de pausa em minutos")
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default="started"
-    )
-    start_date = models.DateTimeField()
-    end_date = models.DateTimeField(null=True, blank=True)
+    type = models.CharField(max_length=20, choices=SESSION_TYPES, default="focus")
+    duration_minutes = models.PositiveIntegerField()
+    completed = models.BooleanField(default=True)
+    date = models.DateField(default=timezone.localdate)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
 
     def __str__(self):
-        return f"Pomodoro #{self.id} - {self.user.email}"
+        return f"{self.user} - {self.type} - {self.duration_minutes}min"

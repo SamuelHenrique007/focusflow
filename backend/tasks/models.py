@@ -40,6 +40,7 @@ class Task(models.Model):
 
     pomodoro_estimated = models.PositiveIntegerField(default=1)
     pomodoro_completed = models.PositiveIntegerField(default=0)
+    focus_minutes_completed = models.PositiveIntegerField(default=0)
 
     completed_at = models.DateTimeField(blank=True, null=True)
 

@@ -5,14 +5,34 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { SidebarNav, type NavKey } from "@/components/layout/SidebarNav";
 import { useAuth } from "@/hooks/useAuth";
 
+function normalizeNameParts(name?: string) {
+  if (!name?.trim()) return [];
+
+  const connectors = ["de", "da", "do", "dos", "das", "e"];
+
+  return name
+    .trim()
+    .split(" ")
+    .filter((word) => word && !connectors.includes(word.toLowerCase()));
+}
+
+function getFirstAndSecondName(name?: string) {
+  const parts = normalizeNameParts(name);
+
+  if (parts.length === 0) return "Usuário";
+  if (parts.length === 1) return parts[0];
+
+  return `${parts[0]} ${parts[1]}`;
+}
+
 function getInitials(username?: string, email?: string) {
-  if (username?.trim()) {
-    const parts = username.trim().split(" ").filter(Boolean);
+  const parts = normalizeNameParts(username);
 
-    if (parts.length === 1) {
-      return parts[0].slice(0, 2).toUpperCase();
-    }
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
 
+  if (parts.length >= 2) {
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
   }
 
@@ -49,10 +69,19 @@ export function AppShell({
   const location = useLocation();
   const { user, logout } = useAuth();
 
-  const activeKey = useMemo(() => getActiveKey(location.pathname), [location.pathname]);
+  const activeKey = useMemo(
+    () => getActiveKey(location.pathname),
+    [location.pathname],
+  );
+
   const initials = useMemo(
-    () => getInitials(user?.username, user?.email),
-    [user?.username, user?.email],
+    () => getInitials(user?.name, user?.email),
+    [user?.name, user?.email],
+  );
+
+  const shortName = useMemo(
+    () => getFirstAndSecondName(user?.name),
+    [user?.name],
   );
 
   useEffect(() => {
@@ -111,7 +140,7 @@ export function AppShell({
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-slate-900">
-                      {user?.username ?? "Usuário"}
+                      {shortName}
                     </p>
                     {user?.email ? (
                       <p className="truncate text-xs text-slate-500">
@@ -208,7 +237,7 @@ export function AppShell({
                           </div>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-slate-900">
-                              {user?.username ?? "Usuário"}
+                              {shortName}
                             </p>
                             {user?.email ? (
                               <p className="truncate text-xs text-slate-500">

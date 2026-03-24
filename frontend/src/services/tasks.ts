@@ -35,7 +35,7 @@ type TaskApi = {
 };
 
 export type Task = {
-  id: string;
+  id: number;
   title: string;
   description?: string;
   category: TaskCategory;
@@ -85,7 +85,7 @@ function mapSubtaskToApi(subtask: TaskSubtask): TaskSubtaskApi {
 
 function mapTaskFromApi(task: TaskApi): Task {
   return {
-    id: String(task.id),
+    id: task.id,
     title: task.title,
     description: task.description ?? undefined,
     category: task.category,
