@@ -1,1303 +1,1063 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  AlertTriangle,
-  CheckSquare,
-  X,
+  Check,
   ChevronDown,
-  Settings,
-  Play,
-  Pause,
-  RotateCcw,
-  SkipForward,
+  Circle,
+  Clock,
+  ListTodo,
   Minus,
+  Play,
   Plus,
-  Timer,
-  Coffee,
-  Moon,
-  RefreshCcw,
+  RotateCcw,
+  Settings,
+  SkipForward,
+  Star,
+  Target,
+  X,
 } from "lucide-react";
 
-type PomodoroMode = "focus" | "short_break" | "long_break";
+import { StatCard } from "@/components/common/StatCard";
+import PomodoroFocusView from "@/components/pomodoro/PomodoroFocusView";
+import { api } from "@/services/api";
 
-type PomodoroTimerProps = {
-  onFocusModeChange?: (active: boolean) => void;
+type TaskStatus = "pendente" | "em_progresso" | "concluida";
+
+type Task = {
+  id: number;
+  title: string;
+  description?: string;
+  category?: "estudo" | "trabalho" | "pessoal";
+  priority?: "alta" | "media" | "baixa";
+  status: TaskStatus;
+  dueLabel?: string;
+  dueDate?: string | null;
+  pomodoroEstimated: number;
+  pomodoroCompleted: number;
+  progress?: number;
+  completedAt?: string | null;
+  subtasks?: Array<{
+    id?: number;
+    title: string;
+    isCompleted?: boolean;
+  }>;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type TaskOption = {
+  label: string;
+  value: string;
 };
 
 type PomodoroSettings = {
-  focus_duration: number;
-  short_break: number;
-  long_break: number;
-  cycles_before_long_break: number;
+  focusMinutes: number;
+  shortBreakMinutes: number;
+  longBreakMinutes: number;
+  cyclesBeforeLongBreak: number;
 };
 
-type UserStats = {
-  total_points: number;
-  total_focus_minutes: number;
-  total_pomodoros: number;
-  current_streak: number;
-  longest_streak: number;
-  last_active_date: string | null;
+type PresetKey = "minimo" | "padrao" | "maximo";
+type SessionType = "focus" | "short_break" | "long_break";
+
+type PomodoroSession = {
+  id: number;
+  task: number | null;
+  task_title?: string;
+  session_type: SessionType;
+  planned_minutes: number;
+  started_at: string;
+  ended_at: string | null;
+  status: "running" | "completed" | "skipped" | "cancelled";
+  earned_points: number;
 };
 
-type TodayMetrics = {
-  date: string;
-  total_sessions: number;
-  total_minutes: number;
+type PomodoroStats = {
+  pomodoros: number;
+  minutes: number;
+  points: number;
+  running_session: PomodoroSession | null;
 };
 
-type PomodoroLimit = {
-  min: number;
-  recommendedMax: number;
-  absoluteMax: number;
-};
-
-const STORAGE_KEYS = {
-  settings: "pomodoro_settings",
-  stats: "pomodoro_stats",
-  today: "pomodoro_today_metrics",
-};
-
-const LIMITS = {
-  focus_duration: {
-    min: 15,
-    recommendedMax: 60,
-    absoluteMax: 90,
+const POMODORO_PRESETS = {
+  minimo: {
+    focusMinutes: 15,
+    shortBreakMinutes: 3,
+    longBreakMinutes: 10,
+    cyclesBeforeLongBreak: 2,
   },
-  short_break: {
-    min: 3,
-    recommendedMax: 10,
-    absoluteMax: 15,
+  padrao: {
+    focusMinutes: 25,
+    shortBreakMinutes: 5,
+    longBreakMinutes: 15,
+    cyclesBeforeLongBreak: 4,
   },
-  long_break: {
-    min: 15,
-    recommendedMax: 30,
-    absoluteMax: 40,
+  maximo: {
+    focusMinutes: 60,
+    shortBreakMinutes: 15,
+    longBreakMinutes: 30,
+    cyclesBeforeLongBreak: 6,
   },
-  cycles_before_long_break: {
-    min: 1,
-    recommendedMax: 8,
-    absoluteMax: 12,
-  },
-} satisfies Record<keyof PomodoroSettings, PomodoroLimit>;
+} satisfies Record<PresetKey, PomodoroSettings>;
 
-const DEFAULT_SETTINGS: PomodoroSettings = {
-  focus_duration: 25,
-  short_break: 5,
-  long_break: 15,
-  cycles_before_long_break: 4,
-};
-
-const DEFAULT_STATS: UserStats = {
-  total_points: 0,
-  total_focus_minutes: 0,
-  total_pomodoros: 0,
-  current_streak: 0,
-  longest_streak: 0,
-  last_active_date: null,
-};
-
-function getTodayDateString() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-const DEFAULT_TODAY_METRICS: TodayMetrics = {
-  date: getTodayDateString(),
-  total_sessions: 0,
-  total_minutes: 0,
-};
-
-function cx(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
-
-function ProgressBar({ value }: { value: number }) {
-  const safeValue = Math.max(0, Math.min(1, value)) * 100;
-
-  return (
-    <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100">
-      <div
-        className="h-full rounded-full bg-blue-600 transition-all duration-300"
-        style={{ width: `${safeValue}%` }}
-      />
-    </div>
-  );
-}
-
-function ProgressRing({
-  size = 280,
-  stroke = 14,
-  value = 0,
-}: {
-  size?: number;
-  stroke?: number;
-  value?: number;
-}) {
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const pct = Math.max(0, Math.min(1, value));
-  const dash = c * (1 - pct);
-
-  return (
-    <svg width={size} height={size} className="drop-shadow-sm">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        strokeWidth={stroke}
-        className="fill-none stroke-slate-100"
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        strokeWidth={stroke}
-        strokeLinecap="round"
-        className="fill-none stroke-blue-600"
-        strokeDasharray={c}
-        strokeDashoffset={dash}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      />
-    </svg>
-  );
-}
-
-function StatMiniCard({
-  value,
-  label,
-  valueClassName,
-}: {
+type TaskSelectProps = {
   value: string;
-  label: string;
-  valueClassName?: string;
-}) {
+  onChange: (value: string) => void;
+  options: TaskOption[];
+  disabled?: boolean;
+};
+
+function TaskSelect({
+  value,
+  onChange,
+  options,
+  disabled = false,
+}: TaskSelectProps) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  const selected = useMemo(
+    () => options.find((option) => option.value === value),
+    [options, value],
+  );
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+
+    if (open) {
+      window.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      window.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [open]);
+
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-blue-600/10 blur-2xl transition group-hover:bg-blue-600/20" />
-      <div className="relative">
-        <div className={cx("text-2xl font-semibold", valueClassName)}>
-          {value}
+    <div ref={wrapperRef} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => {
+          if (!disabled) setOpen((prev) => !prev);
+        }}
+        disabled={disabled}
+        className={`flex h-[58px] w-full items-center justify-between rounded-[18px] border border-slate-200 bg-white px-4 text-left shadow-sm transition ${
+          disabled
+            ? "cursor-not-allowed opacity-60"
+            : "cursor-pointer hover:border-slate-300"
+        }`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500">
+            <ListTodo className="h-5 w-5" />
+          </div>
+
+          <span className="truncate text-[15px] font-medium text-slate-500">
+            {selected?.label ?? "Selecione uma tarefa"}
+          </span>
         </div>
-        <div className="mt-1 text-xs text-slate-500">{label}</div>
-      </div>
+
+        <ChevronDown
+          className={`h-5 w-5 shrink-0 text-slate-400 transition ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {open && !disabled && (
+        <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-xl">
+          <div className="max-h-64 overflow-y-auto p-2">
+            <button
+              type="button"
+              onClick={() => {
+                onChange("");
+                setOpen(false);
+              }}
+              className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-left transition ${
+                value === ""
+                  ? "bg-slate-100 text-slate-900"
+                  : "text-slate-700 hover:bg-slate-50"
+              }`}
+              role="option"
+              aria-selected={value === ""}
+            >
+              <span className="truncate text-sm font-medium">
+                Sem tarefa vinculada
+              </span>
+              {value === "" && <Check className="h-4 w-4 text-slate-600" />}
+            </button>
+
+            {options.map((option) => {
+              const isSelected = option.value === value;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(option.value);
+                    setOpen(false);
+                  }}
+                  className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-left transition ${
+                    isSelected
+                      ? "bg-slate-100 text-slate-900"
+                      : "text-slate-700 hover:bg-slate-50"
+                  }`}
+                  role="option"
+                  aria-selected={isSelected}
+                >
+                  <span className="truncate text-sm font-medium">
+                    {option.label}
+                  </span>
+
+                  {isSelected && <Check className="h-4 w-4 text-slate-600" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function useBodyScrollLock(locked: boolean) {
-  useEffect(() => {
-    if (!locked) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [locked]);
-}
+type SettingControlProps = {
+  label: string;
+  description: string;
+  value: number;
+  min: number;
+  max: number;
+  suffix: string;
+  onDecrease: () => void;
+  onIncrease: () => void;
+};
 
-function useEscToClose(open: boolean, onClose: () => void) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-}
-
-function SettingsModal({
-  open,
-  onClose,
-  children,
-  title,
-}: {
-  open: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-  title: string;
-}) {
-  const [mounted] = useState(() => typeof window !== "undefined");
-
-  useBodyScrollLock(open);
-  useEscToClose(open, onClose);
-
-  if (!open || !mounted) return null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-    >
-      <div
-        className="absolute inset-0 cursor-pointer bg-black/45"
-        onClick={onClose}
-      />
-
-      <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6">
-          <p className="text-base font-semibold text-slate-900">{title}</p>
-          <button
-            type="button"
-            onClick={onClose}
-            className="grid h-10 w-10 cursor-pointer place-items-center rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
-            aria-label="Fechar"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="max-h-[80vh] overflow-y-auto px-5 py-5 sm:px-6">
-          {children}
-        </div>
-      </div>
-    </div>,
-    document.body,
-  );
-}
-
-function readLocalStorage<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeLocalStorage<T>(key: string, value: T) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    //
-  }
-}
-
-function toPositiveInteger(value: string, fallback: number) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
-  return Math.floor(parsed);
-}
-
-function normalizeSettings(source: PomodoroSettings): PomodoroSettings {
-  return {
-    focus_duration: Math.min(
-      Math.max(source.focus_duration, LIMITS.focus_duration.min),
-      LIMITS.focus_duration.absoluteMax,
-    ),
-    short_break: Math.min(
-      Math.max(source.short_break, LIMITS.short_break.min),
-      LIMITS.short_break.absoluteMax,
-    ),
-    long_break: Math.min(
-      Math.max(source.long_break, LIMITS.long_break.min),
-      LIMITS.long_break.absoluteMax,
-    ),
-    cycles_before_long_break: Math.min(
-      Math.max(
-        source.cycles_before_long_break,
-        LIMITS.cycles_before_long_break.min,
-      ),
-      LIMITS.cycles_before_long_break.absoluteMax,
-    ),
-  };
-}
-
-function validateSettingValue(
-  label: string,
-  rawValue: string,
-  limits: PomodoroLimit,
-) {
-  if (rawValue.trim() === "") {
-    return `${label} é obrigatório.`;
-  }
-
-  const parsed = Number(rawValue);
-
-  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
-    return `${label} deve ser um número inteiro.`;
-  }
-
-  if (parsed < limits.min) {
-    return `${label} deve ser no mínimo ${limits.min}.`;
-  }
-
-  if (parsed > limits.absoluteMax) {
-    return `${label} deve ser no máximo ${limits.absoluteMax}.`;
-  }
-
-  return null;
-}
-
-function getRecommendedWarning(
-  label: string,
-  rawValue: string,
-  limits: PomodoroLimit,
-) {
-  const parsed = Number(rawValue);
-
-  if (!Number.isFinite(parsed)) return null;
-  if (parsed > limits.recommendedMax && parsed <= limits.absoluteMax) {
-    return `${label} acima de ${limits.recommendedMax} não é o mais recomendado, embora ainda seja permitido.`;
-  }
-
-  return null;
-}
-
-function getFieldStatusColor({
-  error,
-  warning,
-}: {
-  error?: string | null;
-  warning?: string | null;
-}) {
-  if (error) return "border-red-300 bg-red-50";
-  if (warning) return "border-amber-300 bg-amber-50";
-  return "border-slate-200 bg-white";
-}
-
-function SettingField({
-  icon,
+function SettingControl({
   label,
   description,
   value,
-  onChange,
   min,
-  recommendedMax,
-  absoluteMax,
-  helperText,
+  max,
   suffix,
-  error,
-  warning,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  description: string;
-  value: string;
-  onChange: (v: string) => void;
-  min: number;
-  recommendedMax: number;
-  absoluteMax: number;
-  helperText?: string;
-  suffix?: string;
-  error?: string | null;
-  warning?: string | null;
-}) {
-  const numericValue = Number(value);
-  const safeValue = Number.isFinite(numericValue) ? numericValue : min;
-
-  function handleStep(delta: number) {
-    const next = Math.min(absoluteMax, Math.max(min, safeValue + delta));
-    onChange(String(next));
-  }
+  onDecrease,
+  onIncrease,
+}: SettingControlProps) {
+  const canDecrease = value > min;
+  const canIncrease = value < max;
 
   return (
-    <div
-      className={cx(
-        "rounded-2xl border p-4 transition",
-        getFieldStatusColor({ error, warning }),
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-700">
-          {icon}
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-slate-800">{label}</p>
+          <p className="mt-1 text-xs text-slate-500">{description}</p>
+          <p className="mt-2 text-[11px] font-medium text-slate-400">
+            Mín: {min} {suffix} • Máx: {max} {suffix}
+          </p>
         </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="text-sm font-semibold text-slate-800">
-              {label}
-            </label>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onDecrease}
+            disabled={!canDecrease}
+            className={`grid h-10 w-10 place-items-center rounded-xl ring-1 transition ${
+              canDecrease
+                ? "cursor-pointer bg-white text-slate-700 ring-slate-200 hover:bg-slate-50"
+                : "cursor-not-allowed bg-slate-100 text-slate-300 ring-slate-100"
+            }`}
+            aria-label={`Diminuir ${label}`}
+          >
+            <Minus className="h-4 w-4" />
+          </button>
 
-            {!error && !warning && (
-              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                Dentro do limite
-              </span>
-            )}
-
-            {warning && !error && (
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
-                Acima do recomendado
-              </span>
-            )}
-
-            {error && (
-              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700">
-                Valor inválido
-              </span>
-            )}
+          <div className="min-w-[90px] rounded-2xl bg-white px-4 py-2 text-center ring-1 ring-slate-200">
+            <div className="text-lg font-bold text-slate-800">{value}</div>
+            <div className="text-xs font-medium text-slate-500">{suffix}</div>
           </div>
 
-          <p className="mt-1 text-xs text-slate-500">{description}</p>
-
-          <div className="mt-3 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleStep(-1)}
-              className="grid h-10 w-10 cursor-pointer place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-              aria-label={`Diminuir ${label}`}
-            >
-              <Minus className="h-4 w-4" />
-            </button>
-
-            <div className="relative flex-1">
-              <input
-                type="number"
-                inputMode="numeric"
-                min={min}
-                max={absoluteMax}
-                step={1}
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                className={cx(
-                  "w-full rounded-xl border bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none ring-blue-200 focus:bg-white focus:ring-4",
-                  error
-                    ? "border-red-300 focus:border-red-500"
-                    : "border-slate-200 focus:border-blue-500",
-                )}
-              />
-              {suffix && (
-                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400">
-                  {suffix}
-                </span>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handleStep(1)}
-              className="grid h-10 w-10 cursor-pointer place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-              aria-label={`Aumentar ${label}`}
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
-
-          <p className="mt-2 text-xs text-slate-500">
-            Mínimo: <strong>{min}</strong> · Recomendado até:{" "}
-            <strong>{recommendedMax}</strong> · Máximo absoluto:{" "}
-            <strong>{absoluteMax}</strong>
-            {helperText ? ` · ${helperText}` : ""}
-          </p>
-
-          {warning && !error && (
-            <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{warning}</span>
-            </div>
-          )}
-
-          {error && (
-            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              {error}
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={onIncrease}
+            disabled={!canIncrease}
+            className={`grid h-10 w-10 place-items-center rounded-xl ring-1 transition ${
+              canIncrease
+                ? "cursor-pointer bg-white text-slate-700 ring-slate-200 hover:bg-slate-50"
+                : "cursor-not-allowed bg-slate-100 text-slate-300 ring-slate-100"
+            }`}
+            aria-label={`Aumentar ${label}`}
+          >
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
+type PomodoroTimerProps = {
+  variant?: "default" | "focus";
+};
+
 export default function PomodoroTimer({
-  onFocusModeChange,
+  variant = "default",
 }: PomodoroTimerProps) {
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [savingSettings, setSavingSettings] = useState(false);
+  const navigate = useNavigate();
+  const isFocusVariant = variant === "focus";
+  const [selectedTask, setSelectedTask] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const [activePreset, setActivePreset] = useState<PresetKey | null>("padrao");
 
-  const [settingsData, setSettingsData] =
-    useState<PomodoroSettings>(DEFAULT_SETTINGS);
-  const [stats, setStats] = useState<UserStats>(DEFAULT_STATS);
-  const [todayMetrics, setTodayMetrics] =
-    useState<TodayMetrics>(DEFAULT_TODAY_METRICS);
-
-  const [focusMin, setFocusMin] = useState("25");
-  const [shortBreakMin, setShortBreakMin] = useState("5");
-  const [longBreakMin, setLongBreakMin] = useState("15");
-  const [cyclesBeforeLong, setCyclesBeforeLong] = useState("4");
-
-  const [mode, setMode] = useState<PomodoroMode>("focus");
-  const [timeLeft, setTimeLeft] = useState(DEFAULT_SETTINGS.focus_duration * 60);
-  const [isRunning, setIsRunning] = useState(false);
-  const [cyclesCompleted, setCyclesCompleted] = useState(0);
-
-  const intervalRef = useRef<number | null>(null);
-
-  const selectedTask = "Selecione uma tarefa (opcional)";
-
-  const isFocusMode = mode === "focus";
-  const isFocusSessionActive = mode === "focus" && isRunning;
-
-  const focusError = validateSettingValue(
-    "Foco",
-    focusMin,
-    LIMITS.focus_duration,
-  );
-  const shortBreakError = validateSettingValue(
-    "Pausa curta",
-    shortBreakMin,
-    LIMITS.short_break,
-  );
-  const longBreakError = validateSettingValue(
-    "Pausa longa",
-    longBreakMin,
-    LIMITS.long_break,
-  );
-  const cyclesError = validateSettingValue(
-    "Ciclos",
-    cyclesBeforeLong,
-    LIMITS.cycles_before_long_break,
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskOptions, setTaskOptions] = useState<TaskOption[]>([]);
+  const [settings, setSettings] = useState<PomodoroSettings>(
+    POMODORO_PRESETS.padrao,
   );
 
-  const focusWarning = getRecommendedWarning(
-    "Foco",
-    focusMin,
-    LIMITS.focus_duration,
-  );
-  const shortBreakWarning = getRecommendedWarning(
-    "Pausa curta",
-    shortBreakMin,
-    LIMITS.short_break,
-  );
-  const longBreakWarning = getRecommendedWarning(
-    "Pausa longa",
-    longBreakMin,
-    LIMITS.long_break,
-  );
-  const cyclesWarning = getRecommendedWarning(
-    "Ciclos",
-    cyclesBeforeLong,
-    LIMITS.cycles_before_long_break,
+  const [stats, setStats] = useState<PomodoroStats>({
+    pomodoros: 0,
+    minutes: 0,
+    points: 0,
+    running_session: null,
+  });
+
+  const [runningSession, setRunningSession] = useState<PomodoroSession | null>(
+    null,
   );
 
-  const hasSettingsError = Boolean(
-    focusError || shortBreakError || longBreakError || cyclesError,
+  const [sessionType, setSessionType] = useState<SessionType>("focus");
+  const [completedFocusCycles, setCompletedFocusCycles] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(
+    POMODORO_PRESETS.padrao.focusMinutes * 60,
   );
 
-  const previewSettings = useMemo(
-    () =>
-      normalizeSettings({
-        focus_duration: toPositiveInteger(focusMin, settingsData.focus_duration),
-        short_break: toPositiveInteger(shortBreakMin, settingsData.short_break),
-        long_break: toPositiveInteger(longBreakMin, settingsData.long_break),
-        cycles_before_long_break: toPositiveInteger(
-          cyclesBeforeLong,
-          settingsData.cycles_before_long_break,
-        ),
-      }),
-    [
-      focusMin,
-      shortBreakMin,
-      longBreakMin,
-      cyclesBeforeLong,
-      settingsData.focus_duration,
-      settingsData.short_break,
-      settingsData.long_break,
-      settingsData.cycles_before_long_break,
-    ],
-  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
 
-  const getSecondsForMode = useCallback(
-    (targetMode: PomodoroMode, source = settingsData) => {
-      if (targetMode === "focus") return source.focus_duration * 60;
-      if (targetMode === "short_break") return source.short_break * 60;
-      return source.long_break * 60;
+  const selectedTaskLabel = useMemo(() => {
+    return (
+      taskOptions.find((task: TaskOption) => task.value === selectedTask)
+        ?.label ?? ""
+    );
+  }, [taskOptions, selectedTask]);
+
+
+
+  const timeLabel = useMemo(() => {
+    const mm = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
+    const ss = String(secondsLeft % 60).padStart(2, "0");
+    return `${mm}:${ss}`;
+  }, [secondsLeft]);
+
+  const getDurationBySessionType = useCallback(
+    (type: SessionType) => {
+      if (type === "focus") return settings.focusMinutes * 60;
+      if (type === "short_break") return settings.shortBreakMinutes * 60;
+      return settings.longBreakMinutes * 60;
     },
-    [settingsData],
+    [settings],
   );
 
-  const totalSeconds = useMemo(() => {
-    return getSecondsForMode(mode);
-  }, [mode, getSecondsForMode]);
+  function detectActivePreset(currentSettings: PomodoroSettings) {
+    const foundPreset =
+      (Object.entries(POMODORO_PRESETS).find(([, preset]) => {
+        return (
+          preset.focusMinutes === currentSettings.focusMinutes &&
+          preset.shortBreakMinutes === currentSettings.shortBreakMinutes &&
+          preset.longBreakMinutes === currentSettings.longBreakMinutes &&
+          preset.cyclesBeforeLongBreak ===
+            currentSettings.cyclesBeforeLongBreak
+        );
+      })?.[0] as PresetKey | undefined) ?? null;
 
-  const progress = useMemo(() => {
-    if (totalSeconds <= 0) return 0;
-    return (totalSeconds - timeLeft) / totalSeconds;
-  }, [timeLeft, totalSeconds]);
+    setActivePreset(foundPreset);
+  }
 
-  const modeLabel = useMemo(() => {
-    if (mode === "focus") return "Modo Foco";
-    if (mode === "short_break") return "Pausa Curta";
-    return "Pausa Longa";
-  }, [mode]);
+  function getNextSessionType(
+    currentType: SessionType,
+    nextCompletedFocusCycles: number,
+  ): SessionType {
+    if (currentType === "focus") {
+      const shouldGoToLongBreak =
+        nextCompletedFocusCycles > 0 &&
+        nextCompletedFocusCycles % settings.cyclesBeforeLongBreak === 0;
 
-  const focusedTodayMin = todayMetrics.total_minutes;
-  const todaySessions = todayMetrics.total_sessions;
+      return shouldGoToLongBreak ? "long_break" : "short_break";
+    }
 
-  const mm = String(Math.floor(timeLeft / 60)).padStart(2, "0");
-  const ss = String(timeLeft % 60).padStart(2, "0");
+    return "focus";
+  }
 
-  useEffect(() => {
-    onFocusModeChange?.(isFocusSessionActive);
-  }, [isFocusSessionActive, onFocusModeChange]);
+  function updateSetting<K extends keyof PomodoroSettings>(
+    key: K,
+    value: PomodoroSettings[K],
+  ) {
+    setSettings((prev) => {
+      const updated = {
+        ...prev,
+        [key]: value,
+      };
 
-  function clearTimerInterval() {
-    if (intervalRef.current !== null) {
-      window.clearInterval(intervalRef.current);
-      intervalRef.current = null;
+      detectActivePreset(updated);
+      return updated;
+    });
+  }
+
+  function applyPreset(presetKey: PresetKey) {
+    const preset = POMODORO_PRESETS[presetKey];
+    setSettings(preset);
+    setActivePreset(presetKey);
+  }
+
+  function getPresetButtonClass(presetKey: PresetKey) {
+    const isActive = activePreset === presetKey;
+
+    return isActive
+      ? "cursor-pointer rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700"
+      : "cursor-pointer rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50";
+  }
+
+  const advancePomodoroCycle = useCallback(
+    (markFocusAsCompleted: boolean) => {
+      let nextCompletedFocusCycles = completedFocusCycles;
+
+      if (sessionType === "focus" && markFocusAsCompleted) {
+        nextCompletedFocusCycles = completedFocusCycles + 1;
+        setCompletedFocusCycles(nextCompletedFocusCycles);
+      }
+
+      const nextType = getNextSessionType(sessionType, nextCompletedFocusCycles);
+      setSessionType(nextType);
+      setSecondsLeft(getDurationBySessionType(nextType));
+    },
+    [completedFocusCycles, sessionType, getDurationBySessionType],
+  );
+
+
+  async function refreshTasks() {
+    try {
+      const { data } = await api.get<Task[]>("/tasks/");
+      setTasks(data);
+      setTaskOptions(
+        data.map((task) => ({
+          label: task.title,
+          value: String(task.id),
+        })),
+      );
+      return data;
+    } catch (error) {
+      console.error("Erro ao atualizar tarefas:", error);
+      return null;
     }
   }
 
-  const loadPomodoroData = useCallback(async () => {
+
+
+  async function refreshStats() {
     try {
-      setLoading(true);
+      const { data } = await api.get<PomodoroStats>("/pomodoro/stats/");
+      setStats(data);
+      return data;
+    } catch (error) {
+      console.error("Erro ao atualizar estatísticas:", error);
+      return null;
+    }
+  }
 
-      const savedSettingsRaw = readLocalStorage<PomodoroSettings>(
-        STORAGE_KEYS.settings,
-        DEFAULT_SETTINGS,
-      );
+  useEffect(() => {
+    async function loadInitialData() {
+      try {
+        const [tasksResponse, settingsResponse, statsResponse] =
+          await Promise.all([
+            api.get<Task[]>("/tasks/"),
+            api.get("/pomodoro/settings/me/"),
+            api.get<PomodoroStats>("/pomodoro/stats/"),
+          ]);
 
-      const savedSettings = normalizeSettings(savedSettingsRaw);
+        setTasks(tasksResponse.data);
+        setTaskOptions(
+          tasksResponse.data.map((task) => ({
+            label: task.title,
+            value: String(task.id),
+          })),
+        );
 
-      const savedStats = readLocalStorage<UserStats>(
-        STORAGE_KEYS.stats,
-        DEFAULT_STATS,
-      );
+        const loadedSettings: PomodoroSettings = {
+          focusMinutes: settingsResponse.data.focus_minutes,
+          shortBreakMinutes: settingsResponse.data.short_break_minutes,
+          longBreakMinutes: settingsResponse.data.long_break_minutes,
+          cyclesBeforeLongBreak:
+            settingsResponse.data.cycles_before_long_break,
+        };
 
-      const savedToday = readLocalStorage<TodayMetrics>(
-        STORAGE_KEYS.today,
-        DEFAULT_TODAY_METRICS,
-      );
+        setSettings(loadedSettings);
+        detectActivePreset(loadedSettings);
 
-      const today = getTodayDateString();
-      const normalizedToday =
-        savedToday.date === today
-          ? savedToday
-          : {
-              date: today,
-              total_sessions: 0,
-              total_minutes: 0,
-            };
+        const loadedStats = statsResponse.data;
+        setStats(loadedStats);
 
-      setSettingsData(savedSettings);
-      setStats(savedStats);
-      setTodayMetrics(normalizedToday);
+        if (loadedStats.running_session) {
+          const session = loadedStats.running_session;
+          setRunningSession(session);
+          setSessionType(session.session_type);
 
-      setFocusMin(String(savedSettings.focus_duration));
-      setShortBreakMin(String(savedSettings.short_break));
-      setLongBreakMin(String(savedSettings.long_break));
-      setCyclesBeforeLong(String(savedSettings.cycles_before_long_break));
+          if (session.task) {
+            setSelectedTask(String(session.task));
+          }
 
-      if (mode === "focus") {
-        setTimeLeft(savedSettings.focus_duration * 60);
-      } else if (mode === "short_break") {
-        setTimeLeft(savedSettings.short_break * 60);
-      } else {
-        setTimeLeft(savedSettings.long_break * 60);
+          const startedAt = new Date(session.started_at).getTime();
+          const now = Date.now();
+          const elapsedSeconds = Math.floor((now - startedAt) / 1000);
+          const totalSeconds = session.planned_minutes * 60;
+          const remaining = Math.max(totalSeconds - elapsedSeconds, 0);
+
+          setSecondsLeft(remaining);
+        } else {
+          setSessionType("focus");
+          setSecondsLeft(loadedSettings.focusMinutes * 60);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados do Pomodoro:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadInitialData();
+  }, []);
+
+  const handleFinish = useCallback(
+    async (completed: boolean, shouldAdvance = false) => {
+      if (!runningSession) {
+        if (shouldAdvance) {
+          advancePomodoroCycle(completed && sessionType === "focus");
+        }
+        return;
       }
 
-      writeLocalStorage(STORAGE_KEYS.settings, savedSettings);
-      writeLocalStorage(STORAGE_KEYS.today, normalizedToday);
-    } finally {
-      setLoading(false);
-    }
-  }, [mode]);
+      try {
+        setIsFinishing(true);
 
-  const completeFocusSession = useCallback(() => {
-    const today = getTodayDateString();
+        const sessionFinishedByTimer =
+          sessionType === "focus" && secondsLeft <= 1;
 
-    setStats((prev) => {
-      const updatedStats: UserStats = {
-        ...prev,
-        total_points: prev.total_points + 10,
-        total_focus_minutes: prev.total_focus_minutes + settingsData.focus_duration,
-        total_pomodoros: prev.total_pomodoros + 1,
-        current_streak: prev.current_streak + 1,
-        longest_streak: Math.max(prev.longest_streak, prev.current_streak + 1),
-        last_active_date: today,
-      };
+        await api.post(`/pomodoro/sessions/${runningSession.id}/finish/`, {
+          completed,
+        });
 
-      writeLocalStorage(STORAGE_KEYS.stats, updatedStats);
-      return updatedStats;
-    });
+        const completedFocus =
+          completed && sessionType === "focus" && sessionFinishedByTimer;
 
-    setTodayMetrics((prev) => {
-      const updatedToday: TodayMetrics =
-        prev.date === today
-          ? {
-              ...prev,
-              total_sessions: prev.total_sessions + 1,
-              total_minutes: prev.total_minutes + settingsData.focus_duration,
-            }
-          : {
-              date: today,
-              total_sessions: 1,
-              total_minutes: settingsData.focus_duration,
-            };
+        setRunningSession(null);
+        setSelectedTask("");
 
-      writeLocalStorage(STORAGE_KEYS.today, updatedToday);
-      return updatedToday;
-    });
-  }, [settingsData.focus_duration]);
-
-  const handleComplete = useCallback(() => {
-    setIsRunning(false);
-
-    if (mode === "focus") {
-      completeFocusSession();
-
-      setCyclesCompleted((prev) => {
-        const nextCycles = prev + 1;
-
-        if (nextCycles % settingsData.cycles_before_long_break === 0) {
-          setMode("long_break");
-          setTimeLeft(settingsData.long_break * 60);
+        if (shouldAdvance) {
+          advancePomodoroCycle(completedFocus);
         } else {
-          setMode("short_break");
-          setTimeLeft(settingsData.short_break * 60);
+          setSecondsLeft(getDurationBySessionType(sessionType));
         }
 
-        return nextCycles;
-      });
-
-      return;
-    }
-
-    setMode("focus");
-    setTimeLeft(settingsData.focus_duration * 60);
-  }, [mode, completeFocusSession, settingsData]);
+        await Promise.all([refreshStats(), refreshTasks()]);
+      } catch (error) {
+        console.error("Erro ao finalizar sessão:", error);
+      } finally {
+        setIsFinishing(false);
+      }
+    },
+    [
+      runningSession,
+      sessionType,
+      secondsLeft,
+      getDurationBySessionType,
+      tasks,
+      advancePomodoroCycle,
+    ],
+  );
 
   useEffect(() => {
-    void loadPomodoroData();
-  }, [loadPomodoroData]);
+    if (runningSession || isLoading) return;
+    setSecondsLeft(getDurationBySessionType(sessionType));
+  }, [
+    settings,
+    sessionType,
+    runningSession,
+    isLoading,
+    getDurationBySessionType,
+  ]);
 
   useEffect(() => {
-    setTimeLeft(totalSeconds);
-  }, [totalSeconds]);
+    if (!runningSession) return;
 
-  useEffect(() => {
-    if (!isRunning) {
-      clearTimerInterval();
-      return;
-    }
-
-    intervalRef.current = window.setInterval(() => {
-      setTimeLeft((prev) => {
+    const timer = window.setInterval(() => {
+      setSecondsLeft((prev) => {
         if (prev <= 1) {
-          clearTimerInterval();
-          handleComplete();
+          window.clearInterval(timer);
+          void handleFinish(true, true);
           return 0;
         }
+
         return prev - 1;
       });
     }, 1000);
 
-    return () => clearTimerInterval();
-  }, [isRunning, handleComplete]);
+    return () => window.clearInterval(timer);
+  }, [runningSession, sessionType, handleFinish]);
 
-  function startTimer() {
-    setIsRunning(true);
-  }
+  async function handleSaveSettings() {
+    try {
+      setIsSavingSettings(true);
 
-  function pauseTimer() {
-    setIsRunning(false);
-  }
+      await api.patch("/pomodoro/settings/me/", {
+        focus_minutes: settings.focusMinutes,
+        short_break_minutes: settings.shortBreakMinutes,
+        long_break_minutes: settings.longBreakMinutes,
+        cycles_before_long_break: settings.cyclesBeforeLongBreak,
+      });
 
-  function toggleTimer() {
-    if (isRunning) {
-      pauseTimer();
-    } else {
-      startTimer();
+      if (!runningSession) {
+        setSecondsLeft(getDurationBySessionType(sessionType));
+      }
+
+      setShowSettings(false);
+    } catch (error) {
+      console.error("Erro ao salvar configurações:", error);
+    } finally {
+      setIsSavingSettings(false);
     }
   }
 
-  function resetCurrentMode() {
-    setIsRunning(false);
-    setTimeLeft(getSecondsForMode(mode));
+  async function handleStart() {
+    try {
+      setIsStarting(true);
+
+      const plannedMinutes = Math.floor(
+        getDurationBySessionType(sessionType) / 60,
+      );
+
+      const { data } = await api.post<PomodoroSession>(
+        "/pomodoro/sessions/start/",
+        {
+          task_id:
+            sessionType === "focus" && selectedTask
+              ? Number(selectedTask)
+              : null,
+          session_type: sessionType,
+          planned_minutes: plannedMinutes,
+        },
+      );
+
+      setRunningSession(data);
+      setSecondsLeft(plannedMinutes * 60);
+
+      await refreshStats();
+    } catch (error) {
+      console.error("Erro ao iniciar sessão:", error);
+    } finally {
+      setIsStarting(false);
+    }
   }
 
-  function handleSkip() {
-    setIsRunning(false);
+  async function handleSkip() {
+    if (runningSession) {
+      await handleFinish(false, true);
 
-    if (mode === "focus") {
-      setCyclesCompleted((prev) => {
-        const nextCycles = prev + 1;
+      if (sessionType === "focus") {
+        setCompletedFocusCycles((prev) => {
+          const nextCompletedFocusCycles = prev + 1;
+          const nextType =
+            nextCompletedFocusCycles % settings.cyclesBeforeLongBreak === 0
+              ? "long_break"
+              : "short_break";
 
-        if (nextCycles % settingsData.cycles_before_long_break === 0) {
-          setMode("long_break");
-          setTimeLeft(settingsData.long_break * 60);
-        } else {
-          setMode("short_break");
-          setTimeLeft(settingsData.short_break * 60);
-        }
+          setSessionType(nextType);
+          setSecondsLeft(getDurationBySessionType(nextType));
+          return nextCompletedFocusCycles;
+        });
+      }
 
-        return nextCycles;
+      return;
+    }
+
+    if (sessionType === "focus") {
+      setCompletedFocusCycles((prev) => {
+        const nextCompletedFocusCycles = prev + 1;
+        const nextType =
+          nextCompletedFocusCycles % settings.cyclesBeforeLongBreak === 0
+            ? "long_break"
+            : "short_break";
+
+        setSessionType(nextType);
+        setSecondsLeft(getDurationBySessionType(nextType));
+        return nextCompletedFocusCycles;
       });
 
       return;
     }
 
-    setMode("focus");
-    setTimeLeft(settingsData.focus_duration * 60);
+    advancePomodoroCycle(false);
   }
 
-  function resetFormToCurrentSettings() {
-    setFocusMin(String(settingsData.focus_duration));
-    setShortBreakMin(String(settingsData.short_break));
-    setLongBreakMin(String(settingsData.long_break));
-    setCyclesBeforeLong(String(settingsData.cycles_before_long_break));
-  }
-
-  async function handleSaveSettings() {
-    if (hasSettingsError) return;
-
-    try {
-      setSavingSettings(true);
-
-      const payload: PomodoroSettings = normalizeSettings({
-        focus_duration: toPositiveInteger(
-          focusMin,
-          settingsData.focus_duration || 25,
-        ),
-        short_break: toPositiveInteger(
-          shortBreakMin,
-          settingsData.short_break || 5,
-        ),
-        long_break: toPositiveInteger(
-          longBreakMin,
-          settingsData.long_break || 15,
-        ),
-        cycles_before_long_break: toPositiveInteger(
-          cyclesBeforeLong,
-          settingsData.cycles_before_long_break || 4,
-        ),
-      });
-
-      setSettingsData(payload);
-      writeLocalStorage(STORAGE_KEYS.settings, payload);
-
-      setFocusMin(String(payload.focus_duration));
-      setShortBreakMin(String(payload.short_break));
-      setLongBreakMin(String(payload.long_break));
-      setCyclesBeforeLong(String(payload.cycles_before_long_break));
-
-      setIsRunning(false);
-      setTimeLeft(getSecondsForMode(mode, payload));
-      setSettingsOpen(false);
-    } finally {
-      setSavingSettings(false);
+  async function handleReset() {
+    if (runningSession) {
+      await handleFinish(false, false);
+      return;
     }
+
+    setSecondsLeft(getDurationBySessionType(sessionType));
   }
 
-  useEffect(() => {
-    return () => clearTimerInterval();
-  }, []);
+  if (isLoading) {
+    return (
+      <div
+        className={
+          isFocusVariant
+            ? "flex min-h-screen items-center justify-center bg-slate-950 text-white"
+            : "rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm"
+        }
+      >
+        <p
+          className={
+            isFocusVariant ? "text-sm text-slate-400" : "text-sm text-slate-500"
+          }
+        >
+          Carregando Pomodoro...
+        </p>
+      </div>
+    );
+  }
+
+  if (isFocusVariant) {
+    return (
+      <PomodoroFocusView
+        sessionType={sessionType}
+        timeLabel={timeLabel}
+        runningSession={runningSession}
+        selectedTaskLabel={selectedTaskLabel}
+        completedFocusCycles={completedFocusCycles}
+        isStarting={isStarting}
+        isFinishing={isFinishing}
+        onStart={handleStart}
+        onFinish={() => handleFinish(true, true)}
+        onReset={handleReset}
+        onSkip={handleSkip}
+      />
+    );
+  }
 
   return (
     <>
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-        {loading ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-            <p className="text-sm text-slate-500">Carregando Pomodoro...</p>
+      <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="mt-4 flex items-stretch gap-3">
+          <div className="flex-1">
+            <TaskSelect
+              value={selectedTask}
+              onChange={setSelectedTask}
+              options={taskOptions}
+              disabled={!!runningSession || sessionType !== "focus"}
+            />
           </div>
-        ) : (
-          <>
-            <div className="lg:hidden">
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div>
-                  <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-                    Pomodoro
-                  </h1>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {focusedTodayMin} minutos focados hoje
-                  </p>
-                </div>
 
-                <button
-                  className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-                  type="button"
-                  onClick={() => setSettingsOpen(true)}
-                >
-                  <Settings className="h-4 w-4" />
-                  <span className="hidden sm:inline">Configurações</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="hidden items-start justify-between lg:flex">
-              <div>
-                <h1 className="text-4xl font-semibold tracking-tight text-slate-900">
-                  Pomodoro
-                </h1>
-                <p className="mt-1 text-sm text-slate-500">
-                  {focusedTodayMin} minutos focados hoje
-                </p>
-              </div>
-
-              <button
-                className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-                type="button"
-                onClick={() => setSettingsOpen(true)}
-              >
-                <Settings className="h-4 w-4" />
-                Configurações
-              </button>
-            </div>
-          </>
-        )}
-
-        <div className="mt-2 flex justify-center">
-          <div
-            className={cx(
-              "w-full max-w-3xl rounded-2xl border bg-white p-3 shadow-sm transition",
-              isFocusMode
-                ? "border-blue-200 ring-2 ring-blue-100"
-                : "border-slate-200",
-            )}
+          <button
+            type="button"
+            onClick={() => setShowSettings(true)}
+            className="grid h-[58px] w-[52px] shrink-0 place-items-center rounded-[18px] bg-white text-slate-600 ring-1 ring-slate-200 shadow-sm transition hover:bg-slate-50 sm:w-[58px]"
+            aria-label="Configurações"
           >
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-3 text-left"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-700">
-                  <CheckSquare className="h-5 w-5" />
-                </span>
-
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Tarefa atual
-                  </p>
-                  <span className="truncate text-sm font-medium text-slate-700">
-                    {selectedTask}
-                  </span>
-                </div>
-              </div>
-
-              {!isFocusSessionActive && (
-                <ChevronDown className="h-5 w-5 text-slate-400" />
-              )}
-            </button>
-          </div>
+            <Settings className="h-5 w-5" />
+          </button>
         </div>
 
-        <div
-          className={cx(
-            "mt-6 flex flex-col items-center",
-            isFocusSessionActive ? "pb-6" : "pb-16 sm:pb-12",
-          )}
-        >
-          <div
-            className={cx(
-              "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ring-1",
-              mode === "focus"
-                ? "bg-blue-50 text-blue-700 ring-blue-100"
-                : "bg-emerald-50 text-emerald-700 ring-emerald-100",
-            )}
-          >
-            <span
-              className={cx(
-                "h-2 w-2 rounded-full",
-                mode === "focus" ? "bg-blue-600" : "bg-emerald-600",
-              )}
-            />
-            {modeLabel}
+        <div className="mt-7 flex flex-col items-center text-center">
+          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-1.5 text-sm font-semibold text-blue-600">
+            <Circle className="h-2.5 w-2.5 fill-current stroke-0" />
+            {sessionType === "focus"
+              ? "Foco"
+              : sessionType === "short_break"
+              ? "Pausa curta"
+              : "Pausa longa"}
           </div>
 
-          <div className="relative mt-6 grid place-items-center">
-            <div className="relative">
-              <div className="sm:hidden">
-                <ProgressRing size={210} stroke={11} value={progress} />
-              </div>
-              <div className="hidden sm:block">
-                <ProgressRing size={320} stroke={14} value={progress} />
-              </div>
-            </div>
-
-            <div className="absolute grid place-items-center">
-              <div className="text-5xl font-light tracking-tight text-slate-900 sm:text-7xl">
-                {mm}:{ss}
-              </div>
+          <p className="mt-3 text-sm text-slate-500 sm:text-[15px]">
+            Trabalhando em:{" "}
+            <span className="font-semibold text-slate-700">
+              {sessionType === "focus"
+                ? runningSession?.task_title ||
+                  selectedTaskLabel ||
+                  "Nenhuma tarefa selecionada"
+                : "Momento de descanso"}
+            </span>
+          </p>
+          <div className="relative mt-6 flex h-52 w-52 items-center justify-center sm:h-60 sm:w-60">
+            <div className="absolute inset-0 rounded-full border-8 border-slate-100" />
+            <div className="flex h-40 w-40 items-center justify-center rounded-full bg-slate-50 sm:h-48 sm:w-48">
+              <span className="text-4xl font-medium tracking-tight text-slate-700 sm:text-5xl">
+                {timeLabel}
+              </span>
             </div>
           </div>
 
-          <div className="mt-6 flex items-center gap-4 sm:mt-8">
+          <div className="mt-5 flex items-center gap-3">
             <button
-              className="grid h-12 w-12 cursor-pointer place-items-center rounded-full bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
               type="button"
+              onClick={handleReset}
+              disabled={isFinishing}
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               aria-label="Reiniciar"
-              onClick={resetCurrentMode}
             >
-              <RotateCcw className="h-5 w-5" />
+              <RotateCcw className="h-4 w-4" />
             </button>
 
-            <button
-              className="grid h-16 w-16 cursor-pointer place-items-center rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-700"
-              type="button"
-              aria-label={isRunning ? "Pausar" : "Iniciar"}
-              onClick={toggleTimer}
-            >
-              {isRunning ? (
-                <Pause className="h-7 w-7 fill-white" />
-              ) : (
-                <Play className="h-7 w-7 fill-white" />
-              )}
-            </button>
+            {!runningSession ? (
+              <button
+                type="button"
+                onClick={handleStart}
+                disabled={isStarting}
+                className="grid h-14 w-14 cursor-pointer place-items-center rounded-full bg-blue-600 text-white shadow-sm transition hover:scale-[1.02] hover:bg-blue-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Iniciar"
+              >
+                <Play className="ml-0.5 h-5 w-5 fill-current" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleFinish(true, true)}
+                disabled={isFinishing}
+                className="grid h-14 w-14 cursor-pointer place-items-center rounded-full bg-emerald-600 text-white shadow-sm transition hover:scale-[1.02] hover:bg-emerald-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Concluir"
+              >
+                <Check className="h-5 w-5" />
+              </button>
+            )}
 
             <button
-              className="grid h-12 w-12 cursor-pointer place-items-center rounded-full bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
               type="button"
-              aria-label="Próximo"
               onClick={handleSkip}
+              disabled={isFinishing}
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label="Próximo ciclo"
             >
-              <SkipForward className="h-5 w-5" />
+              <SkipForward className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="mt-4 flex flex-col items-center gap-3 sm:mt-5">
-            <div className="flex items-center gap-2">
-              {Array.from({
-                length: settingsData.cycles_before_long_break,
-              }).map((_, i) => (
-                <span
-                  key={i}
-                  className={cx(
-                    "h-2 w-2 rounded-full",
-                    i < (cyclesCompleted % settingsData.cycles_before_long_break)
-                      ? "bg-blue-600"
-                      : "bg-slate-200",
-                  )}
-                />
-              ))}
-            </div>
+          <p className="mt-5 text-sm text-slate-400">
+            {completedFocusCycles} ciclos de foco concluídos
+          </p>
 
-            <p className="text-sm text-slate-500">
-              {cyclesCompleted} ciclos completos
-            </p>
+          <button
+            type="button"
+            onClick={() => navigate("/pomodoro/focus")}
+            className="mt-4 cursor-pointer text-sm font-semibold text-blue-600 transition hover:text-blue-700"
+          >
+            Entrar no Modo Foco
+          </button>
+        </div>
 
-            <p className="text-center text-sm font-medium text-slate-500">
-              {isFocusMode
-                ? "Concentre-se apenas na tarefa atual até o fim do ciclo."
-                : "Aproveite a pausa antes do próximo ciclo de foco."}
-            </p>
-          </div>
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <StatCard
+            title="Pomodoros"
+            value={String(stats.pomodoros)}
+            subtitle="sessões concluídas"
+            icon={<Target className="h-5 w-5" />}
+            iconTone="bg-blue-50 text-blue-700"
+          />
 
-          {!isFocusSessionActive && (
-            <>
-              <div className="mt-6 w-full max-w-3xl rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Progresso da sessão</span>
-                  <span className="font-semibold text-slate-700">
-                    {Math.round(progress * 100)}%
-                  </span>
-                </div>
-                <div className="mt-2">
-                  <ProgressBar value={progress} />
-                </div>
-              </div>
+          <StatCard
+            title="Minutos"
+            value={String(stats.minutes)}
+            subtitle="tempo focado"
+            icon={<Clock className="h-5 w-5" />}
+            iconTone="bg-emerald-50 text-emerald-700"
+          />
 
-              <div className="mt-5 grid w-full max-w-4xl grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-4">
-                <StatMiniCard
-                  value={`${todaySessions}`}
-                  label="Sessões hoje"
-                  valueClassName="text-violet-600"
-                />
-                <StatMiniCard
-                  value={`${stats.total_pomodoros}`}
-                  label="Pomodoros"
-                  valueClassName="text-blue-600"
-                />
-                <StatMiniCard
-                  value={`${stats.total_focus_minutes}`}
-                  label="Minutos"
-                  valueClassName="text-emerald-600"
-                />
-                <StatMiniCard
-                  value={`${stats.total_points}`}
-                  label="Pontos"
-                  valueClassName="text-orange-500"
-                />
-              </div>
-            </>
-          )}
+          <StatCard
+            title="Pontos"
+            value={String(stats.points)}
+            subtitle="XP acumulado"
+            icon={<Star className="h-5 w-5" />}
+            iconTone="bg-amber-50 text-amber-700"
+          />
         </div>
       </div>
 
-      {!isFocusSessionActive && (
-        <SettingsModal
-          open={settingsOpen}
-          onClose={() => setSettingsOpen(false)}
-          title="Configurações do Pomodoro"
-        >
-          <div className="space-y-5">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900">
-                    Resumo atual
-                  </h3>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Veja rapidamente como sua rotina ficará com os valores abaixo.
-                  </p>
-                </div>
+      {showSettings && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-[2px]">
+          <div
+            className="scrollbar-hide max-h-[80vh] w-full max-w-md overflow-y-auto rounded-[15px] border border-slate-200 bg-white p-4 shadow-2xl sm:p-5"
+            style={{
+              msOverflowStyle: "none",
+              scrollbarWidth: "none",
+            }}
+          >
+            <style>
+              {`
+                .scrollbar-hide::-webkit-scrollbar {
+                  display: none;
+                }
+              `}
+            </style>
+
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-slate-800">
+                  Configurações do Pomodoro
+                </h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  Ajuste os tempos das sessões.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowSettings(false)}
+                className="grid h-9 w-9 cursor-pointer place-items-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50"
+                aria-label="Fechar configurações"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                Presets rápidos
+              </p>
+
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => applyPreset("minimo")}
+                  className={getPresetButtonClass("minimo")}
+                >
+                  Mínimo
+                </button>
 
                 <button
                   type="button"
-                  onClick={resetFormToCurrentSettings}
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  onClick={() => applyPreset("padrao")}
+                  className={getPresetButtonClass("padrao")}
                 >
-                  <RefreshCcw className="h-4 w-4" />
-                  Restaurar atual
+                  Padrão
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => applyPreset("maximo")}
+                  className={getPresetButtonClass("maximo")}
+                >
+                  Máximo
                 </button>
               </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="rounded-xl bg-white px-3 py-3 ring-1 ring-slate-200">
-                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                    Foco
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">
-                    {previewSettings.focus_duration} min
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-white px-3 py-3 ring-1 ring-slate-200">
-                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                    Curta
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">
-                    {previewSettings.short_break} min
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-white px-3 py-3 ring-1 ring-slate-200">
-                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                    Longa
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">
-                    {previewSettings.long_break} min
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-white px-3 py-3 ring-1 ring-slate-200">
-                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                    Ciclos
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">
-                    {previewSettings.cycles_before_long_break}
-                  </p>
-                </div>
-              </div>
             </div>
 
-            <SettingField
-              icon={<Timer className="h-5 w-5" />}
-              label="Duração do foco"
-              description="Tempo principal de concentração antes de iniciar uma pausa."
-              value={focusMin}
-              onChange={setFocusMin}
-              min={LIMITS.focus_duration.min}
-              recommendedMax={LIMITS.focus_duration.recommendedMax}
-              absoluteMax={LIMITS.focus_duration.absoluteMax}
-              suffix="min"
-              error={focusError}
-              warning={focusWarning}
-            />
+            <div className="mt-4 grid gap-3">
+              <SettingControl
+                label="Tempo de foco"
+                description="Duração da sessão."
+                value={settings.focusMinutes}
+                min={15}
+                max={60}
+                suffix="min"
+                onDecrease={() =>
+                  updateSetting(
+                    "focusMinutes",
+                    Math.max(15, settings.focusMinutes - 1),
+                  )
+                }
+                onIncrease={() =>
+                  updateSetting(
+                    "focusMinutes",
+                    Math.min(60, settings.focusMinutes + 1),
+                  )
+                }
+              />
 
-            <SettingField
-              icon={<Coffee className="h-5 w-5" />}
-              label="Pausa curta"
-              description="Pequeno intervalo entre sessões de foco."
-              value={shortBreakMin}
-              onChange={setShortBreakMin}
-              min={LIMITS.short_break.min}
-              recommendedMax={LIMITS.short_break.recommendedMax}
-              absoluteMax={LIMITS.short_break.absoluteMax}
-              suffix="min"
-              error={shortBreakError}
-              warning={shortBreakWarning}
-            />
+              <SettingControl
+                label="Pausa curta"
+                description="Descanso entre ciclos."
+                value={settings.shortBreakMinutes}
+                min={3}
+                max={15}
+                suffix="min"
+                onDecrease={() =>
+                  updateSetting(
+                    "shortBreakMinutes",
+                    Math.max(3, settings.shortBreakMinutes - 1),
+                  )
+                }
+                onIncrease={() =>
+                  updateSetting(
+                    "shortBreakMinutes",
+                    Math.min(15, settings.shortBreakMinutes + 1),
+                  )
+                }
+              />
 
-            <SettingField
-              icon={<Moon className="h-5 w-5" />}
-              label="Pausa longa"
-              description="Descanso maior após completar alguns ciclos."
-              value={longBreakMin}
-              onChange={setLongBreakMin}
-              min={LIMITS.long_break.min}
-              recommendedMax={LIMITS.long_break.recommendedMax}
-              absoluteMax={LIMITS.long_break.absoluteMax}
-              helperText="faixa padrão sugerida: 15 a 20"
-              suffix="min"
-              error={longBreakError}
-              warning={longBreakWarning}
-            />
+              <SettingControl
+                label="Pausa longa"
+                description="Descanso após ciclos."
+                value={settings.longBreakMinutes}
+                min={10}
+                max={30}
+                suffix="min"
+                onDecrease={() =>
+                  updateSetting(
+                    "longBreakMinutes",
+                    Math.max(10, settings.longBreakMinutes - 1),
+                  )
+                }
+                onIncrease={() =>
+                  updateSetting(
+                    "longBreakMinutes",
+                    Math.min(30, settings.longBreakMinutes + 1),
+                  )
+                }
+              />
 
-            <SettingField
-              icon={<RotateCcw className="h-5 w-5" />}
-              label="Ciclos antes da pausa longa"
-              description="Quantidade de sessões de foco antes de ativar a pausa longa."
-              value={cyclesBeforeLong}
-              onChange={setCyclesBeforeLong}
-              min={LIMITS.cycles_before_long_break.min}
-              recommendedMax={LIMITS.cycles_before_long_break.recommendedMax}
-              absoluteMax={LIMITS.cycles_before_long_break.absoluteMax}
-              suffix="ciclos"
-              error={cyclesError}
-              warning={cyclesWarning}
-            />
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Regras atuais:
-              <div className="mt-2 space-y-1 text-xs sm:text-sm">
-                <p>
-                  <strong>Foco:</strong> mínimo 15, padrão 25, recomendado até 60,
-                  máximo absoluto 90
-                </p>
-                <p>
-                  <strong>Pausa curta:</strong> mínimo 3, padrão 5, recomendado até
-                  10, máximo absoluto 15
-                </p>
-                <p>
-                  <strong>Pausa longa:</strong> mínimo 15, padrão 15–20,
-                  recomendado até 30, máximo absoluto 40
-                </p>
-                <p>
-                  <strong>Ciclos:</strong> mínimo 1, padrão 4, recomendado até 8,
-                  máximo absoluto 12
-                </p>
-              </div>
+              <SettingControl
+                label="Ciclos até pausa longa"
+                description="Sessões antes da pausa longa."
+                value={settings.cyclesBeforeLongBreak}
+                min={2}
+                max={6}
+                suffix="ciclos"
+                onDecrease={() =>
+                  updateSetting(
+                    "cyclesBeforeLongBreak",
+                    Math.max(2, settings.cyclesBeforeLongBreak - 1),
+                  )
+                }
+                onIncrease={() =>
+                  updateSetting(
+                    "cyclesBeforeLongBreak",
+                    Math.min(6, settings.cyclesBeforeLongBreak + 1),
+                  )
+                }
+              />
             </div>
 
-            {hasSettingsError && (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                Corrija os campos inválidos antes de salvar.
-              </div>
-            )}
-
-            <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end">
+            <div className="mt-4 flex justify-end">
               <button
                 type="button"
-                className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 cursor-pointer"
-                onClick={() => setSettingsOpen(false)}
-              >
-                Cancelar
-              </button>
-
-              <button
-                type="button"
-                className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                 onClick={handleSaveSettings}
-                disabled={savingSettings || hasSettingsError}
+                disabled={isSavingSettings}
+                className="cursor-pointer rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {savingSettings ? "Salvando..." : "Salvar Configurações"}
+                {isSavingSettings ? "Salvando..." : "Concluir"}
               </button>
             </div>
           </div>
-        </SettingsModal>
+        </div>
       )}
     </>
   );

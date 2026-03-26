@@ -52,7 +52,7 @@ const MAIN_NAV: Array<{ key: NavKey; label: string; icon: React.ReactNode }> = [
 const ROUTES: Record<Exclude<NavKey, "logout">, string> = {
   dashboard: "/dashboard",
   tasks: "/tasks",
-  pomodoro: "/pomodoro",
+  pomodoro: "/pomodoropage",
   stats: "/stats",
   achievements: "/achievements",
   notifications: "/notifications",

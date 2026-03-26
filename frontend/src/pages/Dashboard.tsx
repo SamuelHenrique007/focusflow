@@ -15,6 +15,7 @@ import {
   Timer,
   AlertCircle,
   Rocket,
+  Star,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -24,6 +25,7 @@ import { ProgressBar } from "@/components/common/ProgressBar";
 import { StatCard } from "@/components/common/StatCard";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/hooks/useAuth";
+import { api } from "@/services/api";
 import {
   listTasks,
   createTask,
@@ -32,6 +34,26 @@ import {
   type CreateTaskRequest,
   type UpdateTaskRequest,
 } from "@/services/tasks";
+
+type PomodoroSession = {
+  id: number;
+  task: number | null;
+  task_title?: string;
+  session_type: "focus" | "short_break" | "long_break";
+  planned_minutes: number;
+  started_at: string;
+  ended_at: string | null;
+  status: "running" | "completed" | "skipped" | "cancelled";
+  earned_points: number;
+};
+
+type PomodoroStats = {
+  pomodoros: number;
+  minutes: number;
+  points: number;
+  active_days: number;
+  running_session: PomodoroSession | null;
+};
 
 function normalizeNameParts(name?: string) {
   if (!name?.trim()) return [];
@@ -81,7 +103,7 @@ function isOverdue(dateString?: string | null) {
 }
 
 /**
- * Regra do dashboard:
+ * Regras do dashboard:
  * - mostrar tarefas do dia
  * - mostrar tarefas pendentes
  * - nunca mostrar concluídas
@@ -284,23 +306,41 @@ export default function FocusFlowDashboard() {
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
+
+  const [pomodoroStats, setPomodoroStats] = useState<PomodoroStats>({
+    pomodoros: 0,
+    minutes: 0,
+    points: 0,
+    active_days: 0,
+    running_session: null,
+  });
+
+  const [loadingPomodoro, setLoadingPomodoro] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    async function loadDashboardTasks() {
+    async function loadDashboardData() {
       try {
         setLoadingTasks(true);
+        setLoadingPomodoro(true);
         setErrorMessage("");
-        const data = await listTasks();
-        setTasks(data);
+
+        const [tasksData, pomodoroResponse] = await Promise.all([
+          listTasks(),
+          api.get<PomodoroStats>("/pomodoro/stats/"),
+        ]);
+
+        setTasks(tasksData);
+        setPomodoroStats(pomodoroResponse.data);
       } catch {
-        setErrorMessage("Não foi possível carregar as tarefas do dashboard.");
+        setErrorMessage("Não foi possível carregar os dados do dashboard.");
       } finally {
         setLoadingTasks(false);
+        setLoadingPomodoro(false);
       }
     }
 
-    loadDashboardTasks();
+    loadDashboardData();
   }, []);
 
   function getGreeting() {
@@ -324,15 +364,10 @@ export default function FocusFlowDashboard() {
   const userName = useMemo(() => getFirstAndSecondName(user?.name), [user?.name]);
   const todayLabel = getTodayLabel();
 
-  const xpCurrent = 0;
+  const xpCurrent = pomodoroStats.points;
   const xpTotal = 100;
-  const xpPct = xpTotal ? (xpCurrent / xpTotal) * 100 : 0;
+  const xpPct = xpTotal ? Math.min((xpCurrent / xpTotal) * 100, 100) : 0;
 
-  /**
-   * Aqui ficam SOMENTE as tarefas que devem aparecer no dashboard:
-   * - tarefas do dia
-   * - tarefas pendentes
-   */
   const dashboardTasks = useMemo(() => {
     return tasks.filter(shouldShowOnDashboard);
   }, [tasks]);
@@ -365,13 +400,15 @@ export default function FocusFlowDashboard() {
 
   const stats = useMemo(() => {
     const completedTodayTasks = tasks.filter(
-      (task) => task.status === "concluida" && !!task.completedAt && isToday(task.completedAt),
+      (task) =>
+        task.status === "concluida" &&
+        !!task.completedAt &&
+        isToday(task.completedAt),
     );
 
-    const tempoFocadoMin = dashboardTasks.reduce(
-      (total, task) => total + task.pomodoroCompleted * 25,
-      0,
-    );
+    const tempoFocadoMin = pomodoroStats.minutes;
+    const pomodorosConcluidos = pomodoroStats.pomodoros;
+    const pontos = pomodoroStats.points;
 
     const metaDiaTotalMin = 120;
     const metaDiaPct = Math.min(
@@ -383,16 +420,18 @@ export default function FocusFlowDashboard() {
       metaDiaPct,
       metaDiaTotalMin,
       tempoFocadoMin,
+      pomodorosConcluidos,
+      pontos,
       concluidasHoje: completedTodayTasks.length,
       pendentesTotal: pendingTasks.length,
       tarefasDoDia: todayTasks.length,
     };
-  }, [tasks, dashboardTasks, pendingTasks, todayTasks]);
+  }, [tasks, pomodoroStats, pendingTasks, todayTasks]);
 
   const dailyProgressMin = stats.tempoFocadoMin;
   const dailyGoalMin = stats.metaDiaTotalMin;
   const dailyProgressPct = dailyGoalMin
-    ? (dailyProgressMin / dailyGoalMin) * 100
+    ? Math.min((dailyProgressMin / dailyGoalMin) * 100, 100)
     : 0;
 
   const highlightTasks = useMemo(() => {
@@ -464,6 +503,20 @@ export default function FocusFlowDashboard() {
     };
   }, [overdueTasks.length, pendingTasks.length, inProgressTodayTasks.length, todayTasks.length]);
 
+  async function refreshDashboardData() {
+    try {
+      const [tasksData, pomodoroResponse] = await Promise.all([
+        listTasks(),
+        api.get<PomodoroStats>("/pomodoro/stats/"),
+      ]);
+
+      setTasks(tasksData);
+      setPomodoroStats(pomodoroResponse.data);
+    } catch {
+      setErrorMessage("Não foi possível atualizar os dados do dashboard.");
+    }
+  }
+
   async function handleCreateTask(
     payload: CreateTaskRequest | UpdateTaskRequest,
   ) {
@@ -490,10 +543,14 @@ export default function FocusFlowDashboard() {
       setTasks((prev) =>
         prev.map((item) => (item.id === updated.id ? updated : item)),
       );
+
+      await refreshDashboardData();
     } catch {
       alert("Não foi possível atualizar a conclusão da tarefa.");
     }
   }
+
+  const isLoading = loadingTasks || loadingPomodoro;
 
   return (
     <>
@@ -507,7 +564,7 @@ export default function FocusFlowDashboard() {
           <Badge tone="warning">
             <span className="inline-flex items-center gap-1">
               <Flame className="h-4 w-4" />
-              {stats.concluidasHoje} dias
+              {pomodoroStats.active_days} dias com foco
             </span>
           </Badge>
 
@@ -534,7 +591,7 @@ export default function FocusFlowDashboard() {
           <Badge tone="warning">
             <span className="inline-flex items-center gap-1">
               <Flame className="h-4 w-4" />
-              {stats.concluidasHoje} dias
+              {pomodoroStats.active_days} dias com foco
             </span>
           </Badge>
 
@@ -553,8 +610,8 @@ export default function FocusFlowDashboard() {
         <div className="flex items-center justify-between gap-3">
           <Badge tone="info">
             <span className="inline-flex items-center gap-1">
-              <Sparkles className="h-4 w-4" />
-              Nível 1
+              <Star className="h-4 w-4" />
+              XP real
             </span>
           </Badge>
           <p className="text-xs font-medium text-slate-500">
@@ -578,7 +635,7 @@ export default function FocusFlowDashboard() {
         <StatCard
           title="Tempo Focado"
           value={`${stats.tempoFocadoMin} min`}
-          subtitle="hoje"
+          subtitle="dados reais"
           icon={<Clock className="h-5 w-5" />}
           iconTone="bg-emerald-50 text-emerald-700"
         />
@@ -612,7 +669,7 @@ export default function FocusFlowDashboard() {
           <button
             className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-blue-700 ring-1 ring-slate-200 hover:bg-slate-50"
             type="button"
-            onClick={() => navigate("/pomodoro")}
+            onClick={() => navigate("/pomodoropage")}
           >
             Iniciar Pomodoro <span aria-hidden>→</span>
           </button>
@@ -641,7 +698,7 @@ export default function FocusFlowDashboard() {
               className="grid h-12 w-12 cursor-pointer place-items-center rounded-full bg-white/15 ring-1 ring-white/25 hover:bg-white/20"
               type="button"
               aria-label="Iniciar"
-              onClick={() => navigate("/pomodoro")}
+              onClick={() => navigate("/pomodoropage")}
             >
               <Play className="h-6 w-6 fill-white" />
             </button>
@@ -685,9 +742,9 @@ export default function FocusFlowDashboard() {
           </button>
         </div>
 
-        {loadingTasks ? (
+        {isLoading ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
-            Carregando tarefas...
+            Carregando dashboard...
           </div>
         ) : errorMessage ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-sm">
@@ -696,7 +753,7 @@ export default function FocusFlowDashboard() {
         ) : highlightTasks.length === 0 ? (
           <DashboardEmptyState
             onCreateTask={() => setNewTaskOpen(true)}
-            onStartPomodoro={() => navigate("/pomodoro")}
+            onStartPomodoro={() => navigate("/pomodoropage")}
           />
         ) : (
           <div className="space-y-3">

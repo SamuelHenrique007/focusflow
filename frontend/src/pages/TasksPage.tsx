@@ -20,6 +20,7 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { useNavigate } from "react-router-dom";
 import { CreateTaskModal } from "@/components/CreateTaskModal";
 import { Badge } from "@/components/common/Badge";
 import { ProgressBar } from "@/components/common/ProgressBar";
@@ -323,7 +324,7 @@ function RowMenu({
         ? createPortal(
             <div
               ref={menuRef}
-              className="fixed z-[9999] w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
+              className="fixed z-9999 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
               style={{ top: pos.top, left: pos.left }}
               role="menu"
               onMouseDown={(e) => e.stopPropagation()}
@@ -403,6 +404,7 @@ function TaskRow({
   onOpenMenu: () => void;
   onCloseMenu: () => void;
 }) {
+  const navigate = useNavigate();
   const isDone = task.status === "concluida";
   const isPending = task.status === "pendente";
 
@@ -432,7 +434,7 @@ function TaskRow({
           isPending ? "pl-2" : "",
         )}
       >
-        <div className="flex min-w-0 items-start gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           <button
             type="button"
             onClick={onToggleComplete}
@@ -456,7 +458,7 @@ function TaskRow({
             )}
           </button>
 
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-slate-900">
               {task.title}
             </p>
@@ -528,10 +530,11 @@ function TaskRow({
 
         <div
           className={cn(
-            "flex items-center gap-2 transition-all duration-200",
-            "opacity-0 translate-y-1 pointer-events-none",
-            "group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto",
-            menuOpen ? "opacity-100 translate-y-0 pointer-events-auto" : "",
+            "flex shrink-0 items-center gap-2 self-start",
+            "opacity-100 translate-y-0 pointer-events-auto",
+            "lg:opacity-0 lg:translate-y-1 lg:pointer-events-none",
+            "lg:group-hover:opacity-100 lg:group-hover:translate-y-0 lg:group-hover:pointer-events-auto",
+            menuOpen ? "lg:opacity-100 lg:translate-y-0 lg:pointer-events-auto" : "",
           )}
         >
           <button
@@ -539,6 +542,7 @@ function TaskRow({
             className="cursor-pointer grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition hover:bg-blue-100"
             aria-label="Iniciar pomodoro nesta tarefa"
             title="Iniciar"
+            onClick={() => navigate("/pomodoropage")}
           >
             <Play className="h-5 w-5" />
           </button>
@@ -561,6 +565,7 @@ function TaskRow({
 ========================= */
 function EmptyTasksState({
   hasFilters,
+  onCreateTask,
   onClearFilters,
 }: {
   hasFilters: boolean;
@@ -585,6 +590,16 @@ function EmptyTasksState({
         </p>
 
         <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row">
+          {!hasFilters ? (
+            <button
+              type="button"
+              onClick={onCreateTask}
+              className="cursor-pointer inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" />
+              Criar tarefa
+            </button>
+          ) : null}
 
           {hasFilters ? (
             <button
@@ -606,7 +621,7 @@ export default function TasksPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [openMenuTaskId, setOpenMenuTaskId] = useState<string | null>(null);
+  const [openMenuTaskId, setOpenMenuTaskId] = useState<number | null>(null);
 
   const [tab, setTab] = useState<
     "todas" | "pendentes" | "em_progresso" | "concluidas"
@@ -642,12 +657,6 @@ export default function TasksPage() {
 
     loadTasks();
   }, []);
-
-  const counts = useMemo(() => {
-    const pend = tasks.filter((t) => t.status !== "concluida").length;
-    const done = tasks.filter((t) => t.status === "concluida").length;
-    return { pend, done };
-  }, [tasks]);
 
   const filtered = useMemo(() => {
     let list = [...tasks];
@@ -788,7 +797,7 @@ export default function TasksPage() {
     }
   }
 
-  async function handleDeleteTask(taskId: string) {
+  async function handleDeleteTask(taskId: number) {
     try {
       await deleteTask(taskId);
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
@@ -837,9 +846,6 @@ export default function TasksPage() {
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
               Minhas Tarefas
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {counts.pend} pendentes • {counts.done} concluídas
-            </p>
           </div>
 
           <button
@@ -858,9 +864,6 @@ export default function TasksPage() {
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
             Minhas Tarefas
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {counts.pend} pendentes • {counts.done} concluídas
-          </p>
         </div>
 
         <button

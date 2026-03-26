@@ -84,13 +84,23 @@ class TaskSerializer(serializers.ModelSerializer):
         return obj.due_date.strftime("%d/%m/%Y %H:%M")
 
     def get_progress(self, obj):
-        total = obj.subtasks.count()
-        if total == 0:
-            return 0
+        # prioridade principal: pomodoros
+        if obj.pomodoro_estimated and obj.pomodoro_estimated > 0:
+            value = (obj.pomodoro_completed / obj.pomodoro_estimated) * 100
+            return min(max(round(value), 0), 100)
 
-        done = obj.subtasks.filter(is_completed=True).count()
-        value = (done / total) * 100
-        return min(max(round(value), 0), 100)
+        # fallback: subtarefas
+        total_subtasks = obj.subtasks.count()
+        if total_subtasks > 0:
+            done = obj.subtasks.filter(is_completed=True).count()
+            value = (done / total_subtasks) * 100
+            return min(max(round(value), 0), 100)
+
+        # fallback final
+        if obj.completed_at:
+            return 100
+
+        return 0
 
     def create(self, validated_data):
         subtasks_data = validated_data.pop("subtasks", [])
@@ -99,6 +109,14 @@ class TaskSerializer(serializers.ModelSerializer):
         for subtask_data in subtasks_data:
             TaskSubtask.objects.create(task=task, **subtask_data)
 
+        if (
+            task.pomodoro_estimated > 0
+            and task.pomodoro_completed >= task.pomodoro_estimated
+            and not task.completed_at
+        ):
+            task.completed_at = timezone.now()
+            task.save(update_fields=["completed_at"])
+
         return task
 
     def update(self, instance, validated_data):
@@ -106,6 +124,14 @@ class TaskSerializer(serializers.ModelSerializer):
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+
+        if (
+            instance.pomodoro_estimated > 0
+            and instance.pomodoro_completed >= instance.pomodoro_estimated
+        ):
+            instance.completed_at = timezone.now()
+        elif instance.completed_at and instance.pomodoro_completed < instance.pomodoro_estimated:
+            instance.completed_at = None
 
         instance.save()
 

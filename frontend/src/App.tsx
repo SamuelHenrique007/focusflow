@@ -8,6 +8,8 @@ import PomodoroTimer from "./components/PomodoroTimer";
 import TasksPage from "./pages/TasksPage";
 import ConquistasPage from "./pages/ConquistasPage";
 import EstatisticasPage from "./pages/EstatisticasPage";
+import PomodoroPage from "./pages/PomodoroPage";
+import PomodoroFocusPage from "@/pages/pomodoro/PomodoroFocusPage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { PublicRoute } from "./routes/PublicRoute";
 //import ForgotPassword from "@/pages/ForgotPassword";
@@ -28,12 +30,14 @@ export default function App() {
         </Route>
 
         <Route element={<ProtectedRoute />}>
+          <Route path="/pomodoro/focus" element={<PomodoroFocusPage />} />
           <Route element={<AppShell />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/pomodoro" element={<PomodoroTimer />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/achievements" element={<ConquistasPage />} />
             <Route path="/stats" element={<EstatisticasPage />} />
+            <Route path="/pomodoropage" element={<PomodoroPage />} />
           </Route>
         </Route>
 
