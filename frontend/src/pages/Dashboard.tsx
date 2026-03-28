@@ -21,7 +21,6 @@ import { useNavigate } from "react-router-dom";
 
 import { CreateTaskModal } from "@/components/CreateTaskModal";
 import { Badge } from "@/components/common/Badge";
-import { ProgressBar } from "@/components/common/ProgressBar";
 import { StatCard } from "@/components/common/StatCard";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/hooks/useAuth";
@@ -90,31 +89,19 @@ function isToday(dateString?: string | null) {
   return date.toDateString() === today.toDateString();
 }
 
-function isOverdue(dateString?: string | null) {
-  if (!dateString) return false;
-
-  const due = new Date(dateString);
-  const now = new Date();
-
-  due.setSeconds(0, 0);
-  now.setSeconds(0, 0);
-
-  return due < now && !isToday(dateString);
-}
-
 /**
  * Regras do dashboard:
  * - mostrar tarefas do dia
- * - mostrar tarefas pendentes
+ * - mostrar tarefas atrasadas (pendentes)
  * - nunca mostrar concluídas
  */
 function shouldShowOnDashboard(task: Task) {
   if (task.status === "concluida") return false;
 
   const taskIsToday = !!task.dueDate && isToday(task.dueDate);
-  const taskIsPending = task.status === "pendente";
+  const isOverdue = task.status === "pendente"; // Nova lógica: pendente = atrasada
 
-  return taskIsToday || taskIsPending;
+  return taskIsToday || isOverdue;
 }
 
 function TaskRow({
@@ -138,21 +125,22 @@ function TaskRow({
         ? "success"
         : "neutral";
 
-  const isInProgress = task.status === "em_progresso";
   const isDone = task.status === "concluida";
-  const overdue = !isDone && isOverdue(task.dueDate);
+  const isOverdue = task.status === "pendente"; // Pendente = Atrasada
+  const isActive = (task.status as string) === "em_andamento";
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md">
+    <div className={cn(
+      "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition hover:shadow-md",
+      isOverdue ? "border-rose-200 bg-rose-50/40" : "border-slate-200 bg-white"
+    )}>
       {!isDone ? (
         <div
           className={cn(
             "absolute left-0 top-0 h-full w-1.5",
-            overdue
-              ? "bg-rose-600"
-              : isInProgress
-                ? "bg-blue-500"
-                : "bg-amber-500",
+            isOverdue
+              ? "bg-rose-500"
+              : "bg-blue-500"
           )}
         />
       ) : null}
@@ -161,7 +149,7 @@ function TaskRow({
         <button
           type="button"
           onClick={onToggleComplete}
-          className="mt-0.5 grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-200 transition hover:bg-white"
+          className="mt-0.5 grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-200 transition hover:bg-white hover:scale-105"
           aria-label={
             isDone
               ? "Desmarcar tarefa concluída"
@@ -175,11 +163,9 @@ function TaskRow({
             <Circle
               className={cn(
                 "h-6 w-6 transition",
-                overdue
+                isOverdue
                   ? "text-rose-500"
-                  : isInProgress
-                    ? "text-blue-500"
-                    : "text-amber-500",
+                  : "text-slate-300 group-hover:text-blue-500"
               )}
             />
           )}
@@ -187,11 +173,18 @@ function TaskRow({
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="truncate text-sm font-semibold text-slate-900">
-              {task.title}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="truncate text-sm font-semibold text-slate-900">
+                {task.title}
+              </p>
+              {isOverdue && (
+                <span title="Atrasada" className="flex items-center shrink-0">
+                  <AlertCircle className="h-4 w-4 text-rose-500" />
+                </span>
+              )}
+            </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
               <Badge tone={categoryTone}>
                 <span className="inline-flex items-center gap-1">
                   <CategoryIcon category={task.category} />
@@ -206,41 +199,35 @@ function TaskRow({
                 </span>
               </Badge>
 
-              <Badge tone="neutral">
+              <Badge tone={isOverdue ? "danger" : "neutral"}>
                 <span className="inline-flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  {task.dueLabel}
+                  {isOverdue ? `Atrasada: ${task.dueLabel}` : task.dueLabel}
                 </span>
               </Badge>
 
-              <Badge tone="neutral">
+              <Badge tone={isActive ? "info" : "neutral"}>
                 <span className="inline-flex items-center gap-1">
                   <Timer className="h-4 w-4" />
                   {task.pomodoroCompleted}/{task.pomodoroEstimated}
                 </span>
               </Badge>
-
-              {overdue ? (
-                <Badge tone="danger">atrasada</Badge>
-              ) : (
-                <Badge tone={isDone ? "success" : isInProgress ? "info" : "warning"}>
-                  {isDone
-                    ? "concluída"
-                    : isInProgress
-                      ? "em progresso"
-                      : "pendente"}
-                </Badge>
-              )}
             </div>
           </div>
 
           {typeof task.progress === "number" ? (
-            <div className="mt-3 flex items-center gap-3">
-              <div className="flex-1">
-                <ProgressBar value={task.progress} />
+            <div className="mt-4 flex items-center gap-3">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
+                <div 
+                  className={cn(
+                    "h-full rounded-full transition-all duration-500 ease-out", 
+                    isDone ? "bg-emerald-500" : "bg-blue-500"
+                  )}
+                  style={{ width: `${Math.max(0, Math.min(100, task.progress))}%` }} 
+                />
               </div>
-              <span className="text-xs font-medium text-slate-600">
-                {task.progress}%
+              <span className="w-8 text-right text-xs font-bold text-slate-600">
+                {Math.round(task.progress)}%
               </span>
             </div>
           ) : null}
@@ -373,26 +360,17 @@ export default function FocusFlowDashboard() {
   }, [tasks]);
 
   const overdueTasks = useMemo(() => {
-    return dashboardTasks.filter(
-      (task) =>
-        task.status !== "concluida" &&
-        !!task.dueDate &&
-        isOverdue(task.dueDate),
-    );
+    return dashboardTasks.filter(task => task.status === "pendente"); // Pendente = Atrasada
   }, [dashboardTasks]);
 
   const todayTasks = useMemo(() => {
     return dashboardTasks.filter((task) => !!task.dueDate && isToday(task.dueDate));
   }, [dashboardTasks]);
 
-  const pendingTasks = useMemo(() => {
-    return dashboardTasks.filter((task) => task.status === "pendente");
-  }, [dashboardTasks]);
-
   const inProgressTodayTasks = useMemo(() => {
     return dashboardTasks.filter(
       (task) =>
-        task.status === "em_progresso" &&
+        (task.status as string) === "em_andamento" &&
         !!task.dueDate &&
         isToday(task.dueDate),
     );
@@ -423,10 +401,10 @@ export default function FocusFlowDashboard() {
       pomodorosConcluidos,
       pontos,
       concluidasHoje: completedTodayTasks.length,
-      pendentesTotal: pendingTasks.length,
+      pendentesTotal: overdueTasks.length, // Agora reflete as atrasadas
       tarefasDoDia: todayTasks.length,
     };
-  }, [tasks, pomodoroStats, pendingTasks, todayTasks]);
+  }, [tasks, pomodoroStats, overdueTasks, todayTasks]);
 
   const dailyProgressMin = stats.tempoFocadoMin;
   const dailyGoalMin = stats.metaDiaTotalMin;
@@ -438,11 +416,10 @@ export default function FocusFlowDashboard() {
     return [...dashboardTasks]
       .sort((a, b) => {
         const getOrder = (task: Task) => {
-          if (task.dueDate && isOverdue(task.dueDate)) return 0;
-          if (task.status === "pendente") return 1;
-          if (task.dueDate && isToday(task.dueDate)) return 2;
-          if (task.status === "em_progresso") return 3;
-          return 4;
+          if (task.status === "pendente") return 0; // Atrasadas primeiro
+          if (task.dueDate && isToday(task.dueDate)) return 1; // Para hoje depois
+          if ((task.status as string) === "em_andamento") return 2; // Ativas depois
+          return 3;
         };
 
         const diff = getOrder(a) - getOrder(b);
@@ -455,33 +432,14 @@ export default function FocusFlowDashboard() {
 
   const focusCard = useMemo(() => {
     const overdueCount = overdueTasks.length;
-    const pendingCount = pendingTasks.length;
     const inProgressCount = inProgressTodayTasks.length;
     const todayCount = todayTasks.length;
 
     if (overdueCount > 0) {
       return {
-        title: "Tarefas atrasadas",
+        title: "Atenção: Atrasos",
         description: `Você tem ${overdueCount} tarefa(s) atrasada(s). Vale priorizar isso agora.`,
         containerClass: "bg-linear-to-r from-rose-600 to-red-700",
-        icon: <AlertCircle className="h-6 w-6" />,
-      };
-    }
-
-    if (pendingCount > 0 && todayCount > 0) {
-      return {
-        title: "Resumo do dashboard",
-        description: `Você tem ${todayCount} tarefa(s) do dia e ${pendingCount} pendente(s).`,
-        containerClass: "bg-linear-to-r from-amber-500 to-orange-600",
-        icon: <AlertCircle className="h-6 w-6" />,
-      };
-    }
-
-    if (pendingCount > 0) {
-      return {
-        title: "Tarefas pendentes",
-        description: `Você tem ${pendingCount} tarefa(s) pendente(s) no dashboard.`,
-        containerClass: "bg-linear-to-r from-amber-500 to-orange-600",
         icon: <AlertCircle className="h-6 w-6" />,
       };
     }
@@ -489,19 +447,28 @@ export default function FocusFlowDashboard() {
     if (inProgressCount > 0) {
       return {
         title: "Bom ritmo!",
-        description: `Você tem ${inProgressCount} tarefa(s) em progresso para hoje.`,
+        description: `Você tem ${inProgressCount} tarefa(s) em andamento para hoje.`,
         containerClass: "bg-linear-to-r from-blue-600 to-indigo-600",
         icon: <Rocket className="h-6 w-6" />,
       };
     }
 
+    if (todayCount > 0) {
+        return {
+          title: "Foco no Dia",
+          description: `Você tem ${todayCount} tarefa(s) planejadas para hoje.`,
+          containerClass: "bg-linear-to-r from-amber-500 to-orange-600",
+          icon: <Target className="h-6 w-6" />,
+        };
+    }
+
     return {
-      title: "Continue assim!",
-      description: "Você não tem tarefas do dia ou pendentes no momento.",
+      title: "Tudo tranquilo!",
+      description: "Você não tem tarefas atrasadas ou urgentes no momento.",
       containerClass: "bg-linear-to-r from-emerald-500 to-green-600",
       icon: <Sparkles className="h-6 w-6" />,
     };
-  }, [overdueTasks.length, pendingTasks.length, inProgressTodayTasks.length, todayTasks.length]);
+  }, [overdueTasks.length, inProgressTodayTasks.length, todayTasks.length]);
 
   async function refreshDashboardData() {
     try {
@@ -611,7 +578,7 @@ export default function FocusFlowDashboard() {
           <Badge tone="info">
             <span className="inline-flex items-center gap-1">
               <Star className="h-4 w-4" />
-              XP real
+              XP 
             </span>
           </Badge>
           <p className="text-xs font-medium text-slate-500">
@@ -620,7 +587,13 @@ export default function FocusFlowDashboard() {
         </div>
 
         <div className="mt-3">
-          <ProgressBar value={xpPct} />
+            {/* Barra de Progresso Nativa Tailwind para o XP */}
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 ring-1 ring-inset ring-slate-300/50">
+              <div 
+                className="h-full rounded-full bg-blue-600 transition-all duration-500 ease-out"
+                style={{ width: `${Math.max(0, Math.min(100, xpPct))}%` }} 
+              />
+            </div>
         </div>
       </div>
 
@@ -635,7 +608,7 @@ export default function FocusFlowDashboard() {
         <StatCard
           title="Tempo Focado"
           value={`${stats.tempoFocadoMin} min`}
-          subtitle="dados reais"
+          subtitle="hoje"
           icon={<Clock className="h-5 w-5" />}
           iconTone="bg-emerald-50 text-emerald-700"
         />
@@ -647,11 +620,11 @@ export default function FocusFlowDashboard() {
           iconTone="bg-emerald-50 text-emerald-700"
         />
         <StatCard
-          title="Pendentes"
+          title="Atrasadas"
           value={`${stats.pendentesTotal}`}
           subtitle="total"
-          icon={<Target className="h-5 w-5" />}
-          iconTone="bg-amber-50 text-amber-800"
+          icon={<AlertCircle className="h-5 w-5" />}
+          iconTone="bg-rose-50 text-rose-700"
         />
       </div>
 
@@ -676,7 +649,13 @@ export default function FocusFlowDashboard() {
         </div>
 
         <div className="mt-4">
-          <ProgressBar value={dailyProgressPct} />
+            {/* Barra de Progresso Nativa Tailwind para a Meta Diária */}
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
+              <div 
+                className="h-full rounded-full bg-blue-500 transition-all duration-500 ease-out"
+                style={{ width: `${Math.max(0, Math.min(100, dailyProgressPct))}%` }} 
+              />
+            </div>
           <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
             <span>{dailyProgressMin} min</span>
             <span>{dailyGoalMin} min</span>
@@ -731,7 +710,7 @@ export default function FocusFlowDashboard() {
       <div className="mt-6">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold text-slate-900">
-            Tarefas de Hoje
+            Prioridades
           </h2>
           <button
             className="cursor-pointer text-sm font-semibold text-blue-700 hover:text-blue-800"

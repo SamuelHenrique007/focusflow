@@ -260,6 +260,16 @@ function ModalPortal({
           aria-modal="true"
           aria-label={title}
         >
+          <style>{`
+            .hide-scrollbar::-webkit-scrollbar {
+              display: none;
+            }
+            .hide-scrollbar {
+              -ms-overflow-style: none;
+              scrollbar-width: none;
+            }
+          `}</style>
+
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
             <p className="text-base font-semibold text-slate-900">{title}</p>
             <button
@@ -272,7 +282,7 @@ function ModalPortal({
             </button>
           </div>
 
-          <div className="max-h-[calc(100dvh-9rem)] overflow-y-auto px-5 py-5">
+          <div className="hide-scrollbar max-h-[calc(100dvh-9rem)] overflow-y-auto px-5 py-5">
             {children}
           </div>
         </div>
@@ -389,12 +399,14 @@ function SelectPro<T extends string>({
   options,
   placeholder = "Selecionar",
   leftIcon,
+  hideScrollbar = false,
 }: {
   value: T;
   onChange: (v: T) => void;
   options: Array<SelectOption<T>>;
   placeholder?: string;
   leftIcon?: React.ReactNode;
+  hideScrollbar?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useClickOutside<HTMLDivElement>(open, () => setOpen(false));
@@ -439,7 +451,12 @@ function SelectPro<T extends string>({
 
       {open ? (
         <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-10000 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-          <div className="max-h-64 overflow-y-auto p-2">
+          <div
+            className={cx(
+              "max-h-64 overflow-y-auto p-2",
+              hideScrollbar && "hide-scrollbar",
+            )}
+          >
             {options.map((o) => {
               const isActive = o.value === value;
 
@@ -704,9 +721,7 @@ function DateTimePickerContent({
                     muted
                       ? "text-slate-400 hover:bg-slate-50"
                       : "text-slate-800 hover:bg-slate-100",
-                    isToday
-                     ? "bg-blue-200 + ring-blue-300"
-                     : "",
+                    isToday ? "bg-blue-200 ring-1 ring-blue-300" : "",
                     selected
                       ? "bg-blue-600 text-white hover:bg-blue-700"
                       : "",
@@ -1003,6 +1018,7 @@ function CreateTaskModalForm({
             options={pomodoroOptions}
             leftIcon={<Timer className="h-4 w-4" />}
             placeholder="Defina a estimativa"
+            hideScrollbar
           />
         </div>
       </div>

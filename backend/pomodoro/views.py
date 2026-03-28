@@ -1,6 +1,7 @@
 from django.utils import timezone
-from django.db.models import Sum
+from django.db.models import F,Sum
 from django.db.models.functions import TruncDate
+from django.db import transaction
 
 from rest_framework import generics, status
 from rest_framework.views import APIView
@@ -95,56 +96,72 @@ class FinishPomodoroSessionView(APIView):
             )
 
         completed = request.data.get('completed', True)
-
         session.ended_at = timezone.now()
 
-        if completed:
-            session.status = 'completed'
-            session.earned_points = 25 if session.session_type == 'focus' else 5
+        # ✅ BLOCO ATÔMICO INICIA AQUI
+        with transaction.atomic():
+            if completed:
+                session.status = 'completed'
+                session.earned_points = 25 if session.session_type == 'focus' else 5
 
-            if session.task and session.session_type == 'focus':
-                if hasattr(session.task, 'pomodoro_completed'):
-                    session.task.pomodoro_completed += 1
+                if session.task and session.session_type == 'focus':
+                    if hasattr(session.task, 'pomodoro_completed'):
+                        session.task.pomodoro_completed = F('pomodoro_completed') + 1
 
-                if hasattr(session.task, 'focus_minutes_completed'):
-                    session.task.focus_minutes_completed += session.planned_minutes
+                    if hasattr(session.task, 'focus_minutes_completed'):
+                        session.task.focus_minutes_completed = F('focus_minutes_completed') + session.planned_minutes
 
-                session.task.save()
-        else:
-            session.status = 'skipped'
-            session.earned_points = 0
+                    session.task.save()
+                    session.task.refresh_from_db()
+            else:
+                session.status = 'skipped'
+                session.earned_points = 0
 
-        session.save()
+            session.save()
 
         return Response(PomodoroSessionSerializer(session).data)
+
+
+from django.utils import timezone
+from django.db.models import Sum
+from django.db.models.functions import TruncDate
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 
 class PomodoroStatsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        completed_focus_sessions = PomodoroSession.objects.filter(
+        today = timezone.now().date()
+        completed_focus_sessions_today = PomodoroSession.objects.filter(
             user=request.user,
             session_type='focus',
-            status='completed'
+            status='completed',
+            ended_at__date=today  
         )
 
-        total_pomodoros = completed_focus_sessions.count()
+        total_pomodoros = completed_focus_sessions_today.count()
 
-        total_minutes = completed_focus_sessions.aggregate(
+        total_minutes = completed_focus_sessions_today.aggregate(
             total=Sum('planned_minutes')
         )['total'] or 0
 
         total_points = PomodoroSession.objects.filter(
-            user=request.user
+            user=request.user,
+            ended_at__date=today  
         ).aggregate(
             total=Sum('earned_points')
         )['total'] or 0
 
-        # ✅ NOVO: cálculo dos dias ativos (>= 1 pomodoro por dia)
         active_days = (
-            completed_focus_sessions
-            .filter(ended_at__isnull=False)
+            PomodoroSession.objects.filter(
+                user=request.user,
+                session_type='focus',
+                status='completed',
+                ended_at__isnull=False
+            )
             .annotate(day=TruncDate('ended_at'))
             .values('day')
             .distinct()
@@ -160,7 +177,7 @@ class PomodoroStatsView(APIView):
             'pomodoros': total_pomodoros,
             'minutes': total_minutes,
             'points': total_points,
-            'active_days': active_days,  # ✅ novo campo
+            'active_days': active_days,
             'running_session': (
                 PomodoroSessionSerializer(running_session).data
                 if running_session else None

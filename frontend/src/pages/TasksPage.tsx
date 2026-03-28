@@ -18,12 +18,12 @@ import {
   Check,
   Pencil,
   Trash2,
+  AlertCircle,
 } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
 import { CreateTaskModal } from "@/components/CreateTaskModal";
 import { Badge } from "@/components/common/Badge";
-import { ProgressBar } from "@/components/common/ProgressBar";
 import { cn } from "@/lib/cn";
 import {
   listTasks,
@@ -127,7 +127,7 @@ function SelectPro<T extends string>({
       </button>
 
       {open ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-60 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
           <div className="max-h-64 overflow-y-auto p-2">
             {options.map((o) => {
               const isActive = o.value === value;
@@ -387,6 +387,9 @@ function CategoryIcon({ category }: { category: Task["category"] }) {
   return <BookOpen className="h-4 w-4" />;
 }
 
+/* =========================
+   TaskRow (Visual Card)
+========================= */
 function TaskRow({
   task,
   onEdit,
@@ -405,8 +408,10 @@ function TaskRow({
   onCloseMenu: () => void;
 }) {
   const navigate = useNavigate();
+  
   const isDone = task.status === "concluida";
-  const isPending = task.status === "pendente";
+  const isPending = task.status === "pendente"; // Pendente = Atrasada
+  const isActive = (task.status as string) === "em_andamento"; // Bypass TS2367 temp
 
   const categoryTone =
     task.category === "trabalho"
@@ -423,15 +428,20 @@ function TaskRow({
         : "neutral";
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md">
-      {isPending ? (
-        <div className="absolute left-0 top-0 h-full w-1.5 bg-rose-500" />
+    <div className={cn(
+      "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition hover:shadow-md",
+      isPending ? "border-rose-200 bg-rose-50/40" : "border-slate-200 bg-white",
+      isDone && "opacity-70"
+    )}>
+      {/* Indicador lateral */}
+      {(isActive || isPending) ? (
+        <div className={cn("absolute left-0 top-0 h-full w-1.5", isPending ? "bg-rose-500" : "bg-blue-400")} />
       ) : null}
 
       <div
         className={cn(
           "flex items-start justify-between gap-3",
-          isPending ? "pl-2" : "",
+          (isActive || isPending) ? "pl-2" : "",
         )}
       >
         <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -452,16 +462,23 @@ function TaskRow({
               <Circle
                 className={cn(
                   "h-6 w-6 transition",
-                  isPending ? "text-rose-400" : "text-blue-500",
+                  isPending ? "text-rose-500" : "text-slate-300 group-hover:text-blue-500",
                 )}
               />
             )}
           </button>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-900">
-              {task.title}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className={cn("truncate text-sm font-semibold text-slate-900", isDone && "line-through opacity-60")}>
+                {task.title}
+              </p>
+              {isPending && (
+                <span title="Atrasada" className="flex items-center shrink-0">
+                  <AlertCircle className="h-4 w-4 text-rose-500" />
+                </span>
+              )}
+            </div>
 
             {task.description ? (
               <p className="mt-1 line-clamp-2 text-sm text-slate-500">
@@ -484,14 +501,14 @@ function TaskRow({
                 </span>
               </Badge>
 
-              <Badge tone="neutral">
+              <Badge tone={isPending ? "danger" : "neutral"}>
                 <span className="inline-flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  {task.dueLabel}
+                  {isPending ? `Atrasada: ${task.dueLabel}` : task.dueLabel}
                 </span>
               </Badge>
 
-              <Badge tone="neutral">
+              <Badge tone={isActive ? "info" : "neutral"}>
                 <span className="inline-flex items-center gap-1">
                   <Timer className="h-4 w-4" />
                   {task.pomodoroCompleted}/{task.pomodoroEstimated}
@@ -499,16 +516,20 @@ function TaskRow({
               </Badge>
             </div>
 
+            {/* Barra de Progresso Nativa Tailwind */}
             {typeof task.progress === "number" ? (
               <div className="mt-4 flex items-center gap-3">
-                <div className="flex-1">
-                  <ProgressBar
-                    value={task.progress}
-                    barClassName="bg-emerald-500"
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
+                  <div 
+                    className={cn(
+                      "h-full rounded-full transition-all duration-500 ease-out", 
+                      isDone ? "bg-emerald-500" : "bg-blue-500"
+                    )}
+                    style={{ width: `${Math.max(0, Math.min(100, task.progress))}%` }} 
                   />
                 </div>
-                <span className="text-xs font-medium text-slate-600">
-                  {task.progress}%
+                <span className="w-8 text-right text-xs font-bold text-slate-600">
+                  {Math.round(task.progress)}%
                 </span>
               </div>
             ) : null}
@@ -537,15 +558,18 @@ function TaskRow({
             menuOpen ? "lg:opacity-100 lg:translate-y-0 lg:pointer-events-auto" : "",
           )}
         >
-          <button
-            type="button"
-            className="cursor-pointer grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition hover:bg-blue-100"
-            aria-label="Iniciar pomodoro nesta tarefa"
-            title="Iniciar"
-            onClick={() => navigate("/pomodoropage")}
-          >
-            <Play className="h-5 w-5" />
-          </button>
+          {!isDone && (
+            <button
+              type="button"
+              className="cursor-pointer grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition hover:bg-blue-100"
+              aria-label="Iniciar pomodoro nesta tarefa"
+              title="Iniciar"
+              // NAVEGAÇÃO COM O STATE ENVIANDO O ID
+              onClick={() => navigate("/pomodoropage", { state: { selectedTaskId: task.id } })}
+            >
+              <Play className="h-5 w-5 fill-current" />
+            </button>
+          )}
 
           <RowMenu
             open={menuOpen}
@@ -580,13 +604,13 @@ function EmptyTasksState({
         </div>
 
         <h3 className="mt-6 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-          {hasFilters ? "Nenhuma tarefa encontrada" : "Nenhuma tarefa para hoje"}
+          {hasFilters ? "Nenhuma tarefa encontrada" : "Nenhuma tarefa pendente"}
         </h3>
 
         <p className="mt-2 max-w-md text-sm leading-6 text-slate-500 sm:text-base">
           {hasFilters
-            ? "Tente ajustar os filtros ou a busca para localizar suas tarefas com mais facilidade."
-            : "Crie uma nova tarefa para começar a organizar sua rotina e produzir melhor."}
+            ? "Tente ajustar os filtros ou a busca para localizar as suas tarefas com mais facilidade."
+            : "Crie uma nova tarefa para começar a organizar a sua rotina e produzir melhor."}
         </p>
 
         <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row">
@@ -623,8 +647,9 @@ export default function TasksPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openMenuTaskId, setOpenMenuTaskId] = useState<number | null>(null);
 
+  // Abas
   const [tab, setTab] = useState<
-    "todas" | "pendentes" | "em_progresso" | "concluidas"
+    "todas" | "pendentes" | "em_andamento" | "concluidas"
   >("todas");
 
   const [q, setQ] = useState("");
@@ -661,12 +686,13 @@ export default function TasksPage() {
   const filtered = useMemo(() => {
     let list = [...tasks];
 
-    if (tab === "pendentes") list = list.filter((t) => t.status === "pendente");
-    if (tab === "em_progresso") {
-      list = list.filter((t) => t.status === "em_progresso");
-    }
-    if (tab === "concluidas") {
-      list = list.filter((t) => t.status === "concluida");
+    // LÓGICA DE FILTRAGEM
+    if (tab === "pendentes") {
+      list = list.filter((t) => t.status === "pendente"); // Significa Atrasadas
+    } else if (tab === "em_andamento") {
+      list = list.filter((t) => (t.status as string) === "em_andamento"); // Bypass TS2367 temp
+    } else if (tab === "concluidas") {
+      list = list.filter((t) => t.status === "concluida"); // Finalizadas
     }
 
     if (q.trim()) {
@@ -844,7 +870,7 @@ export default function TasksPage() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-              Minhas Tarefas
+              As Minhas Tarefas
             </h1>
           </div>
 
@@ -862,7 +888,7 @@ export default function TasksPage() {
       <div className="hidden items-start justify-between gap-4 lg:flex">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-            Minhas Tarefas
+            As Minhas Tarefas
           </h1>
         </div>
 
@@ -872,7 +898,7 @@ export default function TasksPage() {
           onClick={() => setCreateOpen(true)}
         >
           <Plus className="h-4 w-4" />
-          Nova Tarefa
+            Nova Tarefa
         </button>
       </div>
 
@@ -882,7 +908,7 @@ export default function TasksPage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar tarefas..."
+            placeholder="Pesquisar tarefas..."
             className="w-full rounded-2xl border border-slate-200 bg-white px-10 py-3 text-sm text-slate-900 outline-none ring-blue-200 focus:border-blue-500 focus:ring-4"
           />
         </div>
@@ -911,8 +937,8 @@ export default function TasksPage() {
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {[
           { id: "todas", label: "Todas" },
+          { id: "em_andamento", label: "Em Andamento" },
           { id: "pendentes", label: "Pendentes" },
-          { id: "em_progresso", label: "Em Progresso" },
           { id: "concluidas", label: "Concluídas" },
         ].map((t) => (
           <button
@@ -920,7 +946,7 @@ export default function TasksPage() {
             type="button"
             onClick={() =>
               setTab(
-                t.id as "todas" | "pendentes" | "em_progresso" | "concluidas",
+                t.id as "todas" | "pendentes" | "em_andamento" | "concluidas",
               )
             }
             className={cn(
@@ -938,7 +964,7 @@ export default function TasksPage() {
       <div className="mt-5 pb-10">
         {loading ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
-            Carregando tarefas...
+            A carregar tarefas...
           </div>
         ) : errorMessage ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-sm">

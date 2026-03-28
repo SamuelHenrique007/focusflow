@@ -1,263 +1,223 @@
-import { useMemo } from "react";
-import {
-  Trophy,
-  Flame,
-  Sparkles,
-  Star,
-  Lock,
-  CheckCircle2,
+import React from "react";
+import { 
+  Trophy, 
+  Gift, 
+  Lock, 
+  Flame, 
+  Clock, 
+  Target, 
+  Zap, 
+  Shield, 
+  CheckCircle2
 } from "lucide-react";
+import { cn } from "@/lib/cn";
 
-import { Badge } from "@/components/common/Badge";
-import { ProgressBar } from "@/components/common/ProgressBar";
-import { StatCard } from "@/components/common/StatCard";
+// Valores simulados para teste
+const GOAL_PERCENTAGE = 100;
+const CURRENT_PERCENTAGE = 75; 
 
-type Achievement = {
-  id: string;
-  title: string;
-  description: string;
-  points: number;
-  unlocked: boolean;
-  progress?: number; 
-  hint?: string;
-};
+// Baús baseados na porcentagem da meta
+const CHESTS = [
+  { id: 1, percent: 33, type: "Madeira", reward: "50 Moedas", claimed: true },
+  { id: 2, percent: 66, type: "Prata", reward: "150 Moedas", claimed: false },
+  { id: 3, percent: 100, type: "Ouro", reward: "Baú de Ouro", claimed: false },
+];
 
-function AchievementCard({ a }: { a: Achievement }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <div
-            className={
-              "grid h-12 w-12 place-items-center rounded-2xl ring-1 " +
-              (a.unlocked
-                ? "bg-amber-50 text-amber-700 ring-amber-200"
-                : "bg-slate-50 text-slate-500 ring-slate-200")
-            }
-          >
-            {a.unlocked ? (
-              <Trophy className="h-6 w-6" />
-            ) : (
-              <Lock className="h-6 w-6" />
-            )}
-          </div>
-
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-900">
-              {a.title}
-            </p>
-            <p className="mt-1 text-sm text-slate-500">{a.description}</p>
-            {a.hint ? (
-              <p className="mt-2 text-xs text-slate-500">💡 {a.hint}</p>
-            ) : null}
-          </div>
-        </div>
-
-        <Badge tone={a.unlocked ? "warning" : "neutral"}>
-          <span className="whitespace-nowrap">{a.points} pts</span>
-        </Badge>
-      </div>
-
-      {typeof a.progress === "number" && !a.unlocked ? (
-        <div className="mt-4">
-          <div className="flex items-center justify-between text-xs text-slate-500">
-            <span>Progresso</span>
-            <span className="font-semibold text-slate-700">
-              {Math.round(a.progress * 100)}%
-            </span>
-          </div>
-          <div className="mt-2">
-            <ProgressBar value={a.progress} barClassName="bg-amber-500" />
-          </div>
-        </div>
-      ) : null}
-
-      {a.unlocked ? (
-        <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-emerald-700">
-          <CheckCircle2 className="h-4 w-4" /> Desbloqueada
-        </div>
-      ) : null}
-    </div>
-  );
-}
+const BADGES = [
+  {
+    id: 1,
+    title: "Início da Jornada",
+    description: "Completou sua primeira tarefa no FocusFlow.",
+    icon: <Target className="h-6 w-6" />,
+    color: "text-blue-600",
+    bg: "bg-blue-100",
+    unlocked: true,
+  },
+  {
+    id: 2,
+    title: "Foco de Monge",
+    description: "Completou 4 Pomodoros seguidos sem pausas longas.",
+    icon: <Clock className="h-6 w-6" />,
+    color: "text-amber-600",
+    bg: "bg-amber-100",
+    unlocked: true,
+  },
+  {
+    id: 3,
+    title: "Série Implacável",
+    description: "Manteve uma ofensiva de 7 dias consecutivos.",
+    icon: <Flame className="h-6 w-6" />,
+    color: "text-orange-600",
+    bg: "bg-orange-100",
+    unlocked: false,
+    progress: 3,
+    max: 7,
+  },
+  {
+    id: 4,
+    title: "Produtividade Máxima",
+    description: "Concluiu 10 tarefas em um único dia.",
+    icon: <Zap className="h-6 w-6" />,
+    color: "text-purple-600",
+    bg: "bg-purple-100",
+    unlocked: false,
+    progress: 4,
+    max: 10,
+  },
+  {
+    id: 5,
+    title: "Guardião do Tempo",
+    description: "Acumulou 100 horas totais de foco.",
+    icon: <Shield className="h-6 w-6" />,
+    color: "text-emerald-600",
+    bg: "bg-emerald-100",
+    unlocked: false,
+    progress: 24,
+    max: 100,
+  },
+];
 
 export default function ConquistasPage() {
-  const streakDays = 1;
-
-  const level = 1;
-  const xpNow = 0;
-  const xpMax = 100;
-  const xpPct = xpMax ? xpNow / xpMax : 0;
-
-  const achievements = useMemo<Achievement[]>(
-    () => [
-      {
-        id: "a1",
-        title: "Primeiro Pomodoro",
-        description: "Complete 1 sessão Pomodoro.",
-        points: 10,
-        unlocked: true,
-      },
-      {
-        id: "a2",
-        title: "Semana Produtiva",
-        description: "Complete 5 tarefas na semana.",
-        points: 25,
-        unlocked: false,
-        progress: 2 / 5,
-        hint: "Marque tarefas rápidas como concluídas para ganhar ritmo.",
-      },
-      {
-        id: "a3",
-        title: "Foco de Ferro",
-        description: "Foque por 2 horas em um dia.",
-        points: 30,
-        unlocked: false,
-        progress: 0 / 120,
-        hint: "4 pomodoros de 25 min já dão 100 min.",
-      },
-      {
-        id: "a4",
-        title: "Streak 7 dias",
-        description: "Mantenha 7 dias seguidos de produtividade.",
-        points: 50,
-        unlocked: false,
-        progress: streakDays / 7,
-      },
-    ],
-    [streakDays],
-  );
-
-  const unlocked = achievements.filter((a) => a.unlocked);
-  const locked = achievements.filter((a) => !a.unlocked);
-  const totalPoints = unlocked.reduce((sum, a) => sum + a.points, 0);
-
-  const unlockedCount = unlocked.length;
-  const lockedCount = locked.length;
-  const achievementsPct = achievements.length
-    ? unlockedCount / achievements.length
-    : 0;
-
-
+  const progressPercentage = Math.min((CURRENT_PERCENTAGE / GOAL_PERCENTAGE) * 100, 100);
 
   return (
-  <>
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="mx-auto max-w-5xl space-y-8 pb-12">
+      
+      {/* CABEÇALHO */}
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-          Conquistas
+        <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+          <Trophy className="h-8 w-8 text-amber-500" />
+          Conquistas & Recompensas
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Desbloqueie conquistas completando desafios
+        <p className="mt-2 text-sm text-slate-500">
+          Acompanhe seu progresso, abra baús e colecione medalhas pelo seu esforço contínuo.
         </p>
       </div>
 
-      <div>
-        <Badge tone="warning">
-          <Flame className="h-4 w-4" />
-          {streakDays} dia
-        </Badge>
-      </div>
-    </div>
-
-    <div className="mt-5 rounded-2xl border border-slate-200 bg-linear-to-r from-slate-50 to-indigo-50 p-4 sm:p-5">
-      <div className="flex items-center justify-between gap-3">
-        <Badge tone="info">
-          <Sparkles className="h-4 w-4" />
-          Nível {level}
-        </Badge>
-        <p className="text-xs font-medium text-slate-500">
-          {xpNow}/{xpMax} XP
-        </p>
-      </div>
-
-      <div className="mt-4">
-        <ProgressBar value={xpPct} />
-      </div>
-    </div>
-
-    <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-amber-100 text-amber-700 ring-1 ring-amber-200">
-            <Trophy className="h-7 w-7" />
-          </div>
+      {/* SESSÃO 1: TRILHA DE RECOMPENSAS */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="mb-6 flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-900">
-              Progresso de Conquistas
+            <h2 className="text-lg font-semibold text-slate-900">Trilha de Foco</h2>
+            <p className="text-sm text-slate-500">
+              Atingir 100% da sua meta garante o Baú de Ouro.
             </p>
-            <p className="mt-1 text-xs text-slate-600">
-              {unlockedCount} de {unlockedCount + lockedCount} desbloqueadas
-            </p>
+          </div>
+          <div className="text-right">
+            <span className="text-2xl font-semibold text-violet-600">{progressPercentage.toFixed(0)}%</span>
+            <span className="text-sm font-semibold text-slate-300"> / 100%</span>
           </div>
         </div>
 
-        <div className="text-right">
-          <p className="text-3xl font-semibold tracking-tight text-amber-700">
-            {Math.round(achievementsPct * 100)}%
-          </p>
+        {/* Barra de Progresso Interativa (Ajustada para ser mais fina e contida) */}
+        <div className="relative mt-10 pb-24 sm:pb-28 px-4 sm:px-12">
+          
+          <div className="relative h-12 w-full">
+            {/* Linha de fundo (cinza) - h-1.5 para ser bem fina */}
+            <div className="absolute left-0 top-1/2 h-1.5 w-full -translate-y-1/2 rounded-full bg-slate-100"></div>
+            
+            {/* Linha de progresso (Violeta) */}
+            <div 
+              className="absolute left-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-violet-500 transition-all duration-1000"
+              style={{ width: `${progressPercentage}%` }}
+            ></div>
+
+            {/* Os Nós (Baús) */}
+            {CHESTS.map((chest) => {
+              const isUnlocked = progressPercentage >= chest.percent;
+              const isReady = isUnlocked && !chest.claimed;
+              const isClaimed = isUnlocked && chest.claimed;
+              const isLocked = !isUnlocked;
+              
+              return (
+                <div 
+                  key={chest.id} 
+                  className="absolute flex flex-col items-center"
+                  style={{ left: `${chest.percent}%`, transform: 'translateX(-50%)' }}
+                >
+                  {/* Ícone do Baú */}
+                  <div className={cn(
+                    "z-10 grid h-12 w-12 place-items-center rounded-2xl border-4 border-white shadow-md transition-all duration-300 hover:scale-110",
+                    isClaimed ? "bg-slate-200 text-slate-400" :
+                    isReady ? "bg-amber-400 text-white animate-bounce ring-4 ring-amber-100" :
+                    "bg-slate-50 text-slate-300"
+                  )}>
+                    {isLocked ? <Lock className="h-5 w-5" /> : <Gift className="h-6 w-6" />}
+                  </div>
+                  
+                  {/* Info do Baú */}
+                  <div className="mt-4 w-24 text-center">
+                    <p className="text-xs font-semibold text-slate-900">{chest.type}</p>
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-tighter">{chest.percent}%</p>
+                    
+                    {/* Botão de Resgatar (Aparece centralizado) */}
+                    {isReady && (
+                      <button className="mt-3 whitespace-nowrap rounded-full bg-amber-500 px-4 py-1.5 text-[10px] font-black text-white shadow-lg shadow-amber-200 transition active:scale-95 hover:bg-amber-600">
+                        RESGATAR
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
         </div>
-      </div>
+      </section>
 
-      <div className="mt-4">
-        <ProgressBar value={achievementsPct} barClassName="bg-amber-500" />
-      </div>
-    </div>
+      {/* SESSÃO 2: GALERIA DE MEDALHAS */}
+      <section className="pt-4">
+        <h2 className="mb-6 text-xl font-semibold text-slate-800">Medalhas de Honra</h2>
+        
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {BADGES.map((badge) => (
+            <div 
+              key={badge.id}
+              className={cn(
+                "relative flex flex-col gap-4 rounded-3xl border p-6 transition-all hover:shadow-lg",
+                badge.unlocked 
+                  ? "border-slate-100 bg-white" 
+                  : "border-slate-100 bg-slate-50/50 opacity-70 grayscale"
+              )}
+            >
+              <div className="flex items-start justify-between">
+                <div className={cn("grid h-12 w-12 place-items-center rounded-2xl shadow-sm", badge.bg, badge.color)}>
+                  {badge.icon}
+                </div>
+                {badge.unlocked && (
+                  <div className="rounded-full bg-emerald-100 p-1">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  </div>
+                )}
+              </div>
 
-    <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <StatCard
-        title="Desbloqueadas"
-        value={`${unlockedCount}`}
-        icon={<Star className="h-6 w-6" />}
-        iconTone="bg-amber-50 text-amber-700"
-      />
-      <StatCard
-        title="Bloqueadas"
-        value={`${lockedCount}`}
-        icon={<Lock className="h-6 w-6" />}
-        iconTone="bg-slate-100 text-slate-700"
-      />
-      <StatCard
-        title="Pontos Totais"
-        value={`${totalPoints}`}
-        icon={<Sparkles className="h-6 w-6" />}
-        iconTone="bg-indigo-50 text-indigo-700"
-      />
-      <StatCard
-        title="Nível Atual"
-        value={`${level}`}
-        icon={<Trophy className="h-6 w-6" />}
-        iconTone="bg-amber-50 text-amber-700"
-      />
-    </div>
+              <div>
+                <h3 className="font-semibold text-slate-800">{badge.title}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  {badge.description}
+                </p>
+              </div>
 
-    <div className="mt-8">
-      <div className="flex items-center gap-2">
-        <Star className="h-5 w-5 text-amber-600" />
-        <h2 className="text-base font-semibold text-slate-900">
-          Desbloqueadas ({unlocked.length})
-        </h2>
-      </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {unlocked.map((a) => (
-          <AchievementCard key={a.id} a={a} />
-        ))}
-      </div>
-    </div>
+              {/* Barra de progresso para medalhas bloqueadas */}
+              {!badge.unlocked && badge.progress !== undefined && badge.max && (
+                <div className="mt-auto pt-2">
+                  <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold text-slate-400 uppercase">
+                    <span>Progresso</span>
+                    <span>{badge.progress} / {badge.max}</span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                    <div 
+                      className="h-full rounded-full bg-violet-400"
+                      style={{ width: `${(badge.progress / badge.max) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
 
-    <div className="mt-8">
-      <div className="flex items-center gap-2">
-        <Lock className="h-5 w-5 text-slate-500" />
-        <h2 className="text-base font-semibold text-slate-900">
-          Bloqueadas ({locked.length})
-        </h2>
-      </div>
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {locked.map((a) => (
-          <AchievementCard key={a.id} a={a} />
-        ))}
-      </div>
     </div>
-  </>
-);
+  );
 }

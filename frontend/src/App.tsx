@@ -6,7 +6,6 @@ import Dashboard from "@/pages/Dashboard";
 import ScrollToTop from "@/components/ScrollToTop";
 import PomodoroTimer from "./components/PomodoroTimer";
 import TasksPage from "./pages/TasksPage";
-import ConquistasPage from "./pages/ConquistasPage";
 import EstatisticasPage from "./pages/EstatisticasPage";
 import PomodoroPage from "./pages/PomodoroPage";
 import PomodoroFocusPage from "@/pages/pomodoro/PomodoroFocusPage";
@@ -14,6 +13,8 @@ import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { PublicRoute } from "./routes/PublicRoute";
 //import ForgotPassword from "@/pages/ForgotPassword";
 import { AppShell } from "./components/layout/AppShell";
+import ConquistasPage from "@/pages/ConquistasPage";
+import StorePage from "@/pages/StorePage";
 
 export default function App() {
   return (
@@ -35,9 +36,10 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/pomodoro" element={<PomodoroTimer />} />
             <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/achievements" element={<ConquistasPage />} />
             <Route path="/stats" element={<EstatisticasPage />} />
             <Route path="/pomodoropage" element={<PomodoroPage />} />
+            <Route path="/achievements" element={<ConquistasPage />} />
+            <Route path="/store" element={<StorePage />} />
           </Route>
         </Route>
 
