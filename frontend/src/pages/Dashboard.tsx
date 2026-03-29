@@ -34,6 +34,9 @@ import {
   type UpdateTaskRequest,
 } from "@/services/tasks";
 
+// IMPORTAÇÃO DA GAMIFICAÇÃO
+import { useGameStore } from "@/store/useGameStore";
+
 type PomodoroSession = {
   id: number;
   task: number | null;
@@ -288,6 +291,9 @@ export default function FocusFlowDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // GAMIFICAÇÃO GLOBAL
+  const { stats: gameStats, fetchStatus } = useGameStore();
+
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -306,6 +312,8 @@ export default function FocusFlowDashboard() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+    fetchStatus(); // Puxa os dados atualizados de XP e Nível
+    
     async function loadDashboardData() {
       try {
         setLoadingTasks(true);
@@ -328,7 +336,7 @@ export default function FocusFlowDashboard() {
     }
 
     loadDashboardData();
-  }, []);
+  }, [fetchStatus]);
 
   function getGreeting() {
     const hour = new Date().getHours();
@@ -351,8 +359,12 @@ export default function FocusFlowDashboard() {
   const userName = useMemo(() => getFirstAndSecondName(user?.name), [user?.name]);
   const todayLabel = getTodayLabel();
 
-  const xpCurrent = pomodoroStats.points;
-  const xpTotal = 100;
+  // ==========================================
+  // PROGRESSÃO REAL DO JOGO PELA STORE ZUSTAND
+  // ==========================================
+  const xpCurrent = gameStats?.current_xp || 0;
+  const xpTotal = gameStats?.xp_to_next_level || 100;
+  const userLevel = gameStats?.level || 1;
   const xpPct = xpTotal ? Math.min((xpCurrent / xpTotal) * 100, 100) : 0;
 
   const dashboardTasks = useMemo(() => {
@@ -578,16 +590,16 @@ export default function FocusFlowDashboard() {
           <Badge tone="info">
             <span className="inline-flex items-center gap-1">
               <Star className="h-4 w-4" />
-              XP 
+              Nível {userLevel}
             </span>
           </Badge>
           <p className="text-xs font-medium text-slate-500">
-            {xpCurrent}/{xpTotal} XP
+            {xpCurrent} / {xpTotal} XP
           </p>
         </div>
 
         <div className="mt-3">
-            {/* Barra de Progresso Nativa Tailwind para o XP */}
+            {/* Barra de Progresso Nativa Tailwind para o XP REAL */}
             <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 ring-1 ring-inset ring-slate-300/50">
               <div 
                 className="h-full rounded-full bg-blue-600 transition-all duration-500 ease-out"
@@ -649,7 +661,6 @@ export default function FocusFlowDashboard() {
         </div>
 
         <div className="mt-4">
-            {/* Barra de Progresso Nativa Tailwind para a Meta Diária */}
             <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
               <div 
                 className="h-full rounded-full bg-blue-500 transition-all duration-500 ease-out"

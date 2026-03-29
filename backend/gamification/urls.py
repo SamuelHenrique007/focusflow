@@ -2,20 +2,19 @@ from django.urls import path
 from .views import (
     GamificationDashboardView, 
     ConvertFocusPointsView, 
-    ClaimChestView,
-    StoreListView,
-    PurchaseItemView
+    ClaimPendingCoinsView, 
+    ClaimChestView, 
+    StoreListView, 
+    PurchaseItemView,
+    CompleteTaskRewardView
 )
 
 urlpatterns = [
-    # Status Geral (Sidebar/Header/Dashboard)
-    path('status/', GamificationDashboardView.as_view(), name='game-status'),
-    
-    # Loja e Inventário
-    path('store/items/', StoreListView.as_view(), name='store-list'),
-    path('store/purchase/<int:item_id>/', PurchaseItemView.as_view(), name='store-purchase'),
-    
-    # Ações de Gamificação
+    path('status/', GamificationDashboardView.as_view(), name='gamification-status'),
     path('actions/convert-focus/', ConvertFocusPointsView.as_view(), name='convert-focus'),
+    path('actions/claim-coins/', ClaimPendingCoinsView.as_view(), name='claim-coins'),
     path('actions/claim-chest/<str:chest_type>/', ClaimChestView.as_view(), name='claim-chest'),
+    path('store/', StoreListView.as_view(), name='store-list'),
+    path('store/<int:item_id>/purchase/', PurchaseItemView.as_view(), name='store-purchase'),
+    path('actions/complete-task/', CompleteTaskRewardView.as_view(), name='complete-task'),
 ]

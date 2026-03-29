@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from django.db import transaction
 
 from .models import UserProfile, StoreItem, UserInventory, Challenge
@@ -16,45 +15,69 @@ class GamificationDashboardView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # O get_or_create garante que, se o usuário não tiver perfil, ele será criado agora.
         profile, created = UserProfile.objects.get_or_create(user=request.user)
-        
         serializer = UserProfileSerializer(profile)
         return Response({"stats": serializer.data})
 
 
 class ConvertFocusPointsView(APIView):
     """
-    Converte os minutos focados no Pomodoro em XP e Moedas.
+    Chamada AUTOMÁTICA pelo Pomodoro. Dá o XP na hora e deixa as moedas pendentes.
     """
     permission_classes = [IsAuthenticated]
 
     @transaction.atomic
     def post(self, request):
         profile, created = UserProfile.objects.get_or_create(user=request.user)
-        
-        # Pega os minutos enviados pelo Frontend (ex: 25 minutos)
         minutes = request.data.get('minutes', 0)
         
         if minutes <= 0:
             return Response({"error": "Minutos inválidos."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Regra de negócio simples: 1 minuto = 1 XP e 1 Moeda
+        # 1. XP AUTOMÁTICO IMEDIATO
         profile.current_xp += minutes
-        profile.coins += minutes
-        profile.total_pomodoros += 1
 
-        # Lógica de Level Up automático
+        # Lógica de Level Up (Escadinha Suave de 50)
         while profile.current_xp >= profile.xp_to_next_level:
             profile.current_xp -= profile.xp_to_next_level
             profile.level += 1
-            profile.xp_to_next_level += 50 
+            profile.xp_to_next_level += 50
+
+        # 2. MOEDAS PENDENTES (Para resgate manual)
+        profile.pending_focus_minutes += minutes
 
         profile.save()
         
         serializer = UserProfileSerializer(profile)
         return Response({
-            "message": f"Você ganhou {minutes} XP e {minutes} Moedas!", 
+            "message": f"Ganhaste {minutes} XP! Tens {minutes} moedas aguardando resgate.", 
+            "stats": serializer.data
+        })
+
+
+class ClaimPendingCoinsView(APIView):
+    """
+    Chamada MANUAL pelo utilizador no Dashboard para sacar as moedas.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def post(self, request):
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        pending = profile.pending_focus_minutes
+        
+        if pending <= 0:
+            return Response({"error": "Não tens moedas pendentes para resgatar."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Transfere o pendente para a carteira real e zera o saldo pendente
+        profile.coins += pending
+        profile.pending_focus_minutes = 0
+
+        profile.save()
+        
+        serializer = UserProfileSerializer(profile)
+        return Response({
+            "message": f"Resgataste {pending} moedas com sucesso!", 
             "stats": serializer.data
         })
 
@@ -92,6 +115,37 @@ class ClaimChestView(APIView):
         })
 
 
+class CompleteTaskRewardView(APIView):
+    """
+    Dá XP e Moedas quando o utilizador conclui uma tarefa.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def post(self, request):
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        
+        xp_reward = 10
+        coin_reward = 5
+        
+        profile.current_xp += xp_reward
+        profile.coins += coin_reward
+        
+        # Lógica de Level Up (Escadinha Suave)
+        while profile.current_xp >= profile.xp_to_next_level:
+            profile.current_xp -= profile.xp_to_next_level
+            profile.level += 1
+            profile.xp_to_next_level += 50
+            
+        profile.save()
+        
+        return Response({
+            "message": f"Boa! Ganhaste {xp_reward} XP e {coin_reward} Moedas por concluíres a tarefa.",
+            "xp": xp_reward,
+            "coins": coin_reward
+        })
+
+
 class StoreListView(APIView):
     """
     Lista todos os itens disponíveis na loja.
@@ -100,7 +154,6 @@ class StoreListView(APIView):
 
     def get(self, request):
         items = StoreItem.objects.all().order_by('required_level', 'price')
-        # Passamos o request no context para o serializer checar se o usuário já possui o item
         serializer = StoreItemSerializer(items, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -116,28 +169,24 @@ class PurchaseItemView(APIView):
         profile, created = UserProfile.objects.get_or_create(user=request.user)
         item = get_object_or_404(StoreItem, id=item_id)
 
-        # 1. Verifica Nível
         if profile.level < item.required_level:
             return Response(
                 {"error": f"Você precisa estar no Nível {item.required_level} para comprar este item."}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 2. Verifica se já possui o item
         if UserInventory.objects.filter(user=request.user, item=item).exists():
             return Response(
                 {"error": "Você já possui este item!"}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 3. Verifica saldo
         if profile.coins < item.price:
             return Response(
                 {"error": "Moedas insuficientes."}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 4. Efetua a compra
         profile.coins -= item.price
         profile.save()
 

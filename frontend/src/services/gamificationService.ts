@@ -9,7 +9,7 @@ export interface GameStatus {
   xp_progress_percent: number;
   coins: number;
   streak: number;
-  pending_minutes: number;
+  pending_focus_minutes: number;
   daily_progress: number;
 }
 

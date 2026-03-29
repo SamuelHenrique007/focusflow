@@ -35,6 +35,10 @@ import {
   type UpdateTaskRequest,
 } from "@/services/tasks";
 
+// --- NOVOS IMPORTS PARA GAMIFICAÇÃO ---
+import { api } from "@/services/api";
+import { useGameStore } from "@/store/useGameStore";
+
 /* =========================
    Small hook: click outside
 ========================= */
@@ -852,6 +856,19 @@ export default function TasksPage() {
       if (selectedTask?.id === updated.id) {
         setSelectedTask(updated);
       }
+
+      // --- 🚀 INÍCIO DA GAMIFICAÇÃO DA TAREFA ---
+      if (!isCurrentlyDone) {
+        try {
+          await api.post("/gamification/actions/complete-task/");
+          // Atualiza a Sidebar instantaneamente!
+          await useGameStore.getState().fetchStatus(); 
+        } catch (error) {
+          console.error("Erro ao resgatar XP da tarefa:", error);
+        }
+      }
+      // --- FIM DA GAMIFICAÇÃO ---
+
     } catch {
       alert("Não foi possível atualizar a conclusão da tarefa.");
     }
