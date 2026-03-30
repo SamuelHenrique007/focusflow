@@ -5,7 +5,9 @@ export type ChestType = "wood" | "silver" | "gold";
 export interface ChestStatus {
   key: ChestType;
   type_label: string;
-  threshold: number;
+  threshold_percent: number;
+  required_minutes?: number;
+  current_minutes?: number;
   reward_label: string;
   claimed: boolean;
   unlocked: boolean;
@@ -24,20 +26,34 @@ export interface BadgeStatus {
   progress_percent: number;
 }
 
+export interface EquippedItem {
+  id: number;
+  name: string;
+  category: "avatar" | "theme" | "sound" | string;
+  visual_resource?: string;
+  rarity?: "Comum" | "Raro" | "Épico" | "Lendário" | string;
+}
+
 export interface GameStatus {
   username: string;
   level: number;
   current_xp: number;
   xp_to_next_level: number;
+  next_level_xp: number;
   xp_progress_percent: number;
   coins: number;
   streak: number;
   pending_focus_minutes: number;
   daily_goal_progress: number;
   total_pomodoros: number;
+  total_focus_minutes: number;
   total_tasks_completed: number;
-  chests: ChestStatus[];
-  badges: BadgeStatus[];
+  inventory: number[];
+  chests: ChestStatus[] | Record<string, unknown>;
+  badges: BadgeStatus[] | Record<string, unknown>;
+  equipped_avatar: EquippedItem | null;
+  equipped_sound: EquippedItem | null;
+  equipped_theme: EquippedItem | null;
 }
 
 export interface StoreItem {
@@ -53,39 +69,80 @@ export interface StoreItem {
   equipped: boolean;
 }
 
+export interface GameStatusResponse {
+  success?: boolean;
+  stats: GameStatus;
+}
+
+export interface StoreItemsResponse {
+  success?: boolean;
+  items: StoreItem[];
+}
+
+export interface GenericGamificationResponse {
+  success?: boolean;
+  message?: string;
+  error?: string;
+  stats?: GameStatus;
+  earned_coins?: number;
+  xp_gained?: number;
+}
+
 export const gamificationService = {
   async getStatus() {
-    const response = await api.get<{ stats: GameStatus }>("/gamification/status/");
-    return response.data;
-  },
-
-  async convertFocus(minutes: number) {
-    const response = await api.post("/gamification/actions/convert-focus/", { minutes });
-    return response.data;
-  },
-
-  async claimCoins() {
-    const response = await api.post("/gamification/actions/claim-coins/");
-    return response.data;
-  },
-
-  async claimChest(chestType: ChestType) {
-    const response = await api.post(`/gamification/actions/claim-chest/${chestType}/`);
-    return response.data;
-  },
-
-  async completeTaskReward() {
-    const response = await api.post("/gamification/actions/complete-task/");
+    const response = await api.get<GameStatusResponse>("/gamification/status/");
     return response.data;
   },
 
   async getStoreItems() {
-    const response = await api.get<StoreItem[]>("/gamification/store/");
+    const response = await api.get<StoreItemsResponse>("/gamification/store/");
     return response.data;
   },
 
   async purchaseItem(itemId: number) {
-    const response = await api.post(`/gamification/store/${itemId}/purchase/`);
+    const response = await api.post<GenericGamificationResponse>(
+      `/gamification/store/${itemId}/purchase/`
+    );
+    return response.data;
+  },
+
+  async equipItem(itemId: number) {
+    const response = await api.post<GenericGamificationResponse>(
+      `/gamification/store/${itemId}/equip/`
+    );
+    return response.data;
+  },
+
+  async claimCoins() {
+    const response = await api.post<GenericGamificationResponse>(
+      "/gamification/convert-focus-minutes/"
+    );
+    return response.data;
+  },
+
+  async claimChest(chestType: ChestType) {
+    const response = await api.post<GenericGamificationResponse>(
+      `/gamification/claim-chest/${chestType}/`
+    );
+    return response.data;
+  },
+
+  async completeTaskReward() {
+    const response = await api.post<GenericGamificationResponse>(
+      "/gamification/complete-task-reward/"
+    );
+    return response.data;
+  },
+
+  async addProgress(payload: {
+    focus_minutes?: number;
+    completed_pomodoro?: boolean;
+    completed_task?: boolean;
+  }) {
+    const response = await api.post<GenericGamificationResponse>(
+      "/gamification/add-progress/",
+      payload
+    );
     return response.data;
   },
 };

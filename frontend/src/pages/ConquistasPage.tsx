@@ -13,7 +13,11 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/cn";
-import { gamificationService, type BadgeStatus, type ChestStatus } from "@/services/gamificationService";
+import {
+  gamificationService,
+  type BadgeStatus,
+  type ChestStatus,
+} from "@/services/gamificationService";
 import { useGameStore } from "@/store/useGameStore";
 
 function badgeIcon(icon: BadgeStatus["icon"]) {
@@ -47,7 +51,10 @@ export default function ConquistasPage() {
   const { stats, fetchStatus } = useGameStore();
 
   const [claimingChest, setClaimingChest] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchStatus();
@@ -59,24 +66,30 @@ export default function ConquistasPage() {
     return () => clearTimeout(timer);
   }, [message]);
 
+  
   const progressPercentage = useMemo(() => {
-    return Math.min(stats?.daily_goal_progress ?? 0, 100);
-  }, [stats?.daily_goal_progress]);
+  const current = Array.isArray(stats?.chests) ? stats.chests[0]?.current_minutes ?? 0 : 0;
+  const goal = stats?.daily_goal_minutes ?? 1;
+  return Math.min((current / goal) * 100, 100);
+}, [stats?.chests, stats?.daily_goal_minutes]);
 
-  const chests: ChestStatus[] = stats?.chests ?? [];
-  const badges: BadgeStatus[] = stats?.badges ?? [];
+  const chests: ChestStatus[] = Array.isArray(stats?.chests) ? stats.chests : [];
+  const badges: BadgeStatus[] = Array.isArray(stats?.badges) ? stats.badges : [];
 
   async function handleClaimChest(chestKey: "wood" | "silver" | "gold") {
     try {
       setClaimingChest(chestKey);
       const response = await gamificationService.claimChest(chestKey);
+
       setMessage({
         type: "success",
         text: response.message || "Baú resgatado com sucesso.",
       });
+
       await fetchStatus();
     } catch (error) {
       const err = error as { response?: { data?: { error?: string } } };
+
       setMessage({
         type: "error",
         text: err.response?.data?.error || "Não foi possível resgatar o baú.",
@@ -124,6 +137,7 @@ export default function ConquistasPage() {
               Complete a meta diária para liberar os baús.
             </p>
           </div>
+
           <div className="text-right">
             <span className="text-2xl font-semibold text-violet-600">
               {progressPercentage.toFixed(0)}%
@@ -150,7 +164,10 @@ export default function ConquistasPage() {
                 <div
                   key={chest.key}
                   className="absolute flex flex-col items-center"
-                  style={{ left: `${chest.threshold}%`, transform: "translateX(-50%)" }}
+                  style={{
+                    left: `${chest.threshold_percent}%`,
+                    transform: "translateX(-50%)",
+                  }}
                 >
                   <div
                     className={cn(
@@ -166,9 +183,12 @@ export default function ConquistasPage() {
                   </div>
 
                   <div className="mt-4 w-28 text-center">
-                    <p className="text-xs font-semibold text-slate-900">{chest.type_label}</p>
+                    <p className="text-xs font-semibold text-slate-900">
+                      {chest.type_label}
+                    </p>
+
                     <p className="text-[10px] font-semibold uppercase tracking-tighter text-slate-400">
-                      {chest.threshold}% · {chest.reward_label}
+                      {chest.threshold_percent}% · {chest.reward_label}
                     </p>
 
                     {isReady && (
@@ -195,7 +215,9 @@ export default function ConquistasPage() {
       </section>
 
       <section className="pt-4">
-        <h2 className="mb-6 text-xl font-semibold text-slate-800">Medalhas de Honra</h2>
+        <h2 className="mb-6 text-xl font-semibold text-slate-800">
+          Medalhas de Honra
+        </h2>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {badges.map((badge) => {

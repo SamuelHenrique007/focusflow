@@ -20,10 +20,10 @@ import {
 
 import { StatCard } from "@/components/common/StatCard";
 import PomodoroFocusView from "@/components/pomodoro/PomodoroFocusView";
-import { getEquippedSoundKey } from "@/lib/soundPreferences";
 import { getSoundFileByKey } from "@/lib/soundCatalog";
 import { api } from "@/services/api";
 import { useGameStore } from "@/store/useGameStore";
+import { useSoundStore } from "@/store/useSoundStore";
 
 type TaskStatus = "pendente" | "em_andamento" | "concluida";
 
@@ -319,6 +319,9 @@ export default function PomodoroTimer({
   const location = useLocation();
   const { fetchStatus } = useGameStore();
 
+  // ✅ Lê o som equipado diretamente do store (em vez do localStorage)
+  const equippedSoundKey = useSoundStore((state) => state.equippedSoundKey);
+
   const isFocusVariant = variant === "focus";
   const [selectedTask, setSelectedTask] = useState("");
   const [showSettings, setShowSettings] = useState(false);
@@ -381,17 +384,18 @@ export default function PomodoroTimer({
     };
   }, [timeLabel]);
 
-  const playFinishSound = useCallback((_type?: SessionType) => {
-    const equippedSoundKey = getEquippedSoundKey();
+  // ✅ playFinishSound agora usa equippedSoundKey do store
+  const playFinishSound = useCallback(() => {
     const file =
-      getSoundFileByKey(equippedSoundKey) || "/sounds/floraphonic-marimba-ringtone-1-185152.mp3";
+      getSoundFileByKey(equippedSoundKey) ||
+      "/sounds/floraphonic-marimba-ringtone-1-185152.mp3";
 
     const audio = new Audio(file);
     audio.currentTime = 0;
     audio.play().catch((error) => {
       console.log("Áudio bloqueado pelo navegador:", error);
     });
-  }, []);
+  }, [equippedSoundKey]);
 
   const getDurationBySessionType = useCallback(
     (type: SessionType) => {
@@ -593,20 +597,15 @@ export default function PomodoroTimer({
 
         if (completedFocus && runningSession.planned_minutes > 0) {
           try {
-            const response = await api.post(
-              "/gamification/actions/convert-focus/",
-              {
-                minutes: runningSession.planned_minutes,
-              },
-            );
+            await api.post("/gamification/add-progress/", {
+              focus_minutes: runningSession.planned_minutes,
+              completed_pomodoro: true,
+              completed_task: false,
+            });
 
-            if (response?.data?.stats) {
-              useGameStore.getState().setStats(response.data.stats);
-            } else {
-              await fetchStatus();
-            }
+            await fetchStatus();
           } catch (xpError) {
-            console.error("Erro ao computar XP:", xpError);
+            console.error("Erro ao computar progresso gamificado:", xpError);
           }
         }
 
@@ -669,7 +668,7 @@ export default function PomodoroTimer({
         expectedEndTimeRef.current = null;
         setSecondsLeft(0);
 
-        playFinishSound(sessionType);
+        playFinishSound();
         void handleFinish(true, true);
       } else {
         setSecondsLeft(remaining);
@@ -679,7 +678,7 @@ export default function PomodoroTimer({
     return () => window.clearInterval(timer);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runningSession, isPaused, handleFinish, playFinishSound, sessionType]);
+  }, [runningSession, isPaused, handleFinish, playFinishSound]);
 
   async function handleSaveSettings() {
     try {

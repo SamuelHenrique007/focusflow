@@ -122,3 +122,10 @@
     @apply bg-background text-foreground;
     }
 }
+
+:root {
+  --ff-primary: #2563eb;
+  --ff-primary-soft: #dbeafe;
+  --ff-surface: #ffffff;
+  --ff-surface-soft: #f8fafc;
+}

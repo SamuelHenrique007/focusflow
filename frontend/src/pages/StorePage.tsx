@@ -13,27 +13,20 @@ import {
   Lock,
   AlertCircle,
   CheckCircle2,
+  BrushCleaning,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { api } from "@/services/api";
+import {
+  gamificationService,
+  type StoreItem,
+  type GameStatus,
+} from "@/services/gamificationService";
 import { useGameStore } from "@/store/useGameStore";
-import { getEquippedSoundKey, setEquippedSoundKey } from "@/lib/soundPreferences";
 import { useAvatarStore } from "@/store/useAvatarStore";
+import { useSoundStore } from "@/store/useSoundStore";
+import { useThemeStore } from "@/store/useThemeStore";
 
 type FilterType = "all" | "avatar" | "theme" | "sound";
-
-type StoreItem = {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  required_level: number;
-  category: "avatar" | "theme" | "sound" | string;
-  visual_resource?: string;
-  rarity: "Comum" | "Raro" | "Épico" | "Lendário" | string;
-  owned: boolean;
-  equipped: boolean;
-};
 
 const SECTIONS: Array<{
   id: Exclude<FilterType, "all">;
@@ -80,37 +73,70 @@ function getSoundFileByKey(key?: string | null) {
   return SOUND_FILES[key] || null;
 }
 
+function EquippedSummaryCard({
+  title,
+  value,
+  icon,
+}: {
+  title: string;
+  value: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-2 flex items-center gap-2 text-slate-500">{icon}</div>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</p>
+      <p className="mt-1 text-sm font-bold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
 export default function StorePage() {
   const { stats, fetchStatus, setStats } = useGameStore();
 
   const equippedAvatar = useAvatarStore((state) => state.equippedAvatar);
-  const setEquippedAvatar = useAvatarStore((state) => state.setEquippedAvatar);
+  const equippedSoundKey = useSoundStore((state) => state.equippedSoundKey);
+  const equippedThemeKey = useThemeStore((state) => state.equippedThemeKey);
 
   const [items, setItems] = useState<StoreItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [purchasingId, setPurchasingId] = useState<number | null>(null);
+  const [equippingId, setEquippingId] = useState<number | null>(null);
   const [isClaiming, setIsClaiming] = useState(false);
   const [previewingSoundId, setPreviewingSoundId] = useState<number | null>(null);
-  const [equippedSoundKey, setEquippedSoundKeyState] = useState<string>(() => getEquippedSoundKey());
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
 
   const userLevel = stats?.level || 1;
   const userCoins = stats?.coins || 0;
-  const pendingCoins =
-    (stats as { pending_focus_minutes?: number } | null)?.pending_focus_minutes || 0;
+  const pendingCoins = stats?.pending_focus_minutes || 0;
+
+  const inventoryIds = useMemo(() => new Set(stats?.inventory || []), [stats?.inventory]);
+
+  const equippedItemIds = useMemo(
+    () => ({
+      avatar: stats?.equipped_avatar?.id ?? null,
+      sound: stats?.equipped_sound?.id ?? null,
+      theme: stats?.equipped_theme?.id ?? null,
+    }),
+    [stats?.equipped_avatar?.id, stats?.equipped_sound?.id, stats?.equipped_theme?.id]
+  );
 
   async function loadStoreItems() {
     try {
       setIsLoading(true);
-      const { data } = await api.get<StoreItem[]>("/gamification/store/");
-      setItems(data);
+      const response = await gamificationService.getStoreItems();
+      setItems(response.items || []);
     } catch (error) {
       console.error("Erro ao carregar loja:", error);
       setMessage({ type: "error", text: "Não foi possível carregar os itens da loja." });
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function syncEquippedState(nextStats: GameStatus) {
+    setStats(nextStats);
   }
 
   useEffect(() => {
@@ -136,10 +162,10 @@ export default function StorePage() {
   async function handleClaimCoins() {
     try {
       setIsClaiming(true);
-      const { data } = await api.post("/gamification/actions/claim-coins/");
+      const data = await gamificationService.claimCoins();
 
       if (data?.stats) {
-        setStats(data.stats);
+        syncEquippedState(data.stats);
       } else {
         await fetchStatus();
       }
@@ -173,10 +199,10 @@ export default function StorePage() {
     try {
       setPurchasingId(item.id);
 
-      const { data } = await api.post(`/gamification/store/${item.id}/purchase/`);
+      const data = await gamificationService.purchaseItem(item.id);
 
       if (data?.stats) {
-        setStats(data.stats);
+        syncEquippedState(data.stats);
       } else {
         await fetchStatus();
       }
@@ -198,25 +224,40 @@ export default function StorePage() {
     }
   }
 
-  function handleEquipSound(item: StoreItem) {
-    if (!item.owned) {
-      setMessage({ type: "error", text: "Compre este som antes de equipá-lo." });
+  async function handleEquipItem(item: StoreItem) {
+    const isOwned = item.owned || inventoryIds.has(item.id);
+
+    if (!isOwned) {
+      setMessage({ type: "error", text: "Compre este item antes de equipá-lo." });
       return;
     }
 
-    const soundKey = item.visual_resource;
-    if (!soundKey) {
-      setMessage({ type: "error", text: "Este item não possui recurso de som configurado." });
-      return;
+    try {
+      setEquippingId(item.id);
+
+      const data = await gamificationService.equipItem(item.id);
+
+      if (data?.stats) {
+        syncEquippedState(data.stats);
+      } else {
+        await fetchStatus();
+      }
+
+      await loadStoreItems();
+
+      setMessage({
+        type: "success",
+        text: data?.message || `Item "${item.name}" equipado com sucesso.`,
+      });
+    } catch (error) {
+      const err = error as { response?: { data?: { error?: string } } };
+      setMessage({
+        type: "error",
+        text: err.response?.data?.error || "Erro ao equipar item.",
+      });
+    } finally {
+      setEquippingId(null);
     }
-
-    setEquippedSoundKey(soundKey);
-    setEquippedSoundKeyState(soundKey);
-
-    setMessage({
-      type: "success",
-      text: `Som "${item.name}" equipado com sucesso.`,
-    });
   }
 
   function handlePreviewSound(item: StoreItem) {
@@ -233,6 +274,7 @@ export default function StorePage() {
 
     try {
       setPreviewingSoundId(item.id);
+
       const audio = new Audio(file);
       audio.currentTime = 0;
 
@@ -252,33 +294,6 @@ export default function StorePage() {
         text: "Não foi possível reproduzir a prévia.",
       });
     }
-  }
-
-  function handleEquipAvatar(item: StoreItem) {
-    if (!item.owned) {
-      setMessage({
-        type: "error",
-        text: "Compre este avatar antes de equipá-lo.",
-      });
-      return;
-    }
-
-    const avatarEmoji = item.visual_resource;
-
-    if (!avatarEmoji) {
-      setMessage({
-        type: "error",
-        text: "Este item não possui emoji configurado.",
-      });
-      return;
-    }
-
-    setEquippedAvatar(avatarEmoji);
-
-    setMessage({
-      type: "success",
-      text: `Avatar "${item.name}" equipado com sucesso.`,
-    });
   }
 
   function renderItemIcon(item: StoreItem) {
@@ -339,6 +354,24 @@ export default function StorePage() {
             <p className="text-xl font-bold text-amber-600">{userCoins} moedas</p>
           </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <EquippedSummaryCard
+          title="Avatar ativo"
+          value={stats?.equipped_avatar?.name || equippedAvatar || "Padrão"}
+          icon={<Smile className="h-4 w-4 text-violet-500" />}
+        />
+        <EquippedSummaryCard
+          title="Som ativo"
+          value={stats?.equipped_sound?.name || equippedSoundKey || "Padrão"}
+          icon={<Music4 className="h-4 w-4 text-violet-500" />}
+        />
+        <EquippedSummaryCard
+          title="Tema ativo"
+          value={stats?.equipped_theme?.name || equippedThemeKey || "Padrão"}
+          icon={<BrushCleaning className="h-4 w-4 text-violet-500" />}
+        />
       </div>
 
       {pendingCoins > 0 && (
@@ -434,13 +467,18 @@ export default function StorePage() {
 
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   {sectionItems.map((item) => {
+                    const isOwned = item.owned || inventoryIds.has(item.id);
+
+                    const isEquipped =
+                      item.equipped ||
+                      (item.category === "avatar" && equippedItemIds.avatar === item.id) ||
+                      (item.category === "sound" && equippedItemIds.sound === item.id) ||
+                      (item.category === "theme" && equippedItemIds.theme === item.id);
+
                     const isLocked = userLevel < item.required_level;
                     const canAfford = userCoins >= item.price;
                     const isPurchasing = purchasingId === item.id;
-                    const isEquippedSound =
-                      item.category === "sound" && equippedSoundKey === item.visual_resource;
-                    const isEquippedAvatar =
-                      item.category === "avatar" && equippedAvatar === item.visual_resource;
+                    const isEquipping = equippingId === item.id;
 
                     const raritySafe = item.rarity || "Comum";
 
@@ -457,12 +495,18 @@ export default function StorePage() {
                         key={item.id}
                         className={cn(
                           "group relative flex flex-col justify-between rounded-3xl border bg-white p-5 shadow-sm transition-all hover:shadow-md",
-                          item.owned
+                          isOwned
                             ? "border-violet-300 ring-2 ring-violet-50"
                             : "border-slate-200 hover:border-violet-200",
                           isLocked ? "grayscale-[0.4] opacity-70" : ""
                         )}
                       >
+                        {isEquipped && (
+                          <div className="absolute left-4 top-4 z-10 rounded-full bg-emerald-500 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+                            Equipado agora
+                          </div>
+                        )}
+
                         {isLocked && (
                           <div className="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-full bg-slate-900/90 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm backdrop-blur-sm">
                             <Lock className="h-3 w-3" />
@@ -492,7 +536,7 @@ export default function StorePage() {
                               {raritySafe}
                             </span>
 
-                            {!item.owned && (
+                            {!isOwned && (
                               <div
                                 className={cn(
                                   "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm",
@@ -515,7 +559,7 @@ export default function StorePage() {
                           </p>
                         </div>
 
-                        {item.owned ? (
+                        {isOwned ? (
                           item.category === "sound" ? (
                             <div className="flex gap-2">
                               <button
@@ -529,15 +573,16 @@ export default function StorePage() {
 
                               <button
                                 type="button"
-                                onClick={() => handleEquipSound(item)}
+                                onClick={() => handleEquipItem(item)}
+                                disabled={isEquipping}
                                 className={cn(
                                   "flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold transition",
-                                  isEquippedSound
+                                  isEquipped
                                     ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
                                     : "bg-violet-600 text-white hover:bg-violet-700"
                                 )}
                               >
-                                {isEquippedSound ? (
+                                {isEquipped ? (
                                   <>
                                     <Check className="h-4 w-4" />
                                     Equipado
@@ -545,7 +590,7 @@ export default function StorePage() {
                                 ) : (
                                   <>
                                     <Music4 className="h-4 w-4" />
-                                    Equipar
+                                    {isEquipping ? "Equipando..." : "Equipar"}
                                   </>
                                 )}
                               </button>
@@ -553,15 +598,16 @@ export default function StorePage() {
                           ) : item.category === "avatar" ? (
                             <button
                               type="button"
-                              onClick={() => handleEquipAvatar(item)}
+                              onClick={() => handleEquipItem(item)}
+                              disabled={isEquipping}
                               className={cn(
                                 "flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold transition",
-                                isEquippedAvatar
+                                isEquipped
                                   ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
                                   : "bg-violet-600 text-white hover:bg-violet-700"
                               )}
                             >
-                              {isEquippedAvatar ? (
+                              {isEquipped ? (
                                 <>
                                   <Check className="h-4 w-4" />
                                   Equipado
@@ -569,7 +615,31 @@ export default function StorePage() {
                               ) : (
                                 <>
                                   <Smile className="h-4 w-4" />
-                                  Equipar
+                                  {isEquipping ? "Equipando..." : "Equipar"}
+                                </>
+                              )}
+                            </button>
+                          ) : item.category === "theme" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleEquipItem(item)}
+                              disabled={isEquipping}
+                              className={cn(
+                                "flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold transition",
+                                isEquipped
+                                  ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                                  : "bg-violet-600 text-white hover:bg-violet-700"
+                              )}
+                            >
+                              {isEquipped ? (
+                                <>
+                                  <Check className="h-4 w-4" />
+                                  Equipado
+                                </>
+                              ) : (
+                                <>
+                                  <Palette className="h-4 w-4" />
+                                  {isEquipping ? "Equipando..." : "Equipar tema"}
                                 </>
                               )}
                             </button>

@@ -1,20 +1,23 @@
 from django.urls import path
 from .views import (
-    GamificationDashboardView,
-    ConvertFocusPointsView,
-    ClaimPendingCoinsView,
+    GameStatusView,
+    StoreItemListView,
+    UserInventoryView,
+    PurchaseStoreItemView,
+    EquipItemView,
+    ConvertFocusMinutesView,
+    AddProgressView,
     ClaimChestView,
-    StoreListView,
-    PurchaseItemView,
     CompleteTaskRewardView,
 )
-
 urlpatterns = [
-    path("status/", GamificationDashboardView.as_view(), name="gamification-status"),
-    path("actions/convert-focus/", ConvertFocusPointsView.as_view(), name="convert-focus"),
-    path("actions/claim-coins/", ClaimPendingCoinsView.as_view(), name="claim-coins"),
-    path("actions/claim-chest/<str:chest_type>/", ClaimChestView.as_view(), name="claim-chest"),
-    path("actions/complete-task/", CompleteTaskRewardView.as_view(), name="complete-task"),
-    path("store/", StoreListView.as_view(), name="store-list"),
-    path("store/<int:item_id>/purchase/", PurchaseItemView.as_view(), name="store-purchase"),
+    path("status/", GameStatusView.as_view(), name="gamification-status"),
+    path("store/", StoreItemListView.as_view(), name="store-list"),
+    path("inventory/", UserInventoryView.as_view(), name="inventory-list"),
+    path("store/<int:item_id>/purchase/", PurchaseStoreItemView.as_view(), name="store-purchase"),
+    path("store/<int:item_id>/equip/", EquipItemView.as_view(), name="store-equip"),
+    path("convert-focus-minutes/", ConvertFocusMinutesView.as_view(), name="convert-focus-minutes"),
+    path("add-progress/", AddProgressView.as_view(), name="add-progress"),
+    path("claim-chest/<str:chest_type>/", ClaimChestView.as_view(), name="claim-chest"),
+    path("complete-task-reward/", CompleteTaskRewardView.as_view(), name="complete-task-reward"),
 ]

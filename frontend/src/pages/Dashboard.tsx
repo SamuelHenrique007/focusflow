@@ -389,41 +389,36 @@ export default function FocusFlowDashboard() {
   }, [dashboardTasks]);
 
   const stats = useMemo(() => {
-    const completedTodayTasks = tasks.filter(
-      (task) =>
-        task.status === "concluida" &&
-        !!task.completedAt &&
-        isToday(task.completedAt),
-    );
+  const completedTodayTasks = tasks.filter(
+    (task) =>
+      task.status === "concluida" &&
+      !!task.completedAt &&
+      isToday(task.completedAt),
+  );
 
-    const tempoFocadoMin = pomodoroStats.minutes;
-    const pomodorosConcluidos = pomodoroStats.pomodoros;
-    const pontos = pomodoroStats.points;
+  const tempoFocadoMin = gameStats?.today_focus_minutes ?? pomodoroStats.minutes ?? 0;
+  const pomodorosConcluidos = gameStats?.total_pomodoros ?? pomodoroStats.pomodoros ?? 0;
+  const pontos = pomodoroStats.points ?? 0;
 
-    const metaDiaTotalMin = 120;
-    const metaDiaPct = Math.min(
-      100,
-      Math.round((tempoFocadoMin / metaDiaTotalMin) * 100),
-    );
+  const metaDiaTotalMin = gameStats?.daily_goal_minutes ?? 120;
+  const metaDiaPct = gameStats?.daily_goal_progress ?? 0;
 
-    return {
-      metaDiaPct,
-      metaDiaTotalMin,
-      tempoFocadoMin,
-      pomodorosConcluidos,
-      pontos,
-      concluidasHoje: completedTodayTasks.length,
-      pendentesTotal: overdueTasks.length, // Agora reflete as atrasadas
-      tarefasDoDia: todayTasks.length,
-    };
-  }, [tasks, pomodoroStats, overdueTasks, todayTasks]);
-
+  return {
+    metaDiaPct,
+    metaDiaTotalMin,
+    tempoFocadoMin,
+    pomodorosConcluidos,
+    pontos,
+    concluidasHoje: completedTodayTasks.length,
+    pendentesTotal: overdueTasks.length,
+    tarefasDoDia: todayTasks.length,
+  };
+}, [tasks, gameStats, pomodoroStats, overdueTasks, todayTasks]);
+  
   const dailyProgressMin = stats.tempoFocadoMin;
   const dailyGoalMin = stats.metaDiaTotalMin;
-  const dailyProgressPct = dailyGoalMin
-    ? Math.min((dailyProgressMin / dailyGoalMin) * 100, 100)
-    : 0;
-
+  const dailyProgressPct = stats.metaDiaPct;
+  
   const highlightTasks = useMemo(() => {
     return [...dashboardTasks]
       .sort((a, b) => {

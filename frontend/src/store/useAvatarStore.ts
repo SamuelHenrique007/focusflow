@@ -1,30 +1,58 @@
 import { create } from "zustand";
 
 const STORAGE_KEY = "focusflow_equipped_avatar";
-
-function getInitialAvatar() {
-  if (typeof window === "undefined") return "🙂";
-  return localStorage.getItem(STORAGE_KEY) || "🙂";
-}
+const DEFAULT_AVATAR = "🙂";
 
 type AvatarState = {
   equippedAvatar: string;
   setEquippedAvatar: (avatar: string) => void;
+  hydrateFromBackend: (avatar: string | null | undefined) => void;
   loadAvatar: () => void;
+  clearAvatar: () => void;
 };
 
-export const useAvatarStore = create<AvatarState>((set) => ({
-  equippedAvatar: getInitialAvatar(),
+function getStoredAvatar() {
+  if (typeof window === "undefined") {
+    return DEFAULT_AVATAR;
+  }
 
-  setEquippedAvatar: (avatar: string) => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored || DEFAULT_AVATAR;
+}
+
+export const useAvatarStore = create<AvatarState>((set) => ({
+  equippedAvatar: getStoredAvatar(),
+
+  setEquippedAvatar: (avatar) => {
+    const safeAvatar = avatar?.trim() || DEFAULT_AVATAR;
+
     if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, avatar);
+      localStorage.setItem(STORAGE_KEY, safeAvatar);
     }
 
-    set({ equippedAvatar: avatar });
+    set({ equippedAvatar: safeAvatar });
+  },
+
+  hydrateFromBackend: (avatar) => {
+    const safeAvatar = avatar?.trim() || DEFAULT_AVATAR;
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, safeAvatar);
+    }
+
+    set({ equippedAvatar: safeAvatar });
   },
 
   loadAvatar: () => {
-    set({ equippedAvatar: getInitialAvatar() });
+    const storedAvatar = getStoredAvatar();
+    set({ equippedAvatar: storedAvatar });
+  },
+
+  clearAvatar: () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+
+    set({ equippedAvatar: DEFAULT_AVATAR });
   },
 }));

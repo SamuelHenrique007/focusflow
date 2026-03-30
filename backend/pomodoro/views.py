@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from gamification.models import UserProfile
 from tasks.models import Task
 from .models import PomodoroSetting, PomodoroSession
 from .serializers import (
@@ -98,7 +99,6 @@ class FinishPomodoroSessionView(APIView):
         completed = request.data.get('completed', True)
         session.ended_at = timezone.now()
 
-        # ✅ BLOCO ATÔMICO INICIA AQUI
         with transaction.atomic():
             if completed:
                 session.status = 'completed'
@@ -109,10 +109,31 @@ class FinishPomodoroSessionView(APIView):
                         session.task.pomodoro_completed = F('pomodoro_completed') + 1
 
                     if hasattr(session.task, 'focus_minutes_completed'):
-                        session.task.focus_minutes_completed = F('focus_minutes_completed') + session.planned_minutes
+                        session.task.focus_minutes_completed = (
+                            F('focus_minutes_completed') + session.planned_minutes
+                        )
 
                     session.task.save()
                     session.task.refresh_from_db()
+
+                if session.session_type == 'focus':
+                    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+                    profile.pending_focus_minutes = (
+                        (profile.pending_focus_minutes or 0) + session.planned_minutes
+                    )
+                    profile.today_focus_minutes = (
+                        (profile.today_focus_minutes or 0) + session.planned_minutes
+                    )
+                    profile.total_focus_minutes = (
+                        (profile.total_focus_minutes or 0) + session.planned_minutes
+                    )
+                    profile.total_pomodoros = (
+                        (profile.total_pomodoros or 0) + 1
+                    )
+
+                    profile.save()
+
             else:
                 session.status = 'skipped'
                 session.earned_points = 0
@@ -120,7 +141,6 @@ class FinishPomodoroSessionView(APIView):
             session.save()
 
         return Response(PomodoroSessionSerializer(session).data)
-
 
 from django.utils import timezone
 from django.db.models import Sum

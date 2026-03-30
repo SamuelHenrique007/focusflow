@@ -35,8 +35,6 @@ import {
   type UpdateTaskRequest,
 } from "@/services/tasks";
 
-// --- NOVOS IMPORTS PARA GAMIFICAÇÃO ---
-import { api } from "@/services/api";
 import { useGameStore } from "@/store/useGameStore";
 
 /* =========================
@@ -841,37 +839,32 @@ export default function TasksPage() {
     }
   }
 
-  async function handleToggleComplete(task: Task) {
-    try {
-      const isCurrentlyDone = task.status === "concluida";
+async function handleToggleComplete(task: Task) {
+  try {
+    const isCurrentlyDone = task.status === "concluida";
 
-      const updated = await updateTask(task.id, {
-        completedAt: isCurrentlyDone ? null : new Date().toISOString(),
-      });
+    const updated = await updateTask(task.id, {
+      completedAt: isCurrentlyDone ? null : new Date().toISOString(),
+    });
 
-      setTasks((prev) =>
-        prev.map((item) => (item.id === updated.id ? updated : item)),
-      );
+    setTasks((prev) =>
+      prev.map((item) => (item.id === updated.id ? updated : item)),
+    );
 
-      if (selectedTask?.id === updated.id) {
-        setSelectedTask(updated);
-      }
-
-      // --- 🚀 INÍCIO DA GAMIFICAÇÃO DA TAREFA ---
-      if (!isCurrentlyDone) {
-        const response = await api.post("/gamification/actions/complete-task/");
-        if (response?.data?.stats) {
-          useGameStore.getState().setStats(response.data.stats);
-      } else {
-        await useGameStore.getState().fetchStatus();
-      }
-      }
-      // --- FIM DA GAMIFICAÇÃO ---
-
-    } catch {
-      alert("Não foi possível atualizar a conclusão da tarefa.");
+    if (selectedTask?.id === updated.id) {
+      setSelectedTask(updated);
     }
+
+    if (!isCurrentlyDone) {
+      await useGameStore.getState().completeTaskReward();
+    } else {
+      await useGameStore.getState().fetchStatus();
+    }
+  } catch (error) {
+    console.error("Erro ao atualizar conclusão da tarefa", error);
+    alert("Não foi possível atualizar a conclusão da tarefa.");
   }
+}
 
   function handleClearFilters() {
     setTab("todas");

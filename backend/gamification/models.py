@@ -4,39 +4,56 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 
 class UserProfile(models.Model):
-    # Alterado de User para settings.AUTH_USER_MODEL
     user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.CASCADE, 
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         related_name='userprofile'
     )
-    
-    # Identidade e Nível
+
     level = models.IntegerField(default=1)
     current_xp = models.IntegerField(default=0)
     xp_to_next_level = models.IntegerField(default=100)
-    
-    # Economia
+
     coins = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     pending_focus_minutes = models.IntegerField(default=0, validators=[MinValueValidator(0)])
-    
-    # Estatísticas
+
+    today_focus_minutes = models.IntegerField(default=0)
+    daily_goal_minutes = models.IntegerField(default=120)
     streak = models.IntegerField(default=0)
     total_pomodoros = models.IntegerField(default=0)
     total_tasks_completed = models.IntegerField(default=0)
+    total_focus_minutes = models.IntegerField(default=0)
     last_activity = models.DateField(auto_now=True)
 
-    # Progresso Diário e Baús
     daily_goal_progress = models.IntegerField(
-        default=0, 
+        default=0,
         validators=[MinValueValidator(0), MaxValueValidator(100)]
     )
     wood_chest_claimed = models.BooleanField(default=False)
     silver_chest_claimed = models.BooleanField(default=False)
     gold_chest_claimed = models.BooleanField(default=False)
 
-    def __str__(self):
-        return f"{self.user.username} - Lvl {self.level}"
+    equipped_avatar_item = models.ForeignKey(
+        'StoreItem',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='equipped_as_avatar_by'
+    )
+    equipped_sound_item = models.ForeignKey(
+        'StoreItem',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='equipped_as_sound_by'
+    )
+    equipped_theme_item = models.ForeignKey(
+        'StoreItem',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='equipped_as_theme_by'
+    )
 
 class StoreItem(models.Model):
     CATEGORY_CHOICES = [
