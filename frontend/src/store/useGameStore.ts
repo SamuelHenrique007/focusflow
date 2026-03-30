@@ -1,12 +1,13 @@
-// src/store/useGameStore.ts
-import { create } from 'zustand';
-import { gamificationService, type GameStatus } from "../services/gamificationService";
+import { create } from "zustand";
+import { gamificationService, type GameStatus } from "@/services/gamificationService";
 
 interface GameState {
   stats: GameStatus | null;
   isLoading: boolean;
   fetchStatus: () => Promise<void>;
+  setStats: (stats: GameStatus) => void;
   updateStats: (newStats: Partial<GameStatus>) => void;
+  clearStats: () => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -19,13 +20,17 @@ export const useGameStore = create<GameState>((set) => ({
       const data = await gamificationService.getStatus();
       set({ stats: data.stats, isLoading: false });
     } catch (error) {
-      console.error("Erro ao carregar dados de gamificação", error);
+      console.error("Erro ao carregar dados de gamificação:", error);
       set({ isLoading: false });
     }
   },
 
-  updateStats: (newStats) => 
+  setStats: (stats) => set({ stats }),
+
+  updateStats: (newStats) =>
     set((state) => ({
-      stats: state.stats ? { ...state.stats, ...newStats } : null
+      stats: state.stats ? { ...state.stats, ...newStats } : null,
     })),
+
+  clearStats: () => set({ stats: null }),
 }));

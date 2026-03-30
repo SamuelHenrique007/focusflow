@@ -859,13 +859,12 @@ export default function TasksPage() {
 
       // --- 🚀 INÍCIO DA GAMIFICAÇÃO DA TAREFA ---
       if (!isCurrentlyDone) {
-        try {
-          await api.post("/gamification/actions/complete-task/");
-          // Atualiza a Sidebar instantaneamente!
-          await useGameStore.getState().fetchStatus(); 
-        } catch (error) {
-          console.error("Erro ao resgatar XP da tarefa:", error);
-        }
+        const response = await api.post("/gamification/actions/complete-task/");
+        if (response?.data?.stats) {
+          useGameStore.getState().setStats(response.data.stats);
+      } else {
+        await useGameStore.getState().fetchStatus();
+      }
       }
       // --- FIM DA GAMIFICAÇÃO ---
 

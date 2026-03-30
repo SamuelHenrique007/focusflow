@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/cn";
 import { useGameStore } from "@/store/useGameStore";
 import { useAuth } from "@/hooks/useAuth";
+import { useAvatarStore } from "@/store/useAvatarStore";
 
 export type NavKey =
   | "dashboard"
@@ -71,9 +72,9 @@ const ROUTES: Record<Exclude<NavKey, "logout">, string> = {
   settings: "/settings",
 };
 
-// Função auxiliar para limpar e formatar o nome igual ao Dashboard
 function getFirstAndSecondName(name?: string) {
   if (!name?.trim()) return "Usuário";
+
   const connectors = ["de", "da", "do", "dos", "das", "e"];
   const parts = name
     .trim()
@@ -82,6 +83,7 @@ function getFirstAndSecondName(name?: string) {
 
   if (parts.length === 0) return "Usuário";
   if (parts.length === 1) return parts[0];
+
   return `${parts[0]} ${parts[1]}`;
 }
 
@@ -105,7 +107,7 @@ function SidebarItem({
       <span
         className={cn(
           "grid h-8 w-8 place-items-center rounded-xl",
-          active ? "bg-white shadow-sm" : danger ? "bg-rose-50" : "bg-slate-100",
+          active ? "bg-white shadow-sm" : danger ? "bg-rose-50" : "bg-slate-100"
         )}
       >
         {icon}
@@ -119,8 +121,8 @@ function SidebarItem({
     active
       ? "bg-blue-50 text-blue-700"
       : danger
-        ? "text-rose-600 hover:bg-rose-50"
-        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+      ? "text-rose-600 hover:bg-rose-50"
+      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
   );
 
   if (to) {
@@ -138,36 +140,59 @@ function SidebarItem({
   );
 }
 
+function UserAvatar({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {
+  const avatar = useAvatarStore((state) => state.equippedAvatar);
+
+  const sizeClasses = {
+    sm: "h-10 w-10 text-xl",
+    md: "h-14 w-14 text-2xl",
+    lg: "h-20 w-20 text-4xl",
+  };
+
+  return (
+    <div
+      className={cn(
+        "grid shrink-0 place-items-center rounded-full border border-blue-100 bg-blue-50 shadow-sm",
+        sizeClasses[size]
+      )}
+    >
+      <span>{avatar || "🙂"}</span>
+    </div>
+  );
+}
+
 function UserGamerCard() {
   const { stats, fetchStatus, isLoading } = useGameStore();
-  const { user } = useAuth(); // Puxa o usuário real da sua autenticação
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchStatus();
   }, [fetchStatus]);
 
+  const loadAvatar = useAvatarStore((state) => state.loadAvatar);
+
+  useEffect(() => {
+    loadAvatar();
+  }, [loadAvatar]);
+
   if (isLoading) {
-    return <div className="animate-pulse h-[68px] w-full rounded-2xl bg-slate-100 border border-slate-200" />;
+    return (
+      <div className="h-[68px] w-full animate-pulse rounded-2xl border border-slate-200 bg-slate-100" />
+    );
   }
 
-  // Aplica a formatação de nome
   const userName = getFirstAndSecondName(user?.name);
-  const initials = userName.substring(0, 2).toUpperCase();
   const level = stats?.level || 1;
 
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-xs">
-      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
-        {initials}
-      </div>
+      <UserAvatar size="sm" />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-sm font-semibold text-slate-900 leading-tight">
+        <span className="truncate text-sm leading-tight font-semibold text-slate-900">
           {userName}
         </span>
-        <span className="text-[11px] font-medium text-blue-600">
-          Nível: {level}
-        </span>
+        <span className="text-[11px] font-medium text-blue-600">Nível: {level}</span>
       </div>
     </div>
   );
@@ -204,7 +229,7 @@ export function SidebarNav({
             to={ROUTES.notifications}
             onClick={onSelect ? () => onSelect("notifications") : undefined}
           />
-          
+
           <SidebarItem
             active={activeKey === "settings"}
             icon={<Settings className="h-4 w-4" />}

@@ -20,8 +20,10 @@ import {
 
 import { StatCard } from "@/components/common/StatCard";
 import PomodoroFocusView from "@/components/pomodoro/PomodoroFocusView";
+import { getEquippedSoundKey } from "@/lib/soundPreferences";
+import { getSoundFileByKey } from "@/lib/soundCatalog";
 import { api } from "@/services/api";
-import { useGameStore } from "@/store/useGameStore"; // <-- IMPORTAÇÃO DO ZUSTAND
+import { useGameStore } from "@/store/useGameStore";
 
 type TaskStatus = "pendente" | "em_andamento" | "concluida";
 
@@ -139,7 +141,7 @@ function TaskSelect({
 
     return () => {
       window.removeEventListener("mousedown", handleClickOutside);
-    }
+    };
   }, [open]);
 
   return (
@@ -315,7 +317,7 @@ export default function PomodoroTimer({
 }: PomodoroTimerProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { fetchStatus } = useGameStore(); // <-- CHAMADA DO ZUSTAND
+  const { fetchStatus } = useGameStore();
 
   const isFocusVariant = variant === "focus";
   const [selectedTask, setSelectedTask] = useState("");
@@ -348,11 +350,10 @@ export default function PomodoroTimer({
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
-  
+
   const [isPaused, setIsPaused] = useState(false);
   const expectedEndTimeRef = useRef<number | null>(null);
 
-  // Captura a tarefa selecionada que vem de outras páginas
   useEffect(() => {
     if (location.state?.selectedTaskId) {
       setSelectedTask(String(location.state.selectedTaskId));
@@ -380,15 +381,16 @@ export default function PomodoroTimer({
     };
   }, [timeLabel]);
 
-  const playFinishSound = useCallback((type: SessionType) => {
-    const soundMap: Record<SessionType, string> = {
-      focus: '/floraphonic-marimba-ringtone-15-201165.mp3',
-      short_break: '/floraphonic-marimba-ringtone-15-201165.mp3',
-      long_break: '/floraphonic-marimba-ringtone-15-201165.mp3'
-    };
+  const playFinishSound = useCallback((_type?: SessionType) => {
+    const equippedSoundKey = getEquippedSoundKey();
+    const file =
+      getSoundFileByKey(equippedSoundKey) || "/sounds/floraphonic-marimba-ringtone-1-185152.mp3";
 
-    const audio = new Audio(soundMap[type]); 
-    audio.play().catch((error) => console.log("Áudio bloqueado pelo navegador:", error));
+    const audio = new Audio(file);
+    audio.currentTime = 0;
+    audio.play().catch((error) => {
+      console.log("Áudio bloqueado pelo navegador:", error);
+    });
   }, []);
 
   const getDurationBySessionType = useCallback(
@@ -438,7 +440,12 @@ export default function PomodoroTimer({
       setSessionType(nextType);
       setSecondsLeft(getDurationBySessionType(nextType));
     },
-    [completedFocusCycles, sessionType, getDurationBySessionType, settings.cyclesBeforeLongBreak],
+    [
+      completedFocusCycles,
+      sessionType,
+      getDurationBySessionType,
+      settings.cyclesBeforeLongBreak,
+    ],
   );
 
   function updateSetting<K extends keyof PomodoroSettings>(
@@ -527,8 +534,7 @@ export default function PomodoroTimer({
 
         const loadedStats = statsResponse.data;
         setStats(loadedStats);
-        
-        // CORREÇÃO: Garante que o contador local não resete no F5
+
         setCompletedFocusCycles(loadedStats.pomodoros);
 
         if (loadedStats.running_session) {
@@ -559,10 +565,9 @@ export default function PomodoroTimer({
     }
 
     loadInitialData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // --- ALTERAÇÃO AQUI: INCLUSÃO DA GAMIFICAÇÃO NO HANDLE FINISH ---
   const handleFinish = useCallback(
     async (completed: boolean, shouldAdvance = false) => {
       if (!runningSession) {
@@ -575,8 +580,10 @@ export default function PomodoroTimer({
       try {
         setIsFinishing(true);
 
-        const sessionFinishedByTimer = sessionType === "focus" && secondsLeft <= 1;
-        const isActuallyCompleted = sessionType === "focus" ? sessionFinishedByTimer : completed;
+        const sessionFinishedByTimer =
+          sessionType === "focus" && secondsLeft <= 1;
+        const isActuallyCompleted =
+          sessionType === "focus" ? sessionFinishedByTimer : completed;
 
         await api.post(`/pomodoro/sessions/${runningSession.id}/finish/`, {
           completed: isActuallyCompleted,
@@ -584,20 +591,24 @@ export default function PomodoroTimer({
 
         const completedFocus = isActuallyCompleted && sessionType === "focus";
 
-        // --- 🚀 INÍCIO DA GAMIFICAÇÃO ---
         if (completedFocus && runningSession.planned_minutes > 0) {
           try {
-            // Envia os minutos convertidos para XP/Moedas
-            await api.post("/gamification/actions/convert-focus/", {
-              minutes: runningSession.planned_minutes
-            });
-            // Atualiza a Sidebar e o estado global na mesma hora!
-            await fetchStatus(); 
+            const response = await api.post(
+              "/gamification/actions/convert-focus/",
+              {
+                minutes: runningSession.planned_minutes,
+              },
+            );
+
+            if (response?.data?.stats) {
+              useGameStore.getState().setStats(response.data.stats);
+            } else {
+              await fetchStatus();
+            }
           } catch (xpError) {
             console.error("Erro ao computar XP:", xpError);
           }
         }
-        // --- FIM DA GAMIFICAÇÃO ---
 
         setRunningSession(null);
         setIsPaused(false);
@@ -622,7 +633,7 @@ export default function PomodoroTimer({
       secondsLeft,
       getDurationBySessionType,
       advancePomodoroCycle,
-      fetchStatus // Adicionado como dependência do useCallback
+      fetchStatus,
     ],
   );
 
@@ -657,7 +668,7 @@ export default function PomodoroTimer({
         window.clearInterval(timer);
         expectedEndTimeRef.current = null;
         setSecondsLeft(0);
-        
+
         playFinishSound(sessionType);
         void handleFinish(true, true);
       } else {
@@ -666,7 +677,7 @@ export default function PomodoroTimer({
     }, 1000);
 
     return () => window.clearInterval(timer);
-    
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runningSession, isPaused, handleFinish, playFinishSound, sessionType]);
 
@@ -714,7 +725,7 @@ export default function PomodoroTimer({
           planned_minutes: plannedMinutes,
         },
       );
-      //para teste (5) - Você pode trocar isso para o tempo normal depois!
+
       setRunningSession(data);
       setSecondsLeft(5);
 
@@ -817,8 +828,8 @@ export default function PomodoroTimer({
             {sessionType === "focus"
               ? "Foco"
               : sessionType === "short_break"
-              ? "Pausa curta"
-              : "Pausa longa"}
+                ? "Pausa curta"
+                : "Pausa longa"}
           </div>
 
           <p className="mt-3 text-sm text-slate-500 sm:text-[15px]">
@@ -831,6 +842,7 @@ export default function PomodoroTimer({
                 : "Momento de descanso"}
             </span>
           </p>
+
           <div className="relative mt-6 flex h-52 w-52 items-center justify-center sm:h-60 sm:w-60">
             <div className="absolute inset-0 rounded-full border-8 border-slate-100" />
             <div className="flex h-40 w-40 items-center justify-center rounded-full bg-slate-50 sm:h-48 sm:w-48">
@@ -893,16 +905,21 @@ export default function PomodoroTimer({
           </div>
 
           {(() => {
-            const fullCycles = Math.floor(completedFocusCycles / settings.cyclesBeforeLongBreak);
-            const currentProgress = completedFocusCycles % settings.cyclesBeforeLongBreak;
+            const fullCycles = Math.floor(
+              completedFocusCycles / settings.cyclesBeforeLongBreak,
+            );
+            const currentProgress =
+              completedFocusCycles % settings.cyclesBeforeLongBreak;
 
             return (
               <div className="mt-5 flex flex-col items-center gap-1">
                 <p className="text-sm font-medium text-slate-500">
-                  {fullCycles} {fullCycles === 1 ? "ciclo completo" : "ciclos completos"}
+                  {fullCycles}{" "}
+                  {fullCycles === 1 ? "ciclo completo" : "ciclos completos"}
                 </p>
                 <p className="text-xs text-slate-400">
-                  Sessões: {currentProgress} / {settings.cyclesBeforeLongBreak} para a pausa longa
+                  Sessões: {currentProgress} / {settings.cyclesBeforeLongBreak}{" "}
+                  para a pausa longa
                 </p>
               </div>
             );
@@ -910,7 +927,11 @@ export default function PomodoroTimer({
 
           <button
             type="button"
-            onClick={() => navigate("/pomodoro/focus", { state: { selectedTaskId: selectedTask } })}
+            onClick={() =>
+              navigate("/pomodoro/focus", {
+                state: { selectedTaskId: selectedTask },
+              })
+            }
             className="mt-4 cursor-pointer text-sm font-semibold text-blue-600 transition hover:text-blue-700"
           >
             Entrar no Modo Foco

@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import { 
-  Store, 
-  Coins, 
-  Palette, 
-  Music4, 
-  Smile, 
-  Check, 
+import { useEffect, useMemo, useState } from "react";
+import {
+  Store,
+  Coins,
+  Palette,
+  Music4,
+  Smile,
+  Check,
   ShoppingCart,
   ArrowRightLeft,
   Timer,
@@ -17,43 +17,88 @@ import {
 import { cn } from "@/lib/cn";
 import { api } from "@/services/api";
 import { useGameStore } from "@/store/useGameStore";
+import { getEquippedSoundKey, setEquippedSoundKey } from "@/lib/soundPreferences";
+import { useAvatarStore } from "@/store/useAvatarStore";
 
-type FilterType = "all" | "avatar" | "theme" | "audio";
+type FilterType = "all" | "avatar" | "theme" | "sound";
 
-// Tipo exato que vem do seu Backend Django
 type StoreItem = {
   id: number;
   name: string;
   description: string;
   price: number;
   required_level: number;
-  category: "avatar" | "theme" | "audio" | string;
+  category: "avatar" | "theme" | "sound" | string;
   visual_resource?: string;
   rarity: "Comum" | "Raro" | "Épico" | "Lendário" | string;
   owned: boolean;
   equipped: boolean;
 };
 
-// Definição das seções mapeando as categorias do banco
-const SECTIONS = [
-  { id: "avatar", label: "Coleção de Avatares", icon: <Smile className="h-5 w-5 text-violet-500" /> },
-  { id: "theme", label: "Temas Exclusivos", icon: <Palette className="h-5 w-5 text-violet-500" /> },
-  { id: "audio", label: "Recompensas Sonoras", icon: <Music4 className="h-5 w-5 text-violet-500" /> },
+const SECTIONS: Array<{
+  id: Exclude<FilterType, "all">;
+  label: string;
+  icon: React.ReactNode;
+}> = [
+  {
+    id: "avatar",
+    label: "Coleção de Avatares",
+    icon: <Smile className="h-5 w-5 text-violet-500" />,
+  },
+  {
+    id: "theme",
+    label: "Temas Exclusivos",
+    icon: <Palette className="h-5 w-5 text-violet-500" />,
+  },
+  {
+    id: "sound",
+    label: "Recompensas Sonoras",
+    icon: <Music4 className="h-5 w-5 text-violet-500" />,
+  },
 ];
 
+const SOUND_FILES: Record<string, string> = {
+  alerta_supremo: "/sounds/alerta-supremo.mp3",
+  aurora_digital: "/sounds/aurora-digital.mp3",
+  despertar_curto: "/sounds/despertar-curto.mp3",
+  despertar_neon: "/sounds/despertar-neon.mp3",
+  digital_basico: "/sounds/digital-basico.mp3",
+  eco_futuro: "/sounds/eco-futuro.mp3",
+  flauta_zen: "/sounds/flauta-zen.mp3",
+  marimba_brilhante: "/sounds/marimba-brilhante.mp3",
+  marimba_serena: "/sounds/marimba-serena.mp3",
+  marimba_viva: "/sounds/marimba-viva.mp3",
+  ping_simples: "/sounds/ping-simples.mp3",
+  pulso_tecnologico: "/sounds/pulso-tecnologico.mp3",
+  sirene_laser: "/sounds/sirene-laser.mp3",
+  toque_harmonico: "/sounds/toque-harmonico.mp3",
+  toque_mensagem: "/sounds/toque-mensagem.mp3",
+};
+
+function getSoundFileByKey(key?: string | null) {
+  if (!key) return null;
+  return SOUND_FILES[key] || null;
+}
+
 export default function StorePage() {
-  const { stats, fetchStatus } = useGameStore();
-  
+  const { stats, fetchStatus, setStats } = useGameStore();
+
+  const equippedAvatar = useAvatarStore((state) => state.equippedAvatar);
+  const setEquippedAvatar = useAvatarStore((state) => state.setEquippedAvatar);
+
   const [items, setItems] = useState<StoreItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [purchasingId, setPurchasingId] = useState<number | null>(null);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [previewingSoundId, setPreviewingSoundId] = useState<number | null>(null);
+  const [equippedSoundKey, setEquippedSoundKeyState] = useState<string>(() => getEquippedSoundKey());
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
 
   const userLevel = stats?.level || 1;
   const userCoins = stats?.coins || 0;
-  const pendingCoins = (stats as unknown as { pending_focus_minutes?: number })?.pending_focus_minutes || 0;
+  const pendingCoins =
+    (stats as { pending_focus_minutes?: number } | null)?.pending_focus_minutes || 0;
 
   async function loadStoreItems() {
     try {
@@ -73,21 +118,42 @@ export default function StorePage() {
   }, []);
 
   useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => setMessage(null), 3000);
-      return () => clearTimeout(timer);
-    }
+    if (!message) return;
+    const timer = window.setTimeout(() => setMessage(null), 3000);
+    return () => window.clearTimeout(timer);
   }, [message]);
+
+  const tabs = useMemo(
+    () => [
+      { id: "all" as const, label: "Todos os Itens", icon: <Store className="h-4 w-4" /> },
+      { id: "avatar" as const, label: "Avatares", icon: <Smile className="h-4 w-4" /> },
+      { id: "theme" as const, label: "Temas", icon: <Palette className="h-4 w-4" /> },
+      { id: "sound" as const, label: "Sons", icon: <Music4 className="h-4 w-4" /> },
+    ],
+    []
+  );
 
   async function handleClaimCoins() {
     try {
       setIsClaiming(true);
-      await api.post("/gamification/actions/claim-coins/");
-      await fetchStatus(); 
-      setMessage({ type: "success", text: `Resgataste ${pendingCoins} moedas com sucesso!` });
+      const { data } = await api.post("/gamification/actions/claim-coins/");
+
+      if (data?.stats) {
+        setStats(data.stats);
+      } else {
+        await fetchStatus();
+      }
+
+      setMessage({
+        type: "success",
+        text: data?.message || `Resgataste ${pendingCoins} moedas com sucesso.`,
+      });
     } catch (error) {
       const err = error as { response?: { data?: { error?: string } } };
-      setMessage({ type: "error", text: err.response?.data?.error || "Erro ao resgatar moedas." });
+      setMessage({
+        type: "error",
+        text: err.response?.data?.error || "Erro ao resgatar moedas.",
+      });
     } finally {
       setIsClaiming(false);
     }
@@ -95,52 +161,162 @@ export default function StorePage() {
 
   async function handlePurchase(item: StoreItem) {
     if (userLevel < item.required_level) {
-      setMessage({ type: "error", text: `Você precisa do Nível ${item.required_level}!` });
+      setMessage({ type: "error", text: `Você precisa do nível ${item.required_level}.` });
       return;
     }
+
     if (userCoins < item.price) {
-      setMessage({ type: "error", text: "Moedas insuficientes!" });
+      setMessage({ type: "error", text: "Moedas insuficientes." });
       return;
     }
 
     try {
       setPurchasingId(item.id);
+
       const { data } = await api.post(`/gamification/store/${item.id}/purchase/`);
-      setMessage({ type: "success", text: data.message || "Compra realizada com sucesso!" });
-      await Promise.all([loadStoreItems(), fetchStatus()]);
+
+      if (data?.stats) {
+        setStats(data.stats);
+      } else {
+        await fetchStatus();
+      }
+
+      await loadStoreItems();
+
+      setMessage({
+        type: "success",
+        text: data?.message || "Compra realizada com sucesso.",
+      });
     } catch (error) {
       const err = error as { response?: { data?: { error?: string } } };
-      setMessage({ 
-        type: "error", 
-        text: err.response?.data?.error || "Ocorreu um erro ao realizar a compra." 
+      setMessage({
+        type: "error",
+        text: err.response?.data?.error || "Ocorreu um erro ao realizar a compra.",
       });
     } finally {
       setPurchasingId(null);
     }
   }
 
+  function handleEquipSound(item: StoreItem) {
+    if (!item.owned) {
+      setMessage({ type: "error", text: "Compre este som antes de equipá-lo." });
+      return;
+    }
+
+    const soundKey = item.visual_resource;
+    if (!soundKey) {
+      setMessage({ type: "error", text: "Este item não possui recurso de som configurado." });
+      return;
+    }
+
+    setEquippedSoundKey(soundKey);
+    setEquippedSoundKeyState(soundKey);
+
+    setMessage({
+      type: "success",
+      text: `Som "${item.name}" equipado com sucesso.`,
+    });
+  }
+
+  function handlePreviewSound(item: StoreItem) {
+    const soundKey = item.visual_resource;
+    const file = getSoundFileByKey(soundKey);
+
+    if (!file) {
+      setMessage({
+        type: "error",
+        text: "Arquivo de prévia não encontrado para este som.",
+      });
+      return;
+    }
+
+    try {
+      setPreviewingSoundId(item.id);
+      const audio = new Audio(file);
+      audio.currentTime = 0;
+
+      audio.play().catch(() => {
+        setMessage({
+          type: "error",
+          text: "O navegador bloqueou a reprodução automática.",
+        });
+        setPreviewingSoundId(null);
+      });
+
+      audio.onended = () => setPreviewingSoundId(null);
+    } catch {
+      setPreviewingSoundId(null);
+      setMessage({
+        type: "error",
+        text: "Não foi possível reproduzir a prévia.",
+      });
+    }
+  }
+
+  function handleEquipAvatar(item: StoreItem) {
+    if (!item.owned) {
+      setMessage({
+        type: "error",
+        text: "Compre este avatar antes de equipá-lo.",
+      });
+      return;
+    }
+
+    const avatarEmoji = item.visual_resource;
+
+    if (!avatarEmoji) {
+      setMessage({
+        type: "error",
+        text: "Este item não possui emoji configurado.",
+      });
+      return;
+    }
+
+    setEquippedAvatar(avatarEmoji);
+
+    setMessage({
+      type: "success",
+      text: `Avatar "${item.name}" equipado com sucesso.`,
+    });
+  }
+
   function renderItemIcon(item: StoreItem) {
-    if (item.visual_resource) return <span className="text-3xl">{item.visual_resource}</span>;
-    if (item.category === 'theme') return <Palette className="h-6 w-6 text-violet-500" />;
-    if (item.category === 'audio') return <Volume2 className="h-6 w-6 text-violet-500" />;
+    if (item.category === "avatar" && item.visual_resource) {
+      return <span className="text-3xl">{item.visual_resource}</span>;
+    }
+
+    if (item.category === "theme") {
+      return <Palette className="h-6 w-6 text-violet-500" />;
+    }
+
+    if (item.category === "sound") {
+      return <Volume2 className="h-6 w-6 text-violet-500" />;
+    }
+
     return <Smile className="h-6 w-6 text-violet-500" />;
   }
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-12">
-      
-      {/* Alertas */}
       {message && (
-        <div className={cn(
-          "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium animate-in fade-in slide-in-from-top-2 shadow-sm",
-          message.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"
-        )}>
-          {message.type === "success" ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+        <div
+          className={cn(
+            "animate-in fade-in slide-in-from-top-2 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-sm",
+            message.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-rose-200 bg-rose-50 text-rose-700"
+          )}
+        >
+          {message.type === "success" ? (
+            <CheckCircle2 className="h-5 w-5" />
+          ) : (
+            <AlertCircle className="h-5 w-5" />
+          )}
           {message.text}
         </div>
       )}
 
-      {/* CABEÇALHO DA LOJA */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
@@ -157,60 +333,61 @@ export default function StorePage() {
             <Coins className="h-6 w-6 text-amber-600" />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-amber-800">O seu Saldo</p>
-            <p className="text-xl font-bold text-amber-600">{userCoins} Moedas</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-amber-800">
+              O seu saldo
+            </p>
+            <p className="text-xl font-bold text-amber-600">{userCoins} moedas</p>
           </div>
         </div>
       </div>
 
-      {/* ÁREA DE CÂMBIO DINÂMICA (Só aparece se tiver moedas pendentes) */}
       {pendingCoins > 0 && (
-        <div className="relative overflow-hidden rounded-2xl bg-linear-to-r from-violet-700 via-purple-600 to-violet-500 p-6 text-white shadow-md sm:p-8 animate-in fade-in slide-in-from-bottom-4">
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
-          <div className="absolute -bottom-10 right-20 h-32 w-32 rounded-full bg-violet-400/20 blur-xl"></div>
-          
+        <div className="animate-in fade-in slide-in-from-bottom-4 relative overflow-hidden rounded-2xl bg-linear-to-r from-violet-700 via-purple-600 to-violet-500 p-6 text-white shadow-md sm:p-8">
+          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+          <div className="absolute -bottom-10 right-20 h-32 w-32 rounded-full bg-violet-400/20 blur-xl" />
+
           <div className="relative flex flex-col items-center justify-between gap-6 sm:flex-row">
             <div className="flex w-full items-center gap-4 sm:w-auto">
               <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white/20 shadow-inner">
                 <ArrowRightLeft className="h-7 w-7 text-white" />
               </div>
+
               <div>
                 <h2 className="text-lg font-semibold sm:text-xl">Câmbio de Foco</h2>
                 <div className="mt-1.5 flex flex-col items-start gap-1 text-sm text-violet-100 sm:flex-row sm:items-center sm:gap-2">
-                  <span>Tem <strong className="text-white">{pendingCoins} minutos</strong> de foco pendentes</span>
-                  <span className="hidden h-1 w-1 rounded-full bg-violet-300 sm:block"></span>
+                  <span>
+                    Tem <strong className="text-white">{pendingCoins} minutos</strong> de foco pendentes
+                  </span>
+                  <span className="hidden h-1 w-1 rounded-full bg-violet-300 sm:block" />
                   <span className="flex items-center gap-1 rounded-md bg-violet-900/30 px-2 py-0.5 text-xs sm:bg-transparent sm:px-0 sm:py-0 sm:text-sm">
-                    Taxa: 1 <Timer className="h-3 w-3" /> = 1 <Coins className="h-3 w-3 text-amber-300" />
+                    Taxa: 1 <Timer className="h-3 w-3" /> = 1{" "}
+                    <Coins className="h-3 w-3 text-amber-300" />
                   </span>
                 </div>
               </div>
             </div>
-            
-            <button 
+
+            <button
               onClick={handleClaimCoins}
               disabled={isClaiming}
-              className="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-violet-700 shadow-sm transition-all hover:scale-[1.02] hover:bg-violet-50 hover:shadow active:scale-95 sm:w-auto disabled:opacity-50"
+              className="group flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-violet-700 shadow-sm transition-all hover:scale-[1.02] hover:bg-violet-50 hover:shadow active:scale-95 disabled:opacity-50 sm:w-auto"
             >
-              <ArrowRightLeft className={cn("h-4 w-4 transition-transform", !isClaiming && "group-hover:rotate-180")} />
-              {isClaiming ? "A converter..." : `Converter em ${pendingCoins} Moedas`}
+              <ArrowRightLeft
+                className={cn("h-4 w-4 transition-transform", !isClaiming && "group-hover:rotate-180")}
+              />
+              {isClaiming ? "A converter..." : `Converter em ${pendingCoins} moedas`}
             </button>
           </div>
         </div>
       )}
 
-      {/* FILTROS */}
       <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-4 pt-4">
-        {[
-          { id: "all", label: "Todos os Itens", icon: <Store className="h-4 w-4" /> },
-          { id: "avatar", label: "Avatares", icon: <Smile className="h-4 w-4" /> },
-          { id: "theme", label: "Temas", icon: <Palette className="h-4 w-4" /> },
-          { id: "audio", label: "Sons", icon: <Music4 className="h-4 w-4" /> },
-        ].map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setFilter(tab.id as FilterType)}
+            onClick={() => setFilter(tab.id)}
             className={cn(
-              "flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition",
+              "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition",
               filter === tab.id
                 ? "bg-violet-600 text-white shadow-sm"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
@@ -222,21 +399,22 @@ export default function StorePage() {
         ))}
       </div>
 
-      {/* CARREGAMENTO / VAZIO */}
       {isLoading ? (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-64 rounded-2xl bg-slate-100 border border-slate-200 animate-pulse" />
+            <div
+              key={i}
+              className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-slate-100"
+            />
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="text-center py-20 bg-white border border-slate-200 rounded-3xl shadow-sm">
-          <Store className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+        <div className="rounded-3xl border border-slate-200 bg-white py-20 text-center shadow-sm">
+          <Store className="mx-auto mb-4 h-12 w-12 text-slate-300" />
           <h3 className="text-lg font-semibold text-slate-900">A loja está vazia</h3>
-          <p className="text-slate-500 mt-1">Volte mais tarde para ver as novidades!</p>
+          <p className="mt-1 text-slate-500">Volte mais tarde para ver as novidades.</p>
         </div>
       ) : (
-        /* VITRINE ORGANIZADA POR SEÇÕES */
         <div className="space-y-10">
           {SECTIONS.map((section) => {
             const sectionItems = items.filter((item) => item.category === section.id);
@@ -245,7 +423,10 @@ export default function StorePage() {
             if (sectionItems.length === 0) return null;
 
             return (
-              <section key={section.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <section
+                key={section.id}
+                className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+              >
                 <div className="mb-4 flex items-center gap-2">
                   {section.icon}
                   <h2 className="text-lg font-semibold text-slate-800">{section.label}</h2>
@@ -256,49 +437,70 @@ export default function StorePage() {
                     const isLocked = userLevel < item.required_level;
                     const canAfford = userCoins >= item.price;
                     const isPurchasing = purchasingId === item.id;
-                    
-                    // Definindo as cores com base na raridade do backend
+                    const isEquippedSound =
+                      item.category === "sound" && equippedSoundKey === item.visual_resource;
+                    const isEquippedAvatar =
+                      item.category === "avatar" && equippedAvatar === item.visual_resource;
+
                     const raritySafe = item.rarity || "Comum";
-                    const rarityStyle = {
-                      "Comum": "bg-slate-100 text-slate-600",
-                      "Raro": "bg-sky-100 text-sky-700",
-                      "Épico": "bg-violet-100 text-violet-700",
-                      "Lendário": "bg-amber-100 text-amber-700",
-                    }[raritySafe] || "bg-slate-100 text-slate-600";
+
+                    const rarityStyle =
+                      {
+                        Comum: "bg-slate-100 text-slate-600",
+                        Raro: "bg-sky-100 text-sky-700",
+                        Épico: "bg-violet-100 text-violet-700",
+                        Lendário: "bg-amber-100 text-amber-700",
+                      }[raritySafe] || "bg-slate-100 text-slate-600";
 
                     return (
-                      <div 
+                      <div
                         key={item.id}
                         className={cn(
                           "group relative flex flex-col justify-between rounded-3xl border bg-white p-5 shadow-sm transition-all hover:shadow-md",
-                          item.owned ? "border-violet-300 ring-2 ring-violet-50" : "border-slate-200 hover:border-violet-200",
-                          isLocked ? "opacity-70 grayscale-[0.4]" : ""
+                          item.owned
+                            ? "border-violet-300 ring-2 ring-violet-50"
+                            : "border-slate-200 hover:border-violet-200",
+                          isLocked ? "grayscale-[0.4] opacity-70" : ""
                         )}
                       >
-                        {/* Overlay de Bloqueio por Nível */}
                         {isLocked && (
-                          <div className="absolute top-4 right-4 flex items-center gap-1 bg-slate-900/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1.5 rounded-full uppercase tracking-wider shadow-sm z-10">
-                            <Lock className="h-3 w-3" /> Nível {item.required_level}
+                          <div className="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-full bg-slate-900/90 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm backdrop-blur-sm">
+                            <Lock className="h-3 w-3" />
+                            Nível {item.required_level}
                           </div>
                         )}
 
                         <div className="mb-4 flex items-start justify-between">
-                          <div className={cn(
-                            "flex h-14 w-14 items-center justify-center rounded-2xl transition-transform group-hover:scale-105 shadow-sm border border-slate-100",
-                            item.category === "avatar" ? "bg-slate-50" : "bg-violet-50 text-violet-600"
-                          )}>
+                          <div
+                            className={cn(
+                              "flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-100 shadow-sm transition-transform group-hover:scale-105",
+                              item.category === "avatar"
+                                ? "bg-slate-50"
+                                : "bg-violet-50 text-violet-600"
+                            )}
+                          >
                             {renderItemIcon(item)}
                           </div>
-                          
+
                           <div className="flex flex-col items-end gap-2">
-                            <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", rarityStyle)}>
+                            <span
+                              className={cn(
+                                "rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider",
+                                rarityStyle
+                              )}
+                            >
                               {raritySafe}
                             </span>
+
                             {!item.owned && (
-                              <div className={cn(
-                                "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm",
-                                canAfford ? "border border-amber-200 bg-amber-50 text-amber-700" : "border border-slate-200 bg-slate-50 text-slate-500"
-                              )}>
+                              <div
+                                className={cn(
+                                  "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm",
+                                  canAfford
+                                    ? "border border-amber-200 bg-amber-50 text-amber-700"
+                                    : "border border-slate-200 bg-slate-50 text-slate-500"
+                                )}
+                              >
                                 <Coins className="h-3.5 w-3.5" />
                                 {item.price}
                               </div>
@@ -307,36 +509,104 @@ export default function StorePage() {
                         </div>
 
                         <div className="mb-5 flex-1">
-                          <h3 className={cn("text-base font-bold", item.owned ? "text-slate-900" : "text-slate-800")}>
-                            {item.name}
-                          </h3>
-                          <p className="min-h-[40px] mt-1 text-xs leading-relaxed text-slate-500">
+                          <h3 className="text-base font-bold text-slate-900">{item.name}</h3>
+                          <p className="mt-1 min-h-[40px] text-xs leading-relaxed text-slate-500">
                             {item.description}
                           </p>
                         </div>
 
-                        {/* Botão de Ação */}
                         {item.owned ? (
-                          <button disabled className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-50 border border-violet-100 py-3 text-xs font-bold text-violet-700">
-                            <Check className="h-4 w-4" /> Comprado
-                          </button>
+                          item.category === "sound" ? (
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handlePreviewSound(item)}
+                                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+                              >
+                                <Volume2 className="h-4 w-4" />
+                                {previewingSoundId === item.id ? "Reproduzindo..." : "Ouvir"}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleEquipSound(item)}
+                                className={cn(
+                                  "flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold transition",
+                                  isEquippedSound
+                                    ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                                    : "bg-violet-600 text-white hover:bg-violet-700"
+                                )}
+                              >
+                                {isEquippedSound ? (
+                                  <>
+                                    <Check className="h-4 w-4" />
+                                    Equipado
+                                  </>
+                                ) : (
+                                  <>
+                                    <Music4 className="h-4 w-4" />
+                                    Equipar
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          ) : item.category === "avatar" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleEquipAvatar(item)}
+                              className={cn(
+                                "flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold transition",
+                                isEquippedAvatar
+                                  ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                                  : "bg-violet-600 text-white hover:bg-violet-700"
+                              )}
+                            >
+                              {isEquippedAvatar ? (
+                                <>
+                                  <Check className="h-4 w-4" />
+                                  Equipado
+                                </>
+                              ) : (
+                                <>
+                                  <Smile className="h-4 w-4" />
+                                  Equipar
+                                </>
+                              )}
+                            </button>
+                          ) : (
+                            <button
+                              disabled
+                              className="flex w-full items-center justify-center gap-2 rounded-xl border border-violet-100 bg-violet-50 py-3 text-xs font-bold text-violet-700"
+                            >
+                              <Check className="h-4 w-4" />
+                              Comprado
+                            </button>
+                          )
                         ) : isLocked ? (
-                          <button disabled className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-100 py-3 text-xs font-bold text-slate-400 cursor-not-allowed">
-                            <Lock className="h-4 w-4" /> Bloqueado
+                          <button
+                            disabled
+                            className="cursor-not-allowed flex w-full items-center justify-center gap-2 rounded-xl bg-slate-100 py-3 text-xs font-bold text-slate-400"
+                          >
+                            <Lock className="h-4 w-4" />
+                            Bloqueado
                           </button>
                         ) : (
-                          <button 
+                          <button
                             onClick={() => handlePurchase(item)}
                             disabled={!canAfford || isPurchasing}
                             className={cn(
                               "flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold transition-all active:scale-95",
-                              canAfford 
-                                ? "bg-violet-600 text-white shadow-sm hover:bg-violet-700 cursor-pointer" 
+                              canAfford
+                                ? "cursor-pointer bg-violet-600 text-white shadow-sm hover:bg-violet-700"
                                 : "cursor-not-allowed bg-slate-100 text-slate-400"
                             )}
                           >
                             <ShoppingCart className="h-4 w-4" />
-                            {isPurchasing ? "A comprar..." : canAfford ? "Comprar" : "Moedas Insuficientes"}
+                            {isPurchasing
+                              ? "A comprar..."
+                              : canAfford
+                              ? "Comprar"
+                              : "Moedas insuficientes"}
                           </button>
                         )}
                       </div>
