@@ -15,11 +15,13 @@ import { PublicRoute } from "./routes/PublicRoute";
 import { AppShell } from "./components/layout/AppShell";
 import ConquistasPage from "@/pages/ConquistasPage";
 import StorePage from "@/pages/StorePage";
+import RewardToastViewport from "@/components/ui/RewardToastViewport";
 
 export default function App() {
   return (
     <>
       <ScrollToTop />
+      <RewardToastViewport />
 
       <Routes>
         <Route path="/" element={<LandingPage />} />

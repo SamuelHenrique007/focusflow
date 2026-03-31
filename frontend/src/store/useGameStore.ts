@@ -1,17 +1,24 @@
 import { create } from "zustand";
 import {
   gamificationService,
+  type BadgeStatus,
+  type ChallengeStatus,
   type ChestType,
   type GameStatus,
 } from "@/services/gamificationService";
 import { useAvatarStore } from "@/store/useAvatarStore";
 import { useSoundStore } from "@/store/useSoundStore";
 import { useThemeStore } from "@/store/useThemeStore";
+import { useToastStore } from "@/store/useToastStore";
 
 type MessageState = {
   type: "success" | "error";
   text: string;
 } | null;
+
+type FetchStatusOptions = {
+  notifyChanges?: boolean;
+};
 
 type GameStore = {
   stats: GameStatus | null;
@@ -21,7 +28,7 @@ type GameStore = {
   setStats: (stats: GameStatus | null) => void;
   clearMessage: () => void;
 
-  fetchStatus: () => Promise<void>;
+  fetchStatus: (options?: FetchStatusOptions) => Promise<void>;
   claimCoins: () => Promise<void>;
   claimChest: (chestType: ChestType) => Promise<void>;
 };
@@ -42,7 +49,81 @@ function hydrateEquippedPreferences(stats: GameStatus | null) {
     .hydrateFromBackend(stats.equipped_theme?.visual_resource);
 }
 
-export const useGameStore = create<GameStore>((set) => ({
+function toBadgeArray(badges: GameStatus["badges"]): BadgeStatus[] {
+  return Array.isArray(badges) ? badges : [];
+}
+
+function toChallengeArray(challenges: GameStatus["challenges"]): ChallengeStatus[] {
+  return Array.isArray(challenges) ? challenges : [];
+}
+
+function notifyRewardChanges(previousStats: GameStatus | null, nextStats: GameStatus) {
+  if (!previousStats) return;
+
+  const pushToast = useToastStore.getState().pushToast;
+
+  const xpDiff = Math.max(0, nextStats.current_xp - previousStats.current_xp);
+  const coinsDiff = Math.max(0, nextStats.coins - previousStats.coins);
+  const levelDiff = Math.max(0, nextStats.level - previousStats.level);
+
+  if (xpDiff > 0) {
+    pushToast({
+      variant: "success",
+      title: `+${xpDiff} XP`,
+      description: "Seu progresso avançou na gamificação.",
+    });
+  }
+
+  if (coinsDiff > 0) {
+    pushToast({
+      variant: "success",
+      title: `+${coinsDiff} moedas`,
+      description: "Você ganhou moedas pela sua evolução.",
+    });
+  }
+
+  if (levelDiff > 0) {
+    pushToast({
+      variant: "info",
+      title: `Subiste para o nível ${nextStats.level}!`,
+      description: "Continue assim para desbloquear novas recompensas.",
+    });
+  }
+
+  const previousBadges = new Map(
+    toBadgeArray(previousStats.badges).map((badge) => [badge.key, badge]),
+  );
+
+  for (const badge of toBadgeArray(nextStats.badges)) {
+    const previousBadge = previousBadges.get(badge.key);
+
+    if (badge.unlocked && !previousBadge?.unlocked) {
+      pushToast({
+        variant: "success",
+        title: `Conquista desbloqueada: ${badge.title}`,
+        description: badge.description,
+      });
+    }
+  }
+
+  const previousChallenges = new Map(
+    toChallengeArray(previousStats.challenges).map((challenge) => [challenge.key, challenge]),
+  );
+
+  for (const challenge of toChallengeArray(nextStats.challenges)) {
+    const previousChallenge = previousChallenges.get(challenge.key);
+
+    if (challenge.completed && !previousChallenge?.completed) {
+      pushToast({
+        variant: "success",
+        title: `Desafio diário concluído: ${challenge.title}`,
+        description: `Recompensa: ${challenge.reward_xp} XP e ${challenge.reward_coins} moedas.`,
+      });
+    }
+  }
+}
+
+export const useGameStore = create<GameStore>((set, get) => ({
   stats: null,
   isLoading: false,
   message: null,
@@ -54,7 +135,7 @@ export const useGameStore = create<GameStore>((set) => ({
 
   clearMessage: () => set({ message: null }),
 
-  fetchStatus: async () => {
+  fetchStatus: async (options) => {
     set({ isLoading: true });
 
     try {
@@ -68,7 +149,12 @@ export const useGameStore = create<GameStore>((set) => ({
         return;
       }
 
+      const previousStats = get().stats;
       const stats = data.stats;
+
+      if (options?.notifyChanges) {
+        notifyRewardChanges(previousStats, stats);
+      }
 
       set({
         stats,

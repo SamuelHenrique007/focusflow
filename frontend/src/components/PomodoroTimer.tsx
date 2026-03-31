@@ -596,7 +596,7 @@ export default function PomodoroTimer({
 
         if (completedFocus) {
           try {
-            await fetchStatus();
+            await fetchStatus({ notifyChanges: true });
           } catch (error) {
             console.error(
               "Erro ao atualizar status da gamificação:",

@@ -870,7 +870,7 @@ export default function TasksPage() {
       setSelectedTask(updated);
     }
 
-    await useGameStore.getState().fetchStatus();
+    await useGameStore.getState().fetchStatus({ notifyChanges: true });
   } catch (error) {
     console.error("Erro ao atualizar conclusão da tarefa", error);
     alert("Não foi possível atualizar a conclusão da tarefa.");
