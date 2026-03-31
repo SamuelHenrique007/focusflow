@@ -55,6 +55,8 @@ class UserProfile(models.Model):
         related_name='equipped_as_theme_by'
     )
 
+    daily_challenge_state = models.JSONField(default=dict, blank=True)
+
 class StoreItem(models.Model):
     CATEGORY_CHOICES = [
         ('avatar', 'Avatar'),

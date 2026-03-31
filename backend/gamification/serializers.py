@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from .models import StoreItem, UserInventory, UserProfile
+from .services import build_badges, build_daily_challenges
 
 
 CHEST_CONFIG = [
@@ -109,6 +110,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     daily_goal_progress = serializers.SerializerMethodField()
     chests = serializers.SerializerMethodField()
     badges = serializers.SerializerMethodField()
+    challenges = serializers.SerializerMethodField()
     equipped_avatar = serializers.SerializerMethodField()
     equipped_sound = serializers.SerializerMethodField()
     equipped_theme = serializers.SerializerMethodField()
@@ -133,6 +135,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "inventory",
             "chests",
             "badges",
+            "challenges",
             "equipped_avatar",
             "equipped_sound",
             "equipped_theme",
@@ -203,68 +206,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return chests
 
     def get_badges(self, obj):
-        def build_badge(key, title, description, icon, color, current, target):
-            progress_percent = 100 if target <= 0 else min(round((current / target) * 100, 2), 100)
+        return build_badges(obj)
 
-            return {
-                "key": key,
-                "title": title,
-                "description": description,
-                "icon": icon,
-                "color": color,
-                "current": current,
-                "target": target,
-                "unlocked": current >= target,
-                "progress_percent": progress_percent,
-            }
-
-        return [
-            build_badge(
-                key="focus_master",
-                title="Mestre do Foco",
-                description="Complete 10 sessões Pomodoro.",
-                icon="clock",
-                color="blue",
-                current=obj.total_pomodoros,
-                target=10,
-            ),
-            build_badge(
-                key="task_finisher",
-                title="Finalizador",
-                description="Conclua 10 tarefas.",
-                icon="target",
-                color="amber",
-                current=obj.total_tasks_completed,
-                target=10,
-            ),
-            build_badge(
-                key="focus_streak_3",
-                title="Em Chamas",
-                description="Mantenha uma sequência de 3 dias.",
-                icon="flame",
-                color="orange",
-                current=obj.streak,
-                target=3,
-            ),
-            build_badge(
-                key="xp_hunter",
-                title="Caçador de XP",
-                description="Alcance o nível 5.",
-                icon="zap",
-                color="purple",
-                current=obj.level,
-                target=5,
-            ),
-            build_badge(
-                key="focus_guardian",
-                title="Guardião da Meta",
-                description="Acumule 600 minutos de foco.",
-                icon="shield",
-                color="emerald",
-                current=obj.total_focus_minutes,
-                target=600,
-            ),
-        ]
+    def get_challenges(self, obj):
+        return build_daily_challenges(obj)
 
     def get_equipped_avatar(self, obj):
         return self._serialize_equipped_item(obj.equipped_avatar_item)

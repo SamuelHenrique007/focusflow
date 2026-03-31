@@ -21,6 +21,7 @@ from .services import (
     grant_focus_progress,
     refresh_daily_progress,
     reward_completed_task,
+    grant_daily_challenge_rewards,
     sync_profile_progress,
 )
 
@@ -55,6 +56,8 @@ class GameStatusView(APIView):
     def get(self, request):
         profile = get_profile(request.user)
         sync_profile_progress(profile)
+        grant_daily_challenge_rewards(profile)
+        profile.refresh_from_db()
 
         serializer = UserProfileSerializer(profile)
 

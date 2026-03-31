@@ -26,6 +26,20 @@ export interface BadgeStatus {
   progress_percent: number;
 }
 
+export interface ChallengeStatus {
+  key: string;
+  title: string;
+  description: string;
+  icon: "target" | "clock" | "flame";
+  current: number;
+  target: number;
+  completed: boolean;
+  claimed: boolean;
+  reward_xp: number;
+  reward_coins: number;
+  progress_percent: number;
+}
+
 export interface EquippedItem {
   id: number;
   name: string;
@@ -44,6 +58,7 @@ export interface GameStatus {
   coins: number;
   streak: number;
   pending_focus_minutes: number;
+  daily_goal_minutes: number;
   daily_goal_progress: number;
   total_pomodoros: number;
   total_focus_minutes: number;
@@ -51,6 +66,7 @@ export interface GameStatus {
   inventory: number[];
   chests: ChestStatus[] | Record<string, unknown>;
   badges: BadgeStatus[] | Record<string, unknown>;
+  challenges: ChallengeStatus[] | Record<string, unknown>;
   equipped_avatar: EquippedItem | null;
   equipped_sound: EquippedItem | null;
   equipped_theme: EquippedItem | null;

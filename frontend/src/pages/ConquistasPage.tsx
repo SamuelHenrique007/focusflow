@@ -10,6 +10,7 @@ import {
   Shield,
   CheckCircle2,
   AlertCircle,
+  Coins,
 } from "lucide-react";
 
 import { cn } from "@/lib/cn";
@@ -17,10 +18,11 @@ import {
   gamificationService,
   type BadgeStatus,
   type ChestStatus,
+  type ChallengeStatus,
 } from "@/services/gamificationService";
 import { useGameStore } from "@/store/useGameStore";
 
-function badgeIcon(icon: BadgeStatus["icon"]) {
+function badgeIcon(icon: BadgeStatus["icon"] | ChallengeStatus["icon"]) {
   switch (icon) {
     case "target":
       return <Target className="h-6 w-6" />;
@@ -66,15 +68,15 @@ export default function ConquistasPage() {
     return () => clearTimeout(timer);
   }, [message]);
 
-  
   const progressPercentage = useMemo(() => {
-  const current = Array.isArray(stats?.chests) ? stats.chests[0]?.current_minutes ?? 0 : 0;
-  const goal = stats?.daily_goal_minutes ?? 1;
-  return Math.min((current / goal) * 100, 100);
-}, [stats?.chests, stats?.daily_goal_minutes]);
+    const current = Array.isArray(stats?.chests) ? stats.chests[0]?.current_minutes ?? 0 : 0;
+    const goal = stats?.daily_goal_minutes ?? 1;
+    return Math.min((current / goal) * 100, 100);
+  }, [stats?.chests, stats?.daily_goal_minutes]);
 
   const chests: ChestStatus[] = Array.isArray(stats?.chests) ? stats.chests : [];
   const badges: BadgeStatus[] = Array.isArray(stats?.badges) ? stats.badges : [];
+  const challenges: ChallengeStatus[] = Array.isArray(stats?.challenges) ? stats.challenges : [];
 
   async function handleClaimChest(chestKey: "wood" | "silver" | "gold") {
     try {
@@ -211,6 +213,85 @@ export default function ConquistasPage() {
               );
             })}
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-800">Desafios do Dia</h2>
+            <p className="text-sm text-slate-500">
+              Complete os objetivos diários para receber recompensas automáticas.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Hoje</p>
+            <p className="text-sm font-semibold text-slate-700">Recompensa automática</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {challenges.map((challenge) => (
+            <div
+              key={challenge.key}
+              className={cn(
+                "rounded-3xl border p-5 shadow-sm transition-all",
+                challenge.claimed
+                  ? "border-emerald-100 bg-emerald-50/60"
+                  : challenge.completed
+                  ? "border-violet-200 bg-violet-50/60"
+                  : "border-slate-200 bg-white"
+              )}
+            >
+              <div className="mb-4 flex items-start justify-between">
+                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-slate-100 text-slate-700">
+                  {badgeIcon(challenge.icon)}
+                </div>
+
+                {challenge.claimed ? (
+                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700">
+                    CONCLUÍDO
+                  </span>
+                ) : challenge.completed ? (
+                  <span className="rounded-full bg-violet-100 px-3 py-1 text-[10px] font-black text-violet-700">
+                    RECOMPENSA LIBERADA
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-500">
+                    EM PROGRESSO
+                  </span>
+                )}
+              </div>
+
+              <h3 className="font-semibold text-slate-800">{challenge.title}</h3>
+              <p className="mt-1 text-sm text-slate-500">{challenge.description}</p>
+
+              <div className="mt-4">
+                <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase text-slate-400">
+                  <span>Progresso</span>
+                  <span>
+                    {challenge.current} / {challenge.target}
+                  </span>
+                </div>
+
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                  <div
+                    className="h-full rounded-full bg-violet-500"
+                    style={{ width: `${challenge.progress_percent}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center gap-3 text-sm font-semibold text-slate-600">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-amber-700">
+                  <Coins className="h-4 w-4" /> +{challenge.reward_coins}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-3 py-1 text-violet-700">
+                  <Zap className="h-4 w-4" /> +{challenge.reward_xp} XP
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
