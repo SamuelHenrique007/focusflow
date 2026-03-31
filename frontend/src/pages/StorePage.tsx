@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Store,
   Coins,
@@ -27,6 +28,18 @@ import { useSoundStore } from "@/store/useSoundStore";
 import { useThemeStore } from "@/store/useThemeStore";
 
 type FilterType = "all" | "avatar" | "theme" | "sound";
+
+type FlyingCoin = {
+  id: number;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  rotate: number;
+  scale: number;
+  duration: number;
+  delay: number;
+};
 
 const SECTIONS: Array<{
   id: Exclude<FilterType, "all">;
@@ -107,6 +120,14 @@ export default function StorePage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
 
+  const [flyingCoins, setFlyingCoins] = useState<FlyingCoin[]>([]);
+  const [isBalanceHighlight, setIsBalanceHighlight] = useState(false);
+  const [floatingGain, setFloatingGain] = useState<number | null>(null);
+  const [displayCoins, setDisplayCoins] = useState<number>(stats?.coins || 0);
+
+  const claimButtonRef = useRef<HTMLButtonElement | null>(null);
+  const balanceCardRef = useRef<HTMLDivElement | null>(null);
+
   const userLevel = stats?.level || 1;
   const userCoins = stats?.coins || 0;
   const pendingCoins = stats?.pending_focus_minutes || 0;
@@ -121,6 +142,10 @@ export default function StorePage() {
     }),
     [stats?.equipped_avatar?.id, stats?.equipped_sound?.id, stats?.equipped_theme?.id]
   );
+
+  useEffect(() => {
+    setDisplayCoins(stats?.coins || 0);
+  }, [stats?.coins]);
 
   async function loadStoreItems() {
     try {
@@ -159,20 +184,72 @@ export default function StorePage() {
     []
   );
 
+  function animateCoinsToBalance(amount: number, onComplete?: () => void) {
+    if (!claimButtonRef.current || !balanceCardRef.current) {
+      onComplete?.();
+      return;
+    }
+
+    const startRect = claimButtonRef.current.getBoundingClientRect();
+    const endRect = balanceCardRef.current.getBoundingClientRect();
+
+    const startX = startRect.left + startRect.width / 2;
+    const startY = startRect.top + startRect.height / 2;
+    const endX = endRect.left + endRect.width / 2;
+    const endY = endRect.top + endRect.height / 2;
+
+    const coinCount = Math.min(Math.max(Math.floor(amount / 5), 6), 14);
+
+    const coins: FlyingCoin[] = Array.from({ length: coinCount }).map((_, index) => ({
+      id: Date.now() + index,
+      startX: startX + (Math.random() * 30 - 15),
+      startY: startY + (Math.random() * 20 - 10),
+      endX: endX + (Math.random() * 30 - 15),
+      endY: endY + (Math.random() * 20 - 10),
+      rotate: Math.random() * 220 - 110,
+      scale: 0.9 + Math.random() * 0.35,
+      duration: 0.8 + Math.random() * 0.25,
+      delay: index * 0.035,
+    }));
+
+    setFlyingCoins(coins);
+
+    const longestAnimation =
+      Math.max(...coins.map((coin) => coin.duration + coin.delay), 0.9) * 1000;
+
+    window.setTimeout(() => {
+      setFlyingCoins([]);
+      setIsBalanceHighlight(true);
+      setFloatingGain(amount);
+      onComplete?.();
+
+      window.setTimeout(() => setIsBalanceHighlight(false), 700);
+      window.setTimeout(() => setFloatingGain(null), 1100);
+    }, longestAnimation);
+  }
+
   async function handleClaimCoins() {
     try {
       setIsClaiming(true);
+
+      const previousCoins = stats?.coins || 0;
+      const currentPendingCoins = stats?.pending_focus_minutes || 0;
+
       const data = await gamificationService.claimCoins();
 
-      if (data?.stats) {
-        syncEquippedState(data.stats);
-      } else {
-        await fetchStatus();
-      }
+      const nextStats = data?.stats;
+      const gainedCoins =
+        typeof nextStats?.coins === "number"
+          ? Math.max(nextStats.coins - previousCoins, 0)
+          : currentPendingCoins;
 
-      setMessage({
-        type: "success",
-        text: data?.message || `Resgataste ${pendingCoins} moedas com sucesso.`,
+      animateCoinsToBalance(gainedCoins, async () => {
+        if (nextStats) {
+          syncEquippedState(nextStats);
+          setDisplayCoins(nextStats.coins || 0);
+        } else {
+          await fetchStatus();
+        }
       });
     } catch (error) {
       const err = error as { response?: { data?: { error?: string } } };
@@ -314,6 +391,44 @@ export default function StorePage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-12">
+      <AnimatePresence>
+        {flyingCoins.map((coin) => (
+          <motion.div
+            key={coin.id}
+            initial={{
+              opacity: 0,
+              x: coin.startX,
+              y: coin.startY,
+              scale: 0.7,
+              rotate: 0,
+            }}
+            animate={{
+              opacity: [0, 1, 1, 0.95],
+              x: coin.endX,
+              y: coin.endY,
+              scale: [0.7, 1.1, coin.scale, 0.95],
+              rotate: coin.rotate,
+            }}
+            exit={{ opacity: 0, scale: 0.6 }}
+            transition={{
+              duration: coin.duration,
+              delay: coin.delay,
+              ease: "easeInOut",
+            }}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              zIndex: 9999,
+              pointerEvents: "none",
+            }}
+            className="flex h-6 w-6 items-center justify-center rounded-full border border-amber-300 bg-amber-400 shadow-lg"
+          >
+            <Coins className="h-3.5 w-3.5 text-amber-800" />
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
       {message && (
         <div
           className={cn(
@@ -343,17 +458,40 @@ export default function StorePage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 shadow-sm">
+        <motion.div
+          ref={balanceCardRef}
+          animate={isBalanceHighlight ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className={cn(
+            "relative flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 shadow-sm transition-all",
+            isBalanceHighlight && "shadow-md ring-4 ring-amber-200/50"
+          )}
+        >
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-200/50">
             <Coins className="h-6 w-6 text-amber-600" />
           </div>
+
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-amber-800">
               O seu saldo
             </p>
-            <p className="text-xl font-bold text-amber-600">{userCoins} moedas</p>
+            <p className="text-xl font-bold text-amber-600">{displayCoins} moedas</p>
           </div>
-        </div>
+
+          <AnimatePresence>
+            {floatingGain !== null && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                animate={{ opacity: 1, y: -14, scale: 1 }}
+                exit={{ opacity: 0, y: -24, scale: 0.95 }}
+                transition={{ duration: 0.7 }}
+                className="absolute -top-2 right-2 rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-bold text-white shadow"
+              >
+                +{floatingGain}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -401,6 +539,7 @@ export default function StorePage() {
             </div>
 
             <button
+              ref={claimButtonRef}
               onClick={handleClaimCoins}
               disabled={isClaiming}
               className="group flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-violet-700 shadow-sm transition-all hover:scale-[1.02] hover:bg-violet-50 hover:shadow active:scale-95 disabled:opacity-50 sm:w-auto"

@@ -13,11 +13,12 @@ class TaskViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return (
-            Task.objects.filter(user=self.request.user)
-            .prefetch_related("subtasks")
-            .order_by("-created_at")
-        )
+        queryset = Task.objects.filter(user=self.request.user)
+
+        if self.request.query_params.get("active_only") == "true":
+            queryset = queryset.filter(completed_at__isnull=True)
+
+        return queryset.prefetch_related("subtasks").order_by("-created_at")
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

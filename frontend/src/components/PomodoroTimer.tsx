@@ -481,7 +481,7 @@ export default function PomodoroTimer({
 
   async function refreshTasks() {
     try {
-      const { data } = await api.get<Task[]>("/tasks/");
+      const { data } = await api.get<Task[]>("/tasks/?active_only=true");
       setTaskOptions(
         data.map((task) => ({
           label: task.title,
@@ -511,7 +511,7 @@ export default function PomodoroTimer({
       try {
         const [tasksResponse, settingsResponse, statsResponse] =
           await Promise.all([
-            api.get<Task[]>("/tasks/"),
+            api.get<Task[]>("/tasks/?active_only=true"),
             api.get("/pomodoro/settings/me/"),
             api.get<PomodoroStats>("/pomodoro/stats/"),
           ]);
