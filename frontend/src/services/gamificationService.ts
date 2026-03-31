@@ -126,23 +126,4 @@ export const gamificationService = {
     );
     return response.data;
   },
-
-  async completeTaskReward() {
-    const response = await api.post<GenericGamificationResponse>(
-      "/gamification/complete-task-reward/"
-    );
-    return response.data;
-  },
-
-  async addProgress(payload: {
-    focus_minutes?: number;
-    completed_pomodoro?: boolean;
-    completed_task?: boolean;
-  }) {
-    const response = await api.post<GenericGamificationResponse>(
-      "/gamification/add-progress/",
-      payload
-    );
-    return response.data;
-  },
 };

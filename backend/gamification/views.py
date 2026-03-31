@@ -1,18 +1,27 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
-from .models import StoreItem, UserInventory, UserProfile
+from .models import StoreItem, UserInventory
 from .serializers import (
     StoreItemSerializer,
     UserInventorySerializer,
     UserProfileSerializer,
     serialize_profile,
+)
+from .services import (
+    apply_level_up,
+    chest_required_minutes,
+    ensure_single_equipped_item,
+    get_profile,
+    grant_focus_progress,
+    refresh_daily_progress,
+    reward_completed_task,
+    sync_profile_progress,
 )
 
 CHEST_REWARDS = {
@@ -40,93 +49,12 @@ CHEST_REWARDS = {
 }
 
 
-# =========================================================
-# HELPERS
-# =========================================================
-
-def get_profile(user):
-    profile, _ = UserProfile.objects.get_or_create(user=user)
-    return profile
-
-
-def get_local_today():
-    return timezone.localtime(timezone.now()).date()
-
-
-def refresh_daily_progress(profile):
-    """
-    Reseta apenas os dados diários quando realmente mudou o dia local.
-    Mantém os dados globais intactos.
-    """
-    today = get_local_today()
-
-    if profile.last_activity != today:
-        profile.today_focus_minutes = 0
-        profile.wood_chest_claimed = False
-        profile.silver_chest_claimed = False
-        profile.gold_chest_claimed = False
-        profile.last_activity = today
-
-        profile.save(update_fields=[
-            "today_focus_minutes",
-            "wood_chest_claimed",
-            "silver_chest_claimed",
-            "gold_chest_claimed",
-            "last_activity",
-        ])
-
-    return today
-
-
-def ensure_single_equipped_item(user, category, current_item):
-    """
-    Garante que apenas um item por categoria fique equipado.
-    Mantém compatibilidade com o estado legado do inventário.
-    """
-    UserInventory.objects.filter(
-        user=user,
-        item__category=category
-    ).update(is_equipped=False)
-
-    inventory = UserInventory.objects.filter(
-        user=user,
-        item=current_item
-    ).first()
-
-    if inventory:
-        inventory.is_equipped = True
-        inventory.save(update_fields=["is_equipped"])
-
-
-def apply_level_up(profile):
-    """
-    Aplica evolução de nível em cascata, se o XP atual ultrapassar
-    o XP necessário para o próximo nível.
-    """
-    while (
-        profile.current_xp >= profile.xp_to_next_level
-        and profile.xp_to_next_level > 0
-    ):
-        profile.current_xp -= profile.xp_to_next_level
-        profile.level += 1
-        profile.xp_to_next_level = max(100, profile.xp_to_next_level + 50)
-
-
-def chest_required_minutes(goal_minutes, percent):
-    return max(1, round(goal_minutes * (percent / 100)))
-
-
-# =========================================================
-# STATUS / DASHBOARD DA GAMIFICAÇÃO
-# =========================================================
-
 class GameStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         profile = get_profile(request.user)
-
-        refresh_daily_progress(profile)
+        sync_profile_progress(profile)
 
         serializer = UserProfileSerializer(profile)
 
@@ -135,13 +63,9 @@ class GameStatusView(APIView):
                 "success": True,
                 "stats": serializer.data,
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
-
-# =========================================================
-# LISTAGEM DA LOJA
-# =========================================================
 
 class StoreItemListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -151,13 +75,13 @@ class StoreItemListView(APIView):
             "category",
             "required_level",
             "price",
-            "id"
+            "id",
         )
 
         serializer = StoreItemSerializer(
             items,
             many=True,
-            context={"request": request}
+            context={"request": request},
         )
 
         return Response(
@@ -165,13 +89,9 @@ class StoreItemListView(APIView):
                 "success": True,
                 "items": serializer.data,
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
-
-# =========================================================
-# INVENTÁRIO DO USUÁRIO
-# =========================================================
 
 class UserInventoryView(APIView):
     permission_classes = [IsAuthenticated]
@@ -188,13 +108,9 @@ class UserInventoryView(APIView):
                 "success": True,
                 "items": serializer.data,
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
-
-# =========================================================
-# COMPRA DE ITEM DA LOJA
-# =========================================================
 
 class PurchaseStoreItemView(APIView):
     permission_classes = [IsAuthenticated]
@@ -206,34 +122,34 @@ class PurchaseStoreItemView(APIView):
 
         already_owned = UserInventory.objects.filter(
             user=request.user,
-            item=item
+            item=item,
         ).exists()
 
         if already_owned:
             return Response(
                 {
                     "success": False,
-                    "error": "Você já possui este item."
+                    "error": "Você já possui este item.",
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if profile.level < item.required_level:
             return Response(
                 {
                     "success": False,
-                    "error": "Seu nível ainda não permite comprar este item."
+                    "error": "Seu nível ainda não permite comprar este item.",
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if profile.coins < item.price:
             return Response(
                 {
                     "success": False,
-                    "error": "Moedas insuficientes para esta compra."
+                    "error": "Moedas insuficientes para esta compra.",
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         profile.coins -= item.price
@@ -242,8 +158,10 @@ class PurchaseStoreItemView(APIView):
         UserInventory.objects.create(
             user=request.user,
             item=item,
-            is_equipped=False
+            is_equipped=False,
         )
+
+        sync_profile_progress(profile)
 
         return Response(
             {
@@ -251,13 +169,9 @@ class PurchaseStoreItemView(APIView):
                 "message": f"Item '{item.name}' comprado com sucesso.",
                 "stats": serialize_profile(profile),
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
-
-# =========================================================
-# EQUIPAR ITEM
-# =========================================================
 
 class EquipItemView(APIView):
     permission_classes = [IsAuthenticated]
@@ -269,16 +183,16 @@ class EquipItemView(APIView):
 
         inventory = UserInventory.objects.filter(
             user=request.user,
-            item=item
+            item=item,
         ).first()
 
         if not inventory:
             return Response(
                 {
                     "success": False,
-                    "error": "Você precisa comprar este item antes de equipá-lo."
+                    "error": "Você precisa comprar este item antes de equipá-lo.",
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if item.category == "avatar":
@@ -291,9 +205,9 @@ class EquipItemView(APIView):
             return Response(
                 {
                     "success": False,
-                    "error": "Categoria de item inválida para equipar."
+                    "error": "Categoria de item inválida para equipar.",
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         profile.save()
@@ -301,8 +215,10 @@ class EquipItemView(APIView):
         ensure_single_equipped_item(
             user=request.user,
             category=item.category,
-            current_item=item
+            current_item=item,
         )
+
+        sync_profile_progress(profile)
 
         return Response(
             {
@@ -310,24 +226,17 @@ class EquipItemView(APIView):
                 "message": f"Item '{item.name}' equipado com sucesso.",
                 "stats": serialize_profile(profile),
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
-
-# =========================================================
-# CONVERSÃO DE MINUTOS DE FOCO EM MOEDAS
-# =========================================================
 
 class ConvertFocusMinutesView(APIView):
     permission_classes = [IsAuthenticated]
 
     @transaction.atomic
     def post(self, request):
-        """
-        Converte os minutos de foco pendentes em moedas.
-        Regra atual: 1 minuto = 1 moeda.
-        """
         profile = get_profile(request.user)
+        refresh_daily_progress(profile)
 
         minutes = profile.pending_focus_minutes
 
@@ -335,9 +244,9 @@ class ConvertFocusMinutesView(APIView):
             return Response(
                 {
                     "success": False,
-                    "error": "Não há minutos pendentes para converter."
+                    "error": "Não há minutos pendentes para converter.",
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         earned_coins = minutes
@@ -346,6 +255,8 @@ class ConvertFocusMinutesView(APIView):
         profile.pending_focus_minutes = 0
         profile.save(update_fields=["coins", "pending_focus_minutes"])
 
+        sync_profile_progress(profile)
+
         return Response(
             {
                 "success": True,
@@ -353,13 +264,9 @@ class ConvertFocusMinutesView(APIView):
                 "earned_coins": earned_coins,
                 "stats": serialize_profile(profile),
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
-
-# =========================================================
-# REGISTRO MANUAL DE PROGRESSO (SUPORTE/TESTE)
-# =========================================================
 
 class AddProgressView(APIView):
     permission_classes = [IsAuthenticated]
@@ -377,8 +284,6 @@ class AddProgressView(APIView):
         """
         profile = get_profile(request.user)
 
-        refresh_daily_progress(profile)
-
         focus_minutes = int(request.data.get("focus_minutes", 0))
         completed_pomodoro = bool(request.data.get("completed_pomodoro", False))
         completed_task = bool(request.data.get("completed_task", False))
@@ -387,26 +292,20 @@ class AddProgressView(APIView):
             return Response(
                 {
                     "success": False,
-                    "error": "focus_minutes não pode ser negativo."
+                    "error": "focus_minutes não pode ser negativo.",
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        xp_gained = focus_minutes
-
-        profile.current_xp += xp_gained
-        profile.pending_focus_minutes += focus_minutes
-        profile.total_focus_minutes += focus_minutes
-        profile.today_focus_minutes += focus_minutes
-
-        if completed_pomodoro:
-            profile.total_pomodoros += 1
+        xp_gained = grant_focus_progress(
+            profile,
+            focus_minutes=focus_minutes,
+            completed_pomodoro=completed_pomodoro,
+        )
 
         if completed_task:
-            profile.total_tasks_completed += 1
-
-        apply_level_up(profile)
-        profile.save()
+            reward_completed_task(profile, save=False)
+            profile.save()
 
         return Response(
             {
@@ -415,13 +314,9 @@ class AddProgressView(APIView):
                 "xp_gained": xp_gained,
                 "stats": serialize_profile(profile),
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
-
-# =========================================================
-# RECOMPENSAS EXTRAS
-# =========================================================
 
 class ClaimChestView(APIView):
     permission_classes = [IsAuthenticated]
@@ -429,7 +324,6 @@ class ClaimChestView(APIView):
     @transaction.atomic
     def post(self, request, chest_type):
         profile = get_profile(request.user)
-
         refresh_daily_progress(profile)
 
         chest = CHEST_REWARDS.get(chest_type)
@@ -438,9 +332,9 @@ class ClaimChestView(APIView):
             return Response(
                 {
                     "success": False,
-                    "error": "Tipo de baú inválido."
+                    "error": "Tipo de baú inválido.",
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         claimed_field = chest["claimed_field"]
@@ -450,15 +344,15 @@ class ClaimChestView(APIView):
             return Response(
                 {
                     "success": False,
-                    "error": "Este baú já foi resgatado."
+                    "error": "Este baú já foi resgatado.",
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         goal_minutes = max(profile.daily_goal_minutes, 1)
         required_minutes = chest_required_minutes(
             goal_minutes,
-            chest["threshold_percent"]
+            chest["threshold_percent"],
         )
         current_minutes = max(profile.today_focus_minutes, 0)
 
@@ -470,7 +364,7 @@ class ClaimChestView(APIView):
                     "required_minutes": required_minutes,
                     "current_minutes": current_minutes,
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         profile.coins += chest["coins_reward"]
@@ -479,6 +373,8 @@ class ClaimChestView(APIView):
 
         apply_level_up(profile)
         profile.save()
+
+        sync_profile_progress(profile)
 
         reward_parts = []
         if chest["coins_reward"] > 0:
@@ -498,7 +394,7 @@ class ClaimChestView(APIView):
                 "current_minutes": current_minutes,
                 "stats": serialize_profile(profile),
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
 
@@ -508,24 +404,18 @@ class CompleteTaskRewardView(APIView):
     @transaction.atomic
     def post(self, request):
         profile = get_profile(request.user)
-
-        xp_reward = 15
-        coins_reward = 10
-
-        profile.total_tasks_completed += 1
-        profile.current_xp += xp_reward
-        profile.coins += coins_reward
-
-        apply_level_up(profile)
-        profile.save()
+        rewards = reward_completed_task(profile)
 
         return Response(
             {
                 "success": True,
-                "message": f"Tarefa concluída! Você ganhou {coins_reward} moedas e {xp_reward} XP.",
-                "earned_coins": coins_reward,
-                "xp_gained": xp_reward,
+                "message": (
+                    f"Tarefa concluída! Você ganhou {rewards['coins_reward']} moedas "
+                    f"e {rewards['xp_reward']} XP."
+                ),
+                "earned_coins": rewards["coins_reward"],
+                "xp_gained": rewards["xp_reward"],
                 "stats": serialize_profile(profile),
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )

@@ -1,10 +1,6 @@
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
-from django.utils import timezone
+
 from .models import StoreItem, UserInventory, UserProfile
-
-
-User = get_user_model()
 
 
 CHEST_CONFIG = [
@@ -42,10 +38,6 @@ def chest_required_minutes(goal_minutes, percent):
     return max(1, round(goal_minutes * (percent / 100)))
 
 
-# =========================================================
-# STORE ITEM SERIALIZER
-# =========================================================
-
 class StoreItemSerializer(serializers.ModelSerializer):
     owned = serializers.SerializerMethodField()
     equipped = serializers.SerializerMethodField()
@@ -66,9 +58,6 @@ class StoreItemSerializer(serializers.ModelSerializer):
         ]
 
     def get_owned(self, obj):
-        """
-        Indica se o usuário já possui o item no inventário.
-        """
         request = self.context.get("request")
 
         if not request or not request.user.is_authenticated:
@@ -76,22 +65,16 @@ class StoreItemSerializer(serializers.ModelSerializer):
 
         return UserInventory.objects.filter(
             user=request.user,
-            item=obj
+            item=obj,
         ).exists()
 
     def get_equipped(self, obj):
-        """
-        Estado equipado agora é determinado pelo UserProfile,
-        evitando duplicação de estado entre inventory e profile.
-        """
         request = self.context.get("request")
 
         if not request or not request.user.is_authenticated:
             return False
 
-        profile, _ = UserProfile.objects.get_or_create(
-            user=request.user
-        )
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
 
         if obj.category == "avatar":
             return profile.equipped_avatar_item_id == obj.id
@@ -104,10 +87,6 @@ class StoreItemSerializer(serializers.ModelSerializer):
 
         return False
 
-
-# =========================================================
-# INVENTORY SERIALIZER
-# =========================================================
 
 class UserInventorySerializer(serializers.ModelSerializer):
     item = StoreItemSerializer(read_only=True)
@@ -122,20 +101,14 @@ class UserInventorySerializer(serializers.ModelSerializer):
         ]
 
 
-# =========================================================
-# USER PROFILE SERIALIZER
-# =========================================================
-
 class UserProfileSerializer(serializers.ModelSerializer):
     xp_progress_percent = serializers.SerializerMethodField()
     username = serializers.SerializerMethodField()
     next_level_xp = serializers.SerializerMethodField()
     inventory = serializers.SerializerMethodField()
     daily_goal_progress = serializers.SerializerMethodField()
-
     chests = serializers.SerializerMethodField()
     badges = serializers.SerializerMethodField()
-
     equipped_avatar = serializers.SerializerMethodField()
     equipped_sound = serializers.SerializerMethodField()
     equipped_theme = serializers.SerializerMethodField()
@@ -166,9 +139,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ]
 
     def _serialize_equipped_item(self, item):
-        """
-        Serializa item equipado para hidratação frontend.
-        """
         if not item:
             return None
 
@@ -187,10 +157,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if obj.xp_to_next_level == 0:
             return 0
 
-        return round(
-            (obj.current_xp / obj.xp_to_next_level) * 100,
-            2
-        )
+        return round((obj.current_xp / obj.xp_to_next_level) * 100, 2)
 
     def get_next_level_xp(self, obj):
         return obj.xp_to_next_level
@@ -201,57 +168,41 @@ class UserProfileSerializer(serializers.ModelSerializer):
         )
 
     def get_daily_goal_progress(self, obj):
-        """
-        Calcula o progresso diário com base nos minutos reais focados hoje.
-        Isso evita usar um valor desatualizado salvo no banco.
-        """
         goal_minutes = max(obj.daily_goal_minutes, 1)
         current_minutes = max(obj.today_focus_minutes, 0)
-
         progress = round((current_minutes / goal_minutes) * 100)
-
         return min(progress, 100)
 
     def get_chests(self, obj):
-        """
-        Retorna os baús com base na meta diária em minutos.
-        O desbloqueio é calculado pelos minutos reais acumulados no dia.
-        """
-
         current_minutes = max(obj.today_focus_minutes, 0)
         goal_minutes = max(obj.daily_goal_minutes, 1)
 
         chests = []
-
         for chest in CHEST_CONFIG:
             claimed = getattr(obj, chest["claimed_field"])
-
             required_minutes = chest_required_minutes(
                 goal_minutes,
-                chest["threshold_percent"]
+                chest["threshold_percent"],
             )
-
             unlocked = current_minutes >= required_minutes
 
-            chests.append({
-                "key": chest["key"],
-                "type_label": chest["type_label"],
-                "threshold_percent": chest["threshold_percent"],
-                "required_minutes": required_minutes,
-                "current_minutes": current_minutes,
-                "reward_label": chest["reward_label"],
-                "claimed": claimed,
-                "unlocked": unlocked,
-                "ready_to_claim": unlocked and not claimed,
-            })
+            chests.append(
+                {
+                    "key": chest["key"],
+                    "type_label": chest["type_label"],
+                    "threshold_percent": chest["threshold_percent"],
+                    "required_minutes": required_minutes,
+                    "current_minutes": current_minutes,
+                    "reward_label": chest["reward_label"],
+                    "claimed": claimed,
+                    "unlocked": unlocked,
+                    "ready_to_claim": unlocked and not claimed,
+                }
+            )
 
         return chests
 
     def get_badges(self, obj):
-        """
-        Retorna medalhas no formato esperado pelo frontend.
-        """
-
         def build_badge(key, title, description, icon, color, current, target):
             progress_percent = 100 if target <= 0 else min(round((current / target) * 100, 2), 100)
 
@@ -324,19 +275,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_equipped_theme(self, obj):
         return self._serialize_equipped_item(obj.equipped_theme_item)
 
+
 def serialize_profile(profile):
-    """
-    Função utilitária usada pelas views para retornar o profile serializado.
-    """
     serializer = UserProfileSerializer(profile)
     return serializer.data
-
-from django.utils import timezone
-
-def get_daily_goal_progress(self, obj):
-    goal_minutes = max(obj.daily_goal_minutes, 1)
-    current_minutes = max(obj.today_focus_minutes, 0)
-
-    progress = round((current_minutes / goal_minutes) * 100)
-
-    return min(progress, 100)

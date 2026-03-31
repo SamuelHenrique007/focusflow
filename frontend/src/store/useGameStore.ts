@@ -1,5 +1,9 @@
 import { create } from "zustand";
-import { gamificationService, type GameStatus, type ChestType } from "@/services/gamificationService";
+import {
+  gamificationService,
+  type ChestType,
+  type GameStatus,
+} from "@/services/gamificationService";
 import { useAvatarStore } from "@/store/useAvatarStore";
 import { useSoundStore } from "@/store/useSoundStore";
 import { useThemeStore } from "@/store/useThemeStore";
@@ -20,7 +24,6 @@ type GameStore = {
   fetchStatus: () => Promise<void>;
   claimCoins: () => Promise<void>;
   claimChest: (chestType: ChestType) => Promise<void>;
-  completeTaskReward: () => Promise<void>;
 };
 
 function hydrateEquippedPreferences(stats: GameStatus | null) {
@@ -152,41 +155,6 @@ export const useGameStore = create<GameStore>((set) => ({
         message: {
           type: "error",
           text: "Erro ao resgatar baú.",
-        },
-      });
-    }
-  },
-
-  completeTaskReward: async () => {
-    try {
-      const data = await gamificationService.completeTaskReward();
-
-      if (data?.stats) {
-        set({
-          stats: data.stats,
-          message: {
-            type: "success",
-            text: data.message || "Recompensa da tarefa aplicada com sucesso.",
-          },
-        });
-
-        hydrateEquippedPreferences(data.stats);
-        return;
-      }
-
-      set({
-        message: {
-          type: "error",
-          text: data?.error || "Não foi possível aplicar a recompensa da tarefa.",
-        },
-      });
-    } catch (error) {
-      console.error("Erro ao aplicar recompensa da tarefa", error);
-
-      set({
-        message: {
-          type: "error",
-          text: "Erro ao aplicar recompensa da tarefa.",
         },
       });
     }
