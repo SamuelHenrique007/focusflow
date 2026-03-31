@@ -410,10 +410,10 @@ function TaskRow({
   onCloseMenu: () => void;
 }) {
   const navigate = useNavigate();
-  
+
   const isDone = task.status === "concluida";
-  const isPending = task.status === "pendente"; // Pendente = Atrasada
-  const isActive = (task.status as string) === "em_andamento"; // Bypass TS2367 temp
+  const isPending = task.status === "pendente";
+  const isActive = (task.status as string) === "em_andamento";
 
   const categoryTone =
     task.category === "trabalho"
@@ -430,14 +430,20 @@ function TaskRow({
         : "neutral";
 
   return (
-    <div className={cn(
-      "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition hover:shadow-md",
-      isPending ? "border-rose-200 bg-rose-50/40" : "border-slate-200 bg-white",
-      isDone && "opacity-70"
-    )}>
-      {/* Indicador lateral */}
+    <div
+      className={cn(
+        "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition hover:shadow-md",
+        isPending ? "border-rose-200 bg-rose-50/40" : "border-slate-200 bg-white",
+        isDone && "opacity-70",
+      )}
+    >
       {(isActive || isPending) ? (
-        <div className={cn("absolute left-0 top-0 h-full w-1.5", isPending ? "bg-rose-500" : "bg-blue-400")} />
+        <div
+          className={cn(
+            "absolute left-0 top-0 h-full w-1.5",
+            isPending ? "bg-rose-500" : "bg-blue-400",
+          )}
+        />
       ) : null}
 
       <div
@@ -464,7 +470,9 @@ function TaskRow({
               <Circle
                 className={cn(
                   "h-6 w-6 transition",
-                  isPending ? "text-rose-500" : "text-slate-300 group-hover:text-blue-500",
+                  isPending
+                    ? "text-rose-500"
+                    : "text-slate-300 group-hover:text-blue-500",
                 )}
               />
             )}
@@ -472,7 +480,12 @@ function TaskRow({
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className={cn("truncate text-sm font-semibold text-slate-900", isDone && "line-through opacity-60")}>
+              <p
+                className={cn(
+                  "truncate text-sm font-semibold text-slate-900",
+                  isDone && "line-through opacity-60",
+                )}
+              >
                 {task.title}
               </p>
               {isPending && (
@@ -518,16 +531,17 @@ function TaskRow({
               </Badge>
             </div>
 
-            {/* Barra de Progresso Nativa Tailwind */}
             {typeof task.progress === "number" ? (
               <div className="mt-4 flex items-center gap-3">
                 <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
-                  <div 
+                  <div
                     className={cn(
-                      "h-full rounded-full transition-all duration-500 ease-out", 
-                      isDone ? "bg-emerald-500" : "bg-blue-500"
+                      "h-full rounded-full transition-all duration-500 ease-out",
+                      isDone ? "bg-emerald-500" : "bg-blue-500",
                     )}
-                    style={{ width: `${Math.max(0, Math.min(100, task.progress))}%` }} 
+                    style={{
+                      width: `${Math.max(0, Math.min(100, task.progress))}%`,
+                    }}
                   />
                 </div>
                 <span className="w-8 text-right text-xs font-bold text-slate-600">
@@ -566,8 +580,11 @@ function TaskRow({
               className="cursor-pointer grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition hover:bg-blue-100"
               aria-label="Iniciar pomodoro nesta tarefa"
               title="Iniciar"
-              // NAVEGAÇÃO COM O STATE ENVIANDO O ID
-              onClick={() => navigate("/pomodoropage", { state: { selectedTaskId: task.id } })}
+              onClick={() =>
+                navigate("/pomodoropage", {
+                  state: { selectedTaskId: task.id },
+                })
+              }
             >
               <Play className="h-5 w-5 fill-current" />
             </button>
@@ -649,7 +666,6 @@ export default function TasksPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openMenuTaskId, setOpenMenuTaskId] = useState<number | null>(null);
 
-  // Abas
   const [tab, setTab] = useState<
     "todas" | "pendentes" | "em_andamento" | "concluidas"
   >("todas");
@@ -688,13 +704,12 @@ export default function TasksPage() {
   const filtered = useMemo(() => {
     let list = [...tasks];
 
-    // LÓGICA DE FILTRAGEM
     if (tab === "pendentes") {
-      list = list.filter((t) => t.status === "pendente"); // Significa Atrasadas
+      list = list.filter((t) => t.status === "pendente");
     } else if (tab === "em_andamento") {
-      list = list.filter((t) => (t.status as string) === "em_andamento"); // Bypass TS2367 temp
+      list = list.filter((t) => (t.status as string) === "em_andamento");
     } else if (tab === "concluidas") {
-      list = list.filter((t) => t.status === "concluida"); // Finalizadas
+      list = list.filter((t) => t.status === "concluida");
     }
 
     if (q.trim()) {
@@ -839,7 +854,7 @@ export default function TasksPage() {
     }
   }
 
-async function handleToggleComplete(task: Task) {
+  async function handleToggleComplete(task: Task) {
   try {
     const isCurrentlyDone = task.status === "concluida";
 
@@ -855,11 +870,7 @@ async function handleToggleComplete(task: Task) {
       setSelectedTask(updated);
     }
 
-    if (!isCurrentlyDone) {
-      await useGameStore.getState().completeTaskReward();
-    } else {
-      await useGameStore.getState().fetchStatus();
-    }
+    await useGameStore.getState().fetchStatus();
   } catch (error) {
     console.error("Erro ao atualizar conclusão da tarefa", error);
     alert("Não foi possível atualizar a conclusão da tarefa.");
@@ -907,7 +918,7 @@ async function handleToggleComplete(task: Task) {
           onClick={() => setCreateOpen(true)}
         >
           <Plus className="h-4 w-4" />
-            Nova Tarefa
+          Nova Tarefa
         </button>
       </div>
 

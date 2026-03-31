@@ -319,7 +319,6 @@ export default function PomodoroTimer({
   const location = useLocation();
   const { fetchStatus } = useGameStore();
 
-  // ✅ Lê o som equipado diretamente do store (em vez do localStorage)
   const equippedSoundKey = useSoundStore((state) => state.equippedSoundKey);
 
   const isFocusVariant = variant === "focus";
@@ -384,7 +383,6 @@ export default function PomodoroTimer({
     };
   }, [timeLabel]);
 
-  // ✅ playFinishSound agora usa equippedSoundKey do store
   const playFinishSound = useCallback(() => {
     const file =
       getSoundFileByKey(equippedSoundKey) ||
@@ -569,8 +567,7 @@ export default function PomodoroTimer({
     }
 
     loadInitialData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [location.state]);
 
   const handleFinish = useCallback(
     async (completed: boolean, shouldAdvance = false) => {
@@ -586,6 +583,7 @@ export default function PomodoroTimer({
 
         const sessionFinishedByTimer =
           sessionType === "focus" && secondsLeft <= 1;
+
         const isActuallyCompleted =
           sessionType === "focus" ? sessionFinishedByTimer : completed;
 
@@ -593,19 +591,17 @@ export default function PomodoroTimer({
           completed: isActuallyCompleted,
         });
 
-        const completedFocus = isActuallyCompleted && sessionType === "focus";
+        const completedFocus =
+          isActuallyCompleted && sessionType === "focus";
 
-        if (completedFocus && runningSession.planned_minutes > 0) {
+        if (completedFocus) {
           try {
-            await api.post("/gamification/add-progress/", {
-              focus_minutes: runningSession.planned_minutes,
-              completed_pomodoro: true,
-              completed_task: false,
-            });
-
             await fetchStatus();
-          } catch (xpError) {
-            console.error("Erro ao computar progresso gamificado:", xpError);
+          } catch (error) {
+            console.error(
+              "Erro ao atualizar status da gamificação:",
+              error,
+            );
           }
         }
 
@@ -676,8 +672,6 @@ export default function PomodoroTimer({
     }, 1000);
 
     return () => window.clearInterval(timer);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runningSession, isPaused, handleFinish, playFinishSound]);
 
   async function handleSaveSettings() {
@@ -726,6 +720,7 @@ export default function PomodoroTimer({
       );
 
       setRunningSession(data);
+
       setSecondsLeft(5);
 
       await refreshStats();

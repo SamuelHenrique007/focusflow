@@ -107,7 +107,7 @@ function SidebarItem({
       <span
         className={cn(
           "grid h-8 w-8 place-items-center rounded-xl",
-          active ? "bg-white shadow-sm" : danger ? "bg-rose-50" : "bg-slate-100"
+          active ? "bg-white shadow-sm" : danger ? "bg-rose-50" : "bg-slate-100",
         )}
       >
         {icon}
@@ -121,8 +121,8 @@ function SidebarItem({
     active
       ? "bg-blue-50 text-blue-700"
       : danger
-      ? "text-rose-600 hover:bg-rose-50"
-      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+        ? "text-rose-600 hover:bg-rose-50"
+        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
   );
 
   if (to) {
@@ -153,7 +153,7 @@ function UserAvatar({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {
     <div
       className={cn(
         "grid shrink-0 place-items-center rounded-full border border-blue-100 bg-blue-50 shadow-sm",
-        sizeClasses[size]
+        sizeClasses[size],
       )}
     >
       <span>{avatar || "🙂"}</span>
@@ -162,27 +162,21 @@ function UserAvatar({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {
 }
 
 function UserGamerCard() {
-  const { stats, fetchStatus, isLoading } = useGameStore();
+  const level = useGameStore((state) => state.stats?.level ?? 1);
+  const fetchStatus = useGameStore((state) => state.fetchStatus);
   const { user } = useAuth();
+
+  const loadAvatar = useAvatarStore((state) => state.loadAvatar);
 
   useEffect(() => {
     fetchStatus();
   }, [fetchStatus]);
 
-  const loadAvatar = useAvatarStore((state) => state.loadAvatar);
-
   useEffect(() => {
     loadAvatar();
   }, [loadAvatar]);
 
-  if (isLoading) {
-    return (
-      <div className="h-[68px] w-full animate-pulse rounded-2xl border border-slate-200 bg-slate-100" />
-    );
-  }
-
   const userName = getFirstAndSecondName(user?.name);
-  const level = stats?.level || 1;
 
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-xs">
@@ -192,7 +186,9 @@ function UserGamerCard() {
         <span className="truncate text-sm leading-tight font-semibold text-slate-900">
           {userName}
         </span>
-        <span className="text-[11px] font-medium text-blue-600">Nível: {level}</span>
+        <span className="text-[11px] font-medium text-blue-600">
+          Nível: {level}
+        </span>
       </div>
     </div>
   );

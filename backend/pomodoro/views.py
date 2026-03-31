@@ -1,5 +1,5 @@
 from django.utils import timezone
-from django.db.models import F,Sum
+from django.db.models import F, Sum
 from django.db.models.functions import TruncDate
 from django.db import transaction
 
@@ -9,7 +9,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from gamification.models import UserProfile
+from gamification.views import refresh_daily_progress  # IMPORTANTE
+
 from tasks.models import Task
+
 from .models import PomodoroSetting, PomodoroSession
 from .serializers import (
     PomodoroSettingSerializer,
@@ -18,48 +21,87 @@ from .serializers import (
 )
 
 
+# =========================================================
+# CONFIGURAÇÕES DO POMODORO
+# =========================================================
+
 class MyPomodoroSettingView(APIView):
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        setting, _ = PomodoroSetting.objects.get_or_create(user=request.user)
+
+        setting, _ = PomodoroSetting.objects.get_or_create(
+            user=request.user
+        )
+
         serializer = PomodoroSettingSerializer(setting)
+
         return Response(serializer.data)
 
     def put(self, request):
-        setting, _ = PomodoroSetting.objects.get_or_create(user=request.user)
-        serializer = PomodoroSettingSerializer(setting, data=request.data)
+
+        setting, _ = PomodoroSetting.objects.get_or_create(
+            user=request.user
+        )
+
+        serializer = PomodoroSettingSerializer(
+            setting,
+            data=request.data
+        )
+
         serializer.is_valid(raise_exception=True)
+
         serializer.save()
+
         return Response(serializer.data)
 
     def patch(self, request):
-        setting, _ = PomodoroSetting.objects.get_or_create(user=request.user)
+
+        setting, _ = PomodoroSetting.objects.get_or_create(
+            user=request.user
+        )
+
         serializer = PomodoroSettingSerializer(
             setting,
             data=request.data,
             partial=True
         )
+
         serializer.is_valid(raise_exception=True)
+
         serializer.save()
+
         return Response(serializer.data)
 
 
+# =========================================================
+# INICIAR SESSÃO
+# =========================================================
+
 class StartPomodoroSessionView(APIView):
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+
         serializer = StartSessionSerializer(
             data=request.data,
             context={'request': request}
         )
+
         serializer.is_valid(raise_exception=True)
 
         task = None
+
         task_id = serializer.validated_data.get('task_id')
 
         if task_id:
-            task = Task.objects.get(id=task_id, user=request.user)
+
+            task = Task.objects.get(
+                id=task_id,
+                user=request.user
+            )
 
         session = PomodoroSession.objects.create(
             user=request.user,
@@ -75,105 +117,189 @@ class StartPomodoroSessionView(APIView):
         )
 
 
+# =========================================================
+# FINALIZAR SESSÃO
+# =========================================================
+
 class FinishPomodoroSessionView(APIView):
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request, session_id):
+
         try:
+
             session = PomodoroSession.objects.get(
                 id=session_id,
                 user=request.user
             )
+
         except PomodoroSession.DoesNotExist:
+
             return Response(
                 {'detail': 'Sessão não encontrada.'},
                 status=status.HTTP_404_NOT_FOUND
             )
 
         if session.status != 'running':
+
             return Response(
                 {'detail': 'Esta sessão já foi finalizada.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         completed = request.data.get('completed', True)
+
         session.ended_at = timezone.now()
 
         with transaction.atomic():
+
             if completed:
+
                 session.status = 'completed'
-                session.earned_points = 25 if session.session_type == 'focus' else 5
+
+                session.earned_points = (
+                    25 if session.session_type == 'focus'
+                    else 5
+                )
+
+                # =====================================================
+                # ATUALIZA TASK RELACIONADA
+                # =====================================================
 
                 if session.task and session.session_type == 'focus':
+
                     if hasattr(session.task, 'pomodoro_completed'):
-                        session.task.pomodoro_completed = F('pomodoro_completed') + 1
+
+                        session.task.pomodoro_completed = (
+                            F('pomodoro_completed') + 1
+                        )
 
                     if hasattr(session.task, 'focus_minutes_completed'):
+
                         session.task.focus_minutes_completed = (
-                            F('focus_minutes_completed') + session.planned_minutes
+                            F('focus_minutes_completed')
+                            + session.planned_minutes
                         )
 
                     session.task.save()
+
                     session.task.refresh_from_db()
 
-                if session.session_type == 'focus':
-                    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+                # =====================================================
+                # GAMIFICAÇÃO
+                # =====================================================
 
-                    profile.pending_focus_minutes = (
-                        (profile.pending_focus_minutes or 0) + session.planned_minutes
+                if session.session_type == 'focus':
+
+                    profile, _ = UserProfile.objects.get_or_create(
+                        user=request.user
                     )
-                    profile.today_focus_minutes = (
-                        (profile.today_focus_minutes or 0) + session.planned_minutes
-                    )
-                    profile.total_focus_minutes = (
-                        (profile.total_focus_minutes or 0) + session.planned_minutes
-                    )
-                    profile.total_pomodoros = (
-                        (profile.total_pomodoros or 0) + 1
-                    )
+
+                    # usa helper centralizado
+                    today = refresh_daily_progress(profile)
+
+                    focus_minutes = session.planned_minutes or 0
+
+                    xp_gained = focus_minutes
+
+                    profile.pending_focus_minutes += focus_minutes
+
+                    profile.today_focus_minutes += focus_minutes
+
+                    profile.total_focus_minutes += focus_minutes
+
+                    profile.total_pomodoros += 1
+
+                    profile.current_xp += xp_gained
+
+                    # =====================================================
+                    # STREAK
+                    # =====================================================
+
+                    from datetime import timedelta
+
+                    yesterday = today - timedelta(days=1)
+
+                    if profile.last_activity == yesterday:
+
+                        profile.streak += 1
+
+                    elif profile.last_activity != today:
+
+                        profile.streak = 1
+
+                    profile.last_activity = today
+
+                    # =====================================================
+                    # LEVEL UP
+                    # =====================================================
+
+                    while (
+                        profile.current_xp
+                        >= profile.xp_to_next_level
+                        and profile.xp_to_next_level > 0
+                    ):
+
+                        profile.current_xp -= profile.xp_to_next_level
+
+                        profile.level += 1
+
+                        profile.xp_to_next_level = max(
+                            100,
+                            profile.xp_to_next_level + 50
+                        )
 
                     profile.save()
 
             else:
+
                 session.status = 'skipped'
+
                 session.earned_points = 0
 
             session.save()
 
-        return Response(PomodoroSessionSerializer(session).data)
+        return Response(
+            PomodoroSessionSerializer(session).data
+        )
 
-from django.utils import timezone
-from django.db.models import Sum
-from django.db.models.functions import TruncDate
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 
+# =========================================================
+# ESTATÍSTICAS DO DIA
+# =========================================================
 
 class PomodoroStatsView(APIView):
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        today = timezone.now().date()
+
+        today = timezone.localtime().date()
+
         completed_focus_sessions_today = PomodoroSession.objects.filter(
             user=request.user,
             session_type='focus',
             status='completed',
-            ended_at__date=today  
+            ended_at__date=today
         )
 
         total_pomodoros = completed_focus_sessions_today.count()
 
-        total_minutes = completed_focus_sessions_today.aggregate(
-            total=Sum('planned_minutes')
-        )['total'] or 0
+        total_minutes = (
+            completed_focus_sessions_today
+            .aggregate(total=Sum('planned_minutes'))['total']
+            or 0
+        )
 
-        total_points = PomodoroSession.objects.filter(
-            user=request.user,
-            ended_at__date=today  
-        ).aggregate(
-            total=Sum('earned_points')
-        )['total'] or 0
+        total_points = (
+            PomodoroSession.objects.filter(
+                user=request.user,
+                ended_at__date=today
+            )
+            .aggregate(total=Sum('earned_points'))['total']
+            or 0
+        )
 
         active_days = (
             PomodoroSession.objects.filter(
@@ -188,27 +314,47 @@ class PomodoroStatsView(APIView):
             .count()
         )
 
-        running_session = PomodoroSession.objects.filter(
-            user=request.user,
-            status='running'
-        ).order_by('-started_at').first()
+        running_session = (
+            PomodoroSession.objects
+            .filter(
+                user=request.user,
+                status='running'
+            )
+            .order_by('-started_at')
+            .first()
+        )
 
         return Response({
+
             'pomodoros': total_pomodoros,
+
             'minutes': total_minutes,
+
             'points': total_points,
+
             'active_days': active_days,
+
             'running_session': (
                 PomodoroSessionSerializer(running_session).data
-                if running_session else None
+                if running_session
+                else None
             )
+
         })
 
+
+# =========================================================
+# HISTÓRICO
+# =========================================================
+
 class SessionHistoryView(generics.ListAPIView):
+
     serializer_class = PomodoroSessionSerializer
+
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+
         return PomodoroSession.objects.filter(
             user=self.request.user
         ).select_related('task').order_by('-started_at')

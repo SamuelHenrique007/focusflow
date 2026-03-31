@@ -42,6 +42,7 @@ class Task(models.Model):
     pomodoro_completed = models.PositiveIntegerField(default=0)
     focus_minutes_completed = models.PositiveIntegerField(default=0)
 
+    reward_granted = models.BooleanField(default=False)
     completed_at = models.DateTimeField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

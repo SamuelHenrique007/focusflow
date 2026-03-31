@@ -1,11 +1,11 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from django.utils import timezone
 
 from .models import StoreItem, UserInventory, UserProfile
 from .serializers import (
@@ -39,6 +39,7 @@ CHEST_REWARDS = {
     },
 }
 
+
 # =========================================================
 # HELPERS
 # =========================================================
@@ -46,6 +47,35 @@ CHEST_REWARDS = {
 def get_profile(user):
     profile, _ = UserProfile.objects.get_or_create(user=user)
     return profile
+
+
+def get_local_today():
+    return timezone.localtime(timezone.now()).date()
+
+
+def refresh_daily_progress(profile):
+    """
+    Reseta apenas os dados diários quando realmente mudou o dia local.
+    Mantém os dados globais intactos.
+    """
+    today = get_local_today()
+
+    if profile.last_activity != today:
+        profile.today_focus_minutes = 0
+        profile.wood_chest_claimed = False
+        profile.silver_chest_claimed = False
+        profile.gold_chest_claimed = False
+        profile.last_activity = today
+
+        profile.save(update_fields=[
+            "today_focus_minutes",
+            "wood_chest_claimed",
+            "silver_chest_claimed",
+            "gold_chest_claimed",
+            "last_activity",
+        ])
+
+    return today
 
 
 def ensure_single_equipped_item(user, category, current_item):
@@ -73,7 +103,10 @@ def apply_level_up(profile):
     Aplica evolução de nível em cascata, se o XP atual ultrapassar
     o XP necessário para o próximo nível.
     """
-    while profile.current_xp >= profile.xp_to_next_level and profile.xp_to_next_level > 0:
+    while (
+        profile.current_xp >= profile.xp_to_next_level
+        and profile.xp_to_next_level > 0
+    ):
         profile.current_xp -= profile.xp_to_next_level
         profile.level += 1
         profile.xp_to_next_level = max(100, profile.xp_to_next_level + 50)
@@ -92,19 +125,8 @@ class GameStatusView(APIView):
 
     def get(self, request):
         profile = get_profile(request.user)
-        today = timezone.localdate()
 
-        if profile.last_activity != today:
-            profile.today_focus_minutes = 0
-            profile.wood_chest_claimed = False
-            profile.silver_chest_claimed = False
-            profile.gold_chest_claimed = False
-            profile.save(update_fields=[
-                "today_focus_minutes",
-                "wood_chest_claimed",
-                "silver_chest_claimed",
-                "gold_chest_claimed",
-            ])
+        refresh_daily_progress(profile)
 
         serializer = UserProfileSerializer(profile)
 
@@ -261,13 +283,10 @@ class EquipItemView(APIView):
 
         if item.category == "avatar":
             profile.equipped_avatar_item = item
-
         elif item.category == "sound":
             profile.equipped_sound_item = item
-
         elif item.category == "theme":
             profile.equipped_theme_item = item
-
         else:
             return Response(
                 {
@@ -358,6 +377,8 @@ class AddProgressView(APIView):
         """
         profile = get_profile(request.user)
 
+        refresh_daily_progress(profile)
+
         focus_minutes = int(request.data.get("focus_minutes", 0))
         completed_pomodoro = bool(request.data.get("completed_pomodoro", False))
         completed_task = bool(request.data.get("completed_task", False))
@@ -376,6 +397,7 @@ class AddProgressView(APIView):
         profile.current_xp += xp_gained
         profile.pending_focus_minutes += focus_minutes
         profile.total_focus_minutes += focus_minutes
+        profile.today_focus_minutes += focus_minutes
 
         if completed_pomodoro:
             profile.total_pomodoros += 1
@@ -408,6 +430,8 @@ class ClaimChestView(APIView):
     def post(self, request, chest_type):
         profile = get_profile(request.user)
 
+        refresh_daily_progress(profile)
+
         chest = CHEST_REWARDS.get(chest_type)
 
         if not chest:
@@ -432,7 +456,10 @@ class ClaimChestView(APIView):
             )
 
         goal_minutes = max(profile.daily_goal_minutes, 1)
-        required_minutes = chest_required_minutes(goal_minutes, chest["threshold_percent"])
+        required_minutes = chest_required_minutes(
+            goal_minutes,
+            chest["threshold_percent"]
+        )
         current_minutes = max(profile.today_focus_minutes, 0)
 
         if current_minutes < required_minutes:
@@ -444,7 +471,7 @@ class ClaimChestView(APIView):
                     "current_minutes": current_minutes,
                 },
                 status=status.HTTP_400_BAD_REQUEST
-    )           
+            )
 
         profile.coins += chest["coins_reward"]
         profile.current_xp += chest["xp_reward"]

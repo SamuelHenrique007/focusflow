@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cn } from "@/lib/cn";
 import { useAvatarStore } from "@/store/useAvatarStore";
 
@@ -6,7 +7,7 @@ type Props = {
   className?: string;
 };
 
-export default function UserAvatar({
+const UserAvatar = memo(function UserAvatar({
   size = "md",
   className,
 }: Props) {
@@ -29,4 +30,6 @@ export default function UserAvatar({
       {avatar}
     </div>
   );
-}
+});
+
+export default UserAvatar;

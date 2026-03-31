@@ -1,8 +1,10 @@
+import { memo } from "react";
 import UserAvatar from "@/components/UserAvatar";
 import { useGameStore } from "@/store/useGameStore";
 
-export default function SidebarUserInfo() {
-  const stats = useGameStore((state) => state.stats);
+const SidebarUserInfo = memo(function SidebarUserInfo() {
+  const username = useGameStore((state) => state.stats?.username ?? "Usuário");
+  const level = useGameStore((state) => state.stats?.level ?? 1);
 
   return (
     <div className="flex items-center gap-3">
@@ -10,13 +12,15 @@ export default function SidebarUserInfo() {
 
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-slate-800">
-          {stats?.username || "Usuário"}
+          {username}
         </p>
 
         <p className="text-xs text-slate-500">
-          Nível {stats?.level || 1}
+          Nível {level}
         </p>
       </div>
     </div>
   );
-}
+});
+
+export default SidebarUserInfo;
