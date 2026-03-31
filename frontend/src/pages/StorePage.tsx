@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import {
   Store,
   Coins,
@@ -49,17 +49,17 @@ const SECTIONS: Array<{
   {
     id: "avatar",
     label: "Coleção de Avatares",
-    icon: <Smile className="h-5 w-5 text-violet-500" />,
+    icon: <Smile className="h-5 w-5 text-blue-500" />,
   },
   {
     id: "theme",
     label: "Temas Exclusivos",
-    icon: <Palette className="h-5 w-5 text-violet-500" />,
+    icon: <Palette className="h-5 w-5 text-blue-500" />,
   },
   {
     id: "sound",
     label: "Recompensas Sonoras",
-    icon: <Music4 className="h-5 w-5 text-violet-500" />,
+    icon: <Music4 className="h-5 w-5 text-blue-500" />,
   },
 ];
 
@@ -86,6 +86,64 @@ function getSoundFileByKey(key?: string | null) {
   return SOUND_FILES[key] || null;
 }
 
+const pageVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05,
+    },
+  },
+};
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.45,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+};
+
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.96, y: 16 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+};
+
+const listVariants: Variants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+};
+
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 24, scale: 0.97 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.35,
+      ease: [0.16, 1, 0.3, 1],
+    },
+  },
+};
+
 function EquippedSummaryCard({
   title,
   value,
@@ -96,11 +154,24 @@ function EquippedSummaryCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-2 flex items-center gap-2 text-slate-500">{icon}</div>
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</p>
+    <motion.div
+      variants={scaleIn}
+      whileHover={{ y: -4, scale: 1.01 }}
+      transition={{ duration: 0.2 }}
+      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+    >
+      <motion.div
+        className="mb-2 flex items-center gap-2 text-slate-500"
+        whileHover={{ rotate: -4, scale: 1.05 }}
+        transition={{ duration: 0.2 }}
+      >
+        {icon}
+      </motion.div>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        {title}
+      </p>
       <p className="mt-1 text-sm font-bold text-slate-900">{value}</p>
-    </div>
+    </motion.div>
   );
 }
 
@@ -116,8 +187,13 @@ export default function StorePage() {
   const [purchasingId, setPurchasingId] = useState<number | null>(null);
   const [equippingId, setEquippingId] = useState<number | null>(null);
   const [isClaiming, setIsClaiming] = useState(false);
-  const [previewingSoundId, setPreviewingSoundId] = useState<number | null>(null);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [previewingSoundId, setPreviewingSoundId] = useState<number | null>(
+    null
+  );
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
 
   const [flyingCoins, setFlyingCoins] = useState<FlyingCoin[]>([]);
@@ -132,7 +208,10 @@ export default function StorePage() {
   const userCoins = stats?.coins || 0;
   const pendingCoins = stats?.pending_focus_minutes || 0;
 
-  const inventoryIds = useMemo(() => new Set(stats?.inventory || []), [stats?.inventory]);
+  const inventoryIds = useMemo(
+    () => new Set(stats?.inventory || []),
+    [stats?.inventory]
+  );
 
   const equippedItemIds = useMemo(
     () => ({
@@ -140,7 +219,11 @@ export default function StorePage() {
       sound: stats?.equipped_sound?.id ?? null,
       theme: stats?.equipped_theme?.id ?? null,
     }),
-    [stats?.equipped_avatar?.id, stats?.equipped_sound?.id, stats?.equipped_theme?.id]
+    [
+      stats?.equipped_avatar?.id,
+      stats?.equipped_sound?.id,
+      stats?.equipped_theme?.id,
+    ]
   );
 
   useEffect(() => {
@@ -154,7 +237,10 @@ export default function StorePage() {
       setItems(response.items || []);
     } catch (error) {
       console.error("Erro ao carregar loja:", error);
-      setMessage({ type: "error", text: "Não foi possível carregar os itens da loja." });
+      setMessage({
+        type: "error",
+        text: "Não foi possível carregar os itens da loja.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -176,10 +262,26 @@ export default function StorePage() {
 
   const tabs = useMemo(
     () => [
-      { id: "all" as const, label: "Todos os Itens", icon: <Store className="h-4 w-4" /> },
-      { id: "avatar" as const, label: "Avatares", icon: <Smile className="h-4 w-4" /> },
-      { id: "theme" as const, label: "Temas", icon: <Palette className="h-4 w-4" /> },
-      { id: "sound" as const, label: "Sons", icon: <Music4 className="h-4 w-4" /> },
+      {
+        id: "all" as const,
+        label: "Todos os Itens",
+        icon: <Store className="h-4 w-4" />,
+      },
+      {
+        id: "avatar" as const,
+        label: "Avatares",
+        icon: <Smile className="h-4 w-4" />,
+      },
+      {
+        id: "theme" as const,
+        label: "Temas",
+        icon: <Palette className="h-4 w-4" />,
+      },
+      {
+        id: "sound" as const,
+        label: "Sons",
+        icon: <Music4 className="h-4 w-4" />,
+      },
     ],
     []
   );
@@ -200,17 +302,19 @@ export default function StorePage() {
 
     const coinCount = Math.min(Math.max(Math.floor(amount / 5), 6), 14);
 
-    const coins: FlyingCoin[] = Array.from({ length: coinCount }).map((_, index) => ({
-      id: Date.now() + index,
-      startX: startX + (Math.random() * 30 - 15),
-      startY: startY + (Math.random() * 20 - 10),
-      endX: endX + (Math.random() * 30 - 15),
-      endY: endY + (Math.random() * 20 - 10),
-      rotate: Math.random() * 220 - 110,
-      scale: 0.9 + Math.random() * 0.35,
-      duration: 0.8 + Math.random() * 0.25,
-      delay: index * 0.035,
-    }));
+    const coins: FlyingCoin[] = Array.from({ length: coinCount }).map(
+      (_, index) => ({
+        id: Date.now() + index,
+        startX: startX + (Math.random() * 30 - 15),
+        startY: startY + (Math.random() * 20 - 10),
+        endX: endX + (Math.random() * 30 - 15),
+        endY: endY + (Math.random() * 20 - 10),
+        rotate: Math.random() * 220 - 110,
+        scale: 0.9 + Math.random() * 0.35,
+        duration: 0.8 + Math.random() * 0.25,
+        delay: index * 0.035,
+      })
+    );
 
     setFlyingCoins(coins);
 
@@ -264,7 +368,10 @@ export default function StorePage() {
 
   async function handlePurchase(item: StoreItem) {
     if (userLevel < item.required_level) {
-      setMessage({ type: "error", text: `Você precisa do nível ${item.required_level}.` });
+      setMessage({
+        type: "error",
+        text: `Você precisa do nível ${item.required_level}.`,
+      });
       return;
     }
 
@@ -294,7 +401,9 @@ export default function StorePage() {
       const err = error as { response?: { data?: { error?: string } } };
       setMessage({
         type: "error",
-        text: err.response?.data?.error || "Ocorreu um erro ao realizar a compra.",
+        text:
+          err.response?.data?.error ||
+          "Ocorreu um erro ao realizar a compra.",
       });
     } finally {
       setPurchasingId(null);
@@ -305,7 +414,10 @@ export default function StorePage() {
     const isOwned = item.owned || inventoryIds.has(item.id);
 
     if (!isOwned) {
-      setMessage({ type: "error", text: "Compre este item antes de equipá-lo." });
+      setMessage({
+        type: "error",
+        text: "Compre este item antes de equipá-lo.",
+      });
       return;
     }
 
@@ -320,7 +432,18 @@ export default function StorePage() {
         await fetchStatus();
       }
 
-      await loadStoreItems();
+      setItems((prevItems) =>
+        prevItems.map((storeItem) => {
+          if (storeItem.category !== item.category) {
+            return storeItem;
+          }
+
+          return {
+            ...storeItem,
+            equipped: storeItem.id === item.id,
+          };
+        })
+      );
 
       setMessage({
         type: "success",
@@ -379,18 +502,23 @@ export default function StorePage() {
     }
 
     if (item.category === "theme") {
-      return <Palette className="h-6 w-6 text-violet-500" />;
+      return <Palette className="h-6 w-6 text-blue-500" />;
     }
 
     if (item.category === "sound") {
-      return <Volume2 className="h-6 w-6 text-violet-500" />;
+      return <Volume2 className="h-6 w-6 text-blue-500" />;
     }
 
-    return <Smile className="h-6 w-6 text-violet-500" />;
+    return <Smile className="h-6 w-6 text-blue-500" />;
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 pb-12">
+    <motion.div
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      className="mx-auto max-w-5xl space-y-8 pb-12"
+    >
       <AnimatePresence>
         {flyingCoins.map((coin) => (
           <motion.div
@@ -429,53 +557,97 @@ export default function StorePage() {
         ))}
       </AnimatePresence>
 
-      {message && (
-        <div
-          className={cn(
-            "animate-in fade-in slide-in-from-top-2 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-sm",
-            message.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-rose-200 bg-rose-50 text-rose-700"
-          )}
-        >
-          {message.type === "success" ? (
-            <CheckCircle2 className="h-5 w-5" />
-          ) : (
-            <AlertCircle className="h-5 w-5" />
-          )}
-          {message.text}
-        </div>
-      )}
+      <AnimatePresence mode="wait">
+        {message && (
+          <motion.div
+            key={message.text}
+            initial={{ opacity: 0, y: -14, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.98 }}
+            transition={{ duration: 0.25 }}
+            className={cn(
+              "flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-sm",
+              message.type === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-rose-200 bg-rose-50 text-rose-700"
+            )}
+          >
+            {message.type === "success" ? (
+              <CheckCircle2 className="h-5 w-5" />
+            ) : (
+              <AlertCircle className="h-5 w-5" />
+            )}
+            {message.text}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <motion.div
+        variants={fadeUp}
+        className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+      >
         <div>
-          <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-            <Store className="h-8 w-8 text-violet-600" />
+          <motion.h1
+            className="flex items-center gap-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl"
+            initial={{ opacity: 0, x: -18 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.45 }}
+          >
+            <motion.div
+              animate={{ rotate: [0, -8, 6, 0] }}
+              transition={{ duration: 0.8, delay: 0.15 }}
+            >
+              <Store className="h-8 w-8 text-blue-600" />
+            </motion.div>
             Loja de Recompensas
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          </motion.h1>
+          <motion.p
+            className="mt-2 text-sm text-slate-500"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.1 }}
+          >
             Troque o seu tempo e gaste moedas em personalizações.
-          </p>
+          </motion.p>
         </div>
 
         <motion.div
           ref={balanceCardRef}
-          animate={isBalanceHighlight ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+          animate={
+            isBalanceHighlight
+              ? { scale: [1, 1.08, 1], y: [0, -3, 0] }
+              : { scale: 1, y: 0 }
+          }
           transition={{ duration: 0.5 }}
+          whileHover={{ y: -2, scale: 1.01 }}
           className={cn(
             "relative flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 shadow-sm transition-all",
             isBalanceHighlight && "shadow-md ring-4 ring-amber-200/50"
           )}
         >
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-200/50">
+          <motion.div
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-200/50"
+            animate={
+              isBalanceHighlight ? { rotate: [0, -10, 10, 0] } : { rotate: 0 }
+            }
+            transition={{ duration: 0.45 }}
+          >
             <Coins className="h-6 w-6 text-amber-600" />
-          </div>
+          </motion.div>
 
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-amber-800">
               O seu saldo
             </p>
-            <p className="text-xl font-bold text-amber-600">{displayCoins} moedas</p>
+            <motion.p
+              key={displayCoins}
+              initial={{ opacity: 0.5, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="text-xl font-bold text-amber-600"
+            >
+              {displayCoins} moedas
+            </motion.p>
           </div>
 
           <AnimatePresence>
@@ -492,127 +664,252 @@ export default function StorePage() {
             )}
           </AnimatePresence>
         </motion.div>
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <motion.div
+        variants={listVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+      >
         <EquippedSummaryCard
           title="Avatar ativo"
           value={stats?.equipped_avatar?.name || equippedAvatar || "Padrão"}
-          icon={<Smile className="h-4 w-4 text-violet-500" />}
+          icon={<Smile className="h-4 w-4 text-blue-500" />}
         />
         <EquippedSummaryCard
           title="Som ativo"
           value={stats?.equipped_sound?.name || equippedSoundKey || "Padrão"}
-          icon={<Music4 className="h-4 w-4 text-violet-500" />}
+          icon={<Music4 className="h-4 w-4 text-blue-500" />}
         />
         <EquippedSummaryCard
           title="Tema ativo"
           value={stats?.equipped_theme?.name || equippedThemeKey || "Padrão"}
-          icon={<BrushCleaning className="h-4 w-4 text-violet-500" />}
+          icon={<BrushCleaning className="h-4 w-4 text-blue-500" />}
         />
-      </div>
+      </motion.div>
 
-      {pendingCoins > 0 && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 relative overflow-hidden rounded-2xl bg-linear-to-r from-violet-700 via-purple-600 to-violet-500 p-6 text-white shadow-md sm:p-8">
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-          <div className="absolute -bottom-10 right-20 h-32 w-32 rounded-full bg-violet-400/20 blur-xl" />
+      <AnimatePresence>
+        {pendingCoins > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 26, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 18, scale: 0.98 }}
+            transition={{ duration: 0.45 }}
+            className="relative overflow-hidden rounded-2xl bg-linear-to-r from-violet-700 via-purple-600 to-violet-500 p-6 text-white shadow-md sm:p-8"
+          >
+            <motion.div
+              className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"
+              animate={{ scale: [1, 1.08, 1], opacity: [0.4, 0.65, 0.4] }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+            <motion.div
+              className="absolute -bottom-10 right-20 h-32 w-32 rounded-full bg-violet-400/20 blur-xl"
+              animate={{ scale: [1, 1.15, 1], opacity: [0.25, 0.45, 0.25] }}
+              transition={{
+                duration: 3.4,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
 
-          <div className="relative flex flex-col items-center justify-between gap-6 sm:flex-row">
-            <div className="flex w-full items-center gap-4 sm:w-auto">
-              <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white/20 shadow-inner">
-                <ArrowRightLeft className="h-7 w-7 text-white" />
-              </div>
+            <div className="relative flex flex-col items-center justify-between gap-6 sm:flex-row">
+              <div className="flex w-full items-center gap-4 sm:w-auto">
+                <motion.div
+                  className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white/20 shadow-inner"
+                  animate={{ rotate: [0, -8, 8, 0] }}
+                  transition={{
+                    duration: 2.6,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <ArrowRightLeft className="h-7 w-7 text-white" />
+                </motion.div>
 
-              <div>
-                <h2 className="text-lg font-semibold sm:text-xl">Câmbio de Foco</h2>
-                <div className="mt-1.5 flex flex-col items-start gap-1 text-sm text-violet-100 sm:flex-row sm:items-center sm:gap-2">
-                  <span>
-                    Tem <strong className="text-white">{pendingCoins} minutos</strong> de foco pendentes
-                  </span>
-                  <span className="hidden h-1 w-1 rounded-full bg-violet-300 sm:block" />
-                  <span className="flex items-center gap-1 rounded-md bg-violet-900/30 px-2 py-0.5 text-xs sm:bg-transparent sm:px-0 sm:py-0 sm:text-sm">
-                    Taxa: 1 <Timer className="h-3 w-3" /> = 1{" "}
-                    <Coins className="h-3 w-3 text-amber-300" />
-                  </span>
+                <div>
+                  <h2 className="text-lg font-semibold sm:text-xl">
+                    Câmbio de Foco
+                  </h2>
+                  <div className="mt-1.5 flex flex-col items-start gap-1 text-sm text-violet-100 sm:flex-row sm:items-center sm:gap-2">
+                    <span>
+                      Tem{" "}
+                      <strong className="text-white">
+                        {pendingCoins} minutos
+                      </strong>{" "}
+                      de foco pendentes
+                    </span>
+                    <span className="hidden h-1 w-1 rounded-full bg-violet-300 sm:block" />
+                    <span className="flex items-center gap-1 rounded-md bg-violet-900/30 px-2 py-0.5 text-xs sm:bg-transparent sm:px-0 sm:py-0 sm:text-sm">
+                      Taxa: 1 <Timer className="h-3 w-3" /> = 1{" "}
+                      <Coins className="h-3 w-3 text-amber-300" />
+                    </span>
+                  </div>
                 </div>
               </div>
+
+              <motion.button
+                ref={claimButtonRef}
+                onClick={handleClaimCoins}
+                disabled={isClaiming}
+                whileHover={!isClaiming ? { scale: 1.03, y: -1 } : {}}
+                whileTap={!isClaiming ? { scale: 0.97 } : {}}
+                className={cn(
+                  "group flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-blue-700 shadow-sm transition-all hover:bg-blue-50 hover:shadow sm:w-auto",
+                  isClaiming ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                )}
+              >
+                <motion.div
+                  animate={isClaiming ? { rotate: 180 } : { rotate: 0 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <ArrowRightLeft className="h-4 w-4" />
+                </motion.div>
+                {isClaiming
+                  ? "A converter..."
+                  : `Converter em ${pendingCoins} moedas`}
+              </motion.button>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            <button
-              ref={claimButtonRef}
-              onClick={handleClaimCoins}
-              disabled={isClaiming}
-              className="group flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-violet-700 shadow-sm transition-all hover:scale-[1.02] hover:bg-violet-50 hover:shadow active:scale-95 disabled:opacity-50 sm:w-auto"
+      <motion.div
+        variants={fadeUp}
+        className="flex flex-wrap gap-2 border-b border-slate-200 pb-4 pt-4"
+      >
+        {tabs.map((tab) => {
+          const active = filter === tab.id;
+
+          return (
+            <motion.button
+              key={tab.id}
+              onClick={() => setFilter(tab.id)}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              className={cn(
+                "relative flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition",
+                active
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+              )}
             >
-              <ArrowRightLeft
-                className={cn("h-4 w-4 transition-transform", !isClaiming && "group-hover:rotate-180")}
-              />
-              {isClaiming ? "A converter..." : `Converter em ${pendingCoins} moedas`}
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-4 pt-4">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setFilter(tab.id)}
-            className={cn(
-              "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition",
-              filter === tab.id
-                ? "bg-violet-600 text-white shadow-sm"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
-            )}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
-      </div>
+              {active && (
+                <motion.span
+                  layoutId="activeStoreTab"
+                  className="absolute inset-0 rounded-xl bg-blue-600"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-2">
+                {tab.icon}
+                {tab.label}
+              </span>
+            </motion.button>
+          );
+        })}
+      </motion.div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <motion.div
+          variants={listVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+        >
           {[1, 2, 3].map((i) => (
-            <div
+            <motion.div
               key={i}
-              className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-slate-100"
-            />
+              variants={cardVariants}
+              className="relative h-64 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100"
+            >
+              <motion.div
+                className="absolute inset-y-0 -left-1/2 w-1/2 bg-white/40 blur-xl"
+                animate={{ x: ["0%", "260%"] }}
+                transition={{
+                  duration: 1.4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       ) : items.length === 0 ? (
-        <div className="rounded-3xl border border-slate-200 bg-white py-20 text-center shadow-sm">
-          <Store className="mx-auto mb-4 h-12 w-12 text-slate-300" />
-          <h3 className="text-lg font-semibold text-slate-900">A loja está vazia</h3>
-          <p className="mt-1 text-slate-500">Volte mais tarde para ver as novidades.</p>
-        </div>
+        <motion.div
+          variants={scaleIn}
+          className="rounded-3xl border border-slate-200 bg-white py-20 text-center shadow-sm"
+        >
+          <motion.div
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <Store className="mx-auto mb-4 h-12 w-12 text-slate-300" />
+          </motion.div>
+          <h3 className="text-lg font-semibold text-slate-900">
+            A loja está vazia
+          </h3>
+          <p className="mt-1 text-slate-500">
+            Volte mais tarde para ver as novidades.
+          </p>
+        </motion.div>
       ) : (
         <div className="space-y-10">
           {SECTIONS.map((section) => {
-            const sectionItems = items.filter((item) => item.category === section.id);
+            const sectionItems = items.filter(
+              (item) => item.category === section.id
+            );
 
             if (filter !== "all" && filter !== section.id) return null;
             if (sectionItems.length === 0) return null;
 
             return (
-              <section
+              <motion.section
                 key={section.id}
-                className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+                variants={fadeUp}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                className="space-y-4"
               >
-                <div className="mb-4 flex items-center gap-2">
-                  {section.icon}
-                  <h2 className="text-lg font-semibold text-slate-800">{section.label}</h2>
-                </div>
+                <motion.div
+                  className="mb-4 flex items-center gap-2"
+                  initial={{ opacity: 0, x: -14 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <motion.div
+                    whileHover={{ rotate: -10, scale: 1.08 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {section.icon}
+                  </motion.div>
+                  <h2 className="text-lg font-semibold text-slate-800">
+                    {section.label}
+                  </h2>
+                </motion.div>
 
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <motion.div
+                  variants={listVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+                >
                   {sectionItems.map((item) => {
                     const isOwned = item.owned || inventoryIds.has(item.id);
 
                     const isEquipped =
                       item.equipped ||
-                      (item.category === "avatar" && equippedItemIds.avatar === item.id) ||
-                      (item.category === "sound" && equippedItemIds.sound === item.id) ||
-                      (item.category === "theme" && equippedItemIds.theme === item.id);
+                      (item.category === "avatar" &&
+                        equippedItemIds.avatar === item.id) ||
+                      (item.category === "sound" &&
+                        equippedItemIds.sound === item.id) ||
+                      (item.category === "theme" &&
+                        equippedItemIds.theme === item.id);
 
                     const isLocked = userLevel < item.required_level;
                     const canAfford = userCoins >= item.price;
@@ -630,53 +927,71 @@ export default function StorePage() {
                       }[raritySafe] || "bg-slate-100 text-slate-600";
 
                     return (
-                      <div
+                      <motion.div
                         key={item.id}
+                        variants={cardVariants}
+                        whileHover={{ y: -6, scale: 1.015 }}
+                        transition={{ duration: 0.2 }}
                         className={cn(
                           "group relative flex flex-col justify-between rounded-3xl border bg-white p-5 shadow-sm transition-all hover:shadow-md",
                           isOwned
                             ? "border-violet-300 ring-2 ring-violet-50"
                             : "border-slate-200 hover:border-violet-200",
-                          isLocked ? "grayscale-[0.4] opacity-70" : ""
+                          isLocked ? "opacity-70 grayscale-[0.4]" : ""
                         )}
                       >
                         {isEquipped && (
-                          <div className="absolute left-4 top-4 z-10 rounded-full bg-emerald-500 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.85 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="absolute left-4 top-4 z-10 rounded-full bg-emerald-500 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm"
+                          >
                             Equipado agora
-                          </div>
+                          </motion.div>
                         )}
 
                         {isLocked && (
-                          <div className="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-full bg-slate-900/90 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm backdrop-blur-sm">
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.85 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-full bg-slate-900/90 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm backdrop-blur-sm"
+                          >
                             <Lock className="h-3 w-3" />
                             Nível {item.required_level}
-                          </div>
+                          </motion.div>
                         )}
 
                         <div className="mb-4 flex items-start justify-between">
-                          <div
+                          <motion.div
+                            whileHover={{
+                              rotate: item.category === "avatar" ? 0 : -6,
+                              scale: 1.06,
+                            }}
+                            transition={{ duration: 0.2 }}
                             className={cn(
-                              "flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-100 shadow-sm transition-transform group-hover:scale-105",
+                              "flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-100 shadow-sm",
                               item.category === "avatar"
                                 ? "bg-slate-50"
-                                : "bg-violet-50 text-violet-600"
+                                : "bg-violet-50 text-blue-600"
                             )}
                           >
                             {renderItemIcon(item)}
-                          </div>
+                          </motion.div>
 
                           <div className="flex flex-col items-end gap-2">
-                            <span
+                            <motion.span
+                              whileHover={{ scale: 1.05 }}
                               className={cn(
                                 "rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider",
                                 rarityStyle
                               )}
                             >
                               {raritySafe}
-                            </span>
+                            </motion.span>
 
                             {!isOwned && (
-                              <div
+                              <motion.div
+                                whileHover={{ scale: 1.04 }}
                                 className={cn(
                                   "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm",
                                   canAfford
@@ -686,14 +1001,16 @@ export default function StorePage() {
                               >
                                 <Coins className="h-3.5 w-3.5" />
                                 {item.price}
-                              </div>
+                              </motion.div>
                             )}
                           </div>
                         </div>
 
                         <div className="mb-5 flex-1">
-                          <h3 className="text-base font-bold text-slate-900">{item.name}</h3>
-                          <p className="mt-1 min-h-[40px] text-xs leading-relaxed text-slate-500">
+                          <h3 className="text-base font-bold text-slate-900">
+                            {item.name}
+                          </h3>
+                          <p className="mt-1 min-h-10 text-xs leading-relaxed text-slate-500">
                             {item.description}
                           </p>
                         </div>
@@ -701,24 +1018,33 @@ export default function StorePage() {
                         {isOwned ? (
                           item.category === "sound" ? (
                             <div className="flex gap-2">
-                              <button
+                              <motion.button
                                 type="button"
                                 onClick={() => handlePreviewSound(item)}
-                                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+                                whileHover={{ y: -2 }}
+                                whileTap={{ scale: 0.97 }}
+                                className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
                               >
                                 <Volume2 className="h-4 w-4" />
-                                {previewingSoundId === item.id ? "Reproduzindo..." : "Ouvir"}
-                              </button>
+                                {previewingSoundId === item.id
+                                  ? "Reproduzindo..."
+                                  : "Ouvir"}
+                              </motion.button>
 
-                              <button
+                              <motion.button
                                 type="button"
                                 onClick={() => handleEquipItem(item)}
                                 disabled={isEquipping}
+                                whileHover={!isEquipping ? { y: -2 } : {}}
+                                whileTap={!isEquipping ? { scale: 0.97 } : {}}
                                 className={cn(
                                   "flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold transition",
+                                  isEquipping
+                                    ? "cursor-not-allowed opacity-60"
+                                    : "cursor-pointer",
                                   isEquipped
                                     ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                                    : "bg-violet-600 text-white hover:bg-violet-700"
+                                    : "bg-blue-600 text-white hover:bg-blue-700"
                                 )}
                               >
                                 {isEquipped ? (
@@ -732,18 +1058,23 @@ export default function StorePage() {
                                     {isEquipping ? "Equipando..." : "Equipar"}
                                   </>
                                 )}
-                              </button>
+                              </motion.button>
                             </div>
                           ) : item.category === "avatar" ? (
-                            <button
+                            <motion.button
                               type="button"
                               onClick={() => handleEquipItem(item)}
                               disabled={isEquipping}
+                              whileHover={!isEquipping ? { y: -2 } : {}}
+                              whileTap={!isEquipping ? { scale: 0.97 } : {}}
                               className={cn(
                                 "flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold transition",
+                                isEquipping
+                                  ? "cursor-not-allowed opacity-60"
+                                  : "cursor-pointer",
                                 isEquipped
                                   ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                                  : "bg-violet-600 text-white hover:bg-violet-700"
+                                  : "bg-blue-600 text-white hover:bg-blue-700"
                               )}
                             >
                               {isEquipped ? (
@@ -757,17 +1088,22 @@ export default function StorePage() {
                                   {isEquipping ? "Equipando..." : "Equipar"}
                                 </>
                               )}
-                            </button>
+                            </motion.button>
                           ) : item.category === "theme" ? (
-                            <button
+                            <motion.button
                               type="button"
                               onClick={() => handleEquipItem(item)}
                               disabled={isEquipping}
+                              whileHover={!isEquipping ? { y: -2 } : {}}
+                              whileTap={!isEquipping ? { scale: 0.97 } : {}}
                               className={cn(
                                 "flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold transition",
+                                isEquipping
+                                  ? "cursor-not-allowed opacity-60"
+                                  : "cursor-pointer",
                                 isEquipped
                                   ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                                  : "bg-violet-600 text-white hover:bg-violet-700"
+                                  : "bg-blue-600 text-white hover:bg-blue-700"
                               )}
                             >
                               {isEquipped ? (
@@ -778,14 +1114,16 @@ export default function StorePage() {
                               ) : (
                                 <>
                                   <Palette className="h-4 w-4" />
-                                  {isEquipping ? "Equipando..." : "Equipar tema"}
+                                  {isEquipping
+                                    ? "Equipando..."
+                                    : "Equipar tema"}
                                 </>
                               )}
-                            </button>
+                            </motion.button>
                           ) : (
                             <button
                               disabled
-                              className="flex w-full items-center justify-center gap-2 rounded-xl border border-violet-100 bg-violet-50 py-3 text-xs font-bold text-violet-700"
+                              className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-violet-100 bg-violet-50 py-3 text-xs font-bold text-violet-700 opacity-80"
                             >
                               <Check className="h-4 w-4" />
                               Comprado
@@ -794,19 +1132,25 @@ export default function StorePage() {
                         ) : isLocked ? (
                           <button
                             disabled
-                            className="cursor-not-allowed flex w-full items-center justify-center gap-2 rounded-xl bg-slate-100 py-3 text-xs font-bold text-slate-400"
+                            className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-slate-100 py-3 text-xs font-bold text-slate-400"
                           >
                             <Lock className="h-4 w-4" />
                             Bloqueado
                           </button>
                         ) : (
-                          <button
+                          <motion.button
                             onClick={() => handlePurchase(item)}
                             disabled={!canAfford || isPurchasing}
+                            whileHover={
+                              canAfford && !isPurchasing ? { y: -2 } : {}
+                            }
+                            whileTap={
+                              canAfford && !isPurchasing ? { scale: 0.97 } : {}
+                            }
                             className={cn(
-                              "flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold transition-all active:scale-95",
-                              canAfford
-                                ? "cursor-pointer bg-violet-600 text-white shadow-sm hover:bg-violet-700"
+                              "flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold transition-all",
+                              canAfford && !isPurchasing
+                                ? "cursor-pointer bg-blue-600 text-white shadow-sm hover:bg-blue-700"
                                 : "cursor-not-allowed bg-slate-100 text-slate-400"
                             )}
                           >
@@ -814,19 +1158,19 @@ export default function StorePage() {
                             {isPurchasing
                               ? "A comprar..."
                               : canAfford
-                              ? "Comprar"
-                              : "Moedas insuficientes"}
-                          </button>
+                                ? "Comprar"
+                                : "Moedas insuficientes"}
+                          </motion.button>
                         )}
-                      </div>
+                      </motion.div>
                     );
                   })}
-                </div>
-              </section>
+                </motion.div>
+              </motion.section>
             );
           })}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

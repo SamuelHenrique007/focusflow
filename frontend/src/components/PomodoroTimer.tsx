@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
   ChevronDown,
@@ -152,10 +153,10 @@ function TaskSelect({
           if (!disabled) setOpen((prev) => !prev);
         }}
         disabled={disabled}
-        className={`flex h-14.5 w-full items-center justify-between rounded-[18px] border border-slate-200 bg-white px-4 text-left shadow-sm transition ${
+        className={`flex h-14.5 w-full items-center justify-between rounded-[18px] border border-slate-200 bg-white px-4 text-left shadow-sm transition-all ${
           disabled
             ? "cursor-not-allowed opacity-60"
-            : "cursor-pointer hover:border-slate-300"
+            : "cursor-pointer hover:border-slate-300 ring-blue-200 focus:ring-4 focus:border-blue-500"
         }`}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -171,65 +172,73 @@ function TaskSelect({
         </div>
 
         <ChevronDown
-          className={`h-5 w-5 shrink-0 text-slate-400 transition ${
+          className={`h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200 ${
             open ? "rotate-180" : ""
           }`}
         />
       </button>
 
-      {open && !disabled && (
-        <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-xl">
-          <div className="max-h-64 overflow-y-auto p-2">
-            <button
-              type="button"
-              onClick={() => {
-                onChange("");
-                setOpen(false);
-              }}
-              className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-left transition ${
-                value === ""
-                  ? "bg-slate-100 text-slate-900"
-                  : "text-slate-700 hover:bg-slate-50"
-              }`}
-              role="option"
-              aria-selected={value === ""}
-            >
-              <span className="truncate text-sm font-medium">
-                Sem tarefa vinculada
-              </span>
-              {value === "" && <Check className="h-4 w-4 text-slate-600" />}
-            </button>
+      <AnimatePresence>
+        {open && !disabled && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15 }}
+            className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-xl"
+          >
+            <div className="max-h-64 overflow-y-auto p-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onChange("");
+                  setOpen(false);
+                }}
+                className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-left transition-colors ${
+                  value === ""
+                    ? "bg-slate-100 text-slate-900"
+                    : "text-slate-700 hover:bg-slate-50"
+                }`}
+                role="option"
+                aria-selected={value === ""}
+              >
+                <span className="truncate text-sm font-medium">
+                  Sem tarefa vinculada
+                </span>
+                {value === "" && <Check className="h-4 w-4 text-slate-600" />}
+              </button>
 
-            {options.map((option) => {
-              const isSelected = option.value === value;
+              {options.map((option) => {
+                const isSelected = option.value === value;
 
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => {
-                    onChange(option.value);
-                    setOpen(false);
-                  }}
-                  className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-left transition ${
-                    isSelected
-                      ? "bg-slate-100 text-slate-900"
-                      : "text-slate-700 hover:bg-slate-50"
-                  }`}
-                  role="option"
-                  aria-selected={isSelected}
-                >
-                  <span className="truncate text-sm font-medium">
-                    {option.label}
-                  </span>
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(option.value);
+                      setOpen(false);
+                    }}
+                    className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-left transition-colors ${
+                      isSelected
+                        ? "bg-blue-50 text-blue-900"
+                        : "text-slate-700 hover:bg-slate-50"
+                    }`}
+                    role="option"
+                    aria-selected={isSelected}
+                  >
+                    <span className="truncate text-sm font-medium">
+                      {option.label}
+                    </span>
 
-                  {isSelected && <Check className="h-4 w-4 text-slate-600" />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                    {isSelected && <Check className="h-4 w-4 text-blue-600" />}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -274,9 +283,9 @@ function SettingControl({
             type="button"
             onClick={onDecrease}
             disabled={!canDecrease}
-            className={`grid h-10 w-10 place-items-center rounded-xl ring-1 transition ${
+            className={`grid h-10 w-10 place-items-center rounded-xl ring-1 transition-all ${
               canDecrease
-                ? "cursor-pointer bg-white text-slate-700 ring-slate-200 hover:bg-slate-50"
+                ? "cursor-pointer bg-white text-slate-700 ring-slate-200 hover:bg-slate-50 hover:scale-105 active:scale-95"
                 : "cursor-not-allowed bg-slate-100 text-slate-300 ring-slate-100"
             }`}
             aria-label={`Diminuir ${label}`}
@@ -285,7 +294,14 @@ function SettingControl({
           </button>
 
           <div className="min-w-22.5 rounded-2xl bg-white px-4 py-2 text-center ring-1 ring-slate-200">
-            <div className="text-lg font-bold text-slate-800">{value}</div>
+            <motion.div
+              key={value}
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-lg font-bold text-slate-800"
+            >
+              {value}
+            </motion.div>
             <div className="text-xs font-medium text-slate-500">{suffix}</div>
           </div>
 
@@ -293,9 +309,9 @@ function SettingControl({
             type="button"
             onClick={onIncrease}
             disabled={!canIncrease}
-            className={`grid h-10 w-10 place-items-center rounded-xl ring-1 transition ${
+            className={`grid h-10 w-10 place-items-center rounded-xl ring-1 transition-all ${
               canIncrease
-                ? "cursor-pointer bg-white text-slate-700 ring-slate-200 hover:bg-slate-50"
+                ? "cursor-pointer bg-white text-slate-700 ring-slate-200 hover:bg-slate-50 hover:scale-105 active:scale-95"
                 : "cursor-not-allowed bg-slate-100 text-slate-300 ring-slate-100"
             }`}
             aria-label={`Aumentar ${label}`}
@@ -475,8 +491,8 @@ export default function PomodoroTimer({
     const isActive = activePreset === presetKey;
 
     return isActive
-      ? "cursor-pointer rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700"
-      : "cursor-pointer rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50";
+      ? "cursor-pointer rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 shadow-sm"
+      : "cursor-pointer rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:scale-105 active:scale-95";
   }
 
   async function refreshTasks() {
@@ -762,13 +778,20 @@ export default function PomodoroTimer({
             : "rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm"
         }
       >
-        <p
-          className={
-            isFocusVariant ? "text-sm text-slate-400" : "text-sm text-slate-500"
-          }
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center gap-4"
         >
-          Carregando Pomodoro...
-        </p>
+          <div className="h-24 w-24 animate-pulse rounded-full bg-slate-100 ring-4 ring-slate-50" />
+          <p
+            className={
+              isFocusVariant ? "text-sm text-slate-400" : "text-sm text-slate-500"
+            }
+          >
+            Carregando Pomodoro...
+          </p>
+        </motion.div>
       </div>
     );
   }
@@ -795,7 +818,11 @@ export default function PomodoroTimer({
 
   return (
     <>
-      <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
+      >
         <div className="mt-4 flex items-stretch gap-3">
           <div className="flex-1">
             <TaskSelect
@@ -809,22 +836,27 @@ export default function PomodoroTimer({
           <button
             type="button"
             onClick={() => setShowSettings(true)}
-            className="grid h-14.5 w-13 shrink-0 cursor-pointer place-items-center rounded-[18px] bg-white text-slate-600 ring-1 ring-slate-200 shadow-sm transition hover:bg-slate-50 sm:w-14.5"
+            className="grid h-14.5 w-13 shrink-0 cursor-pointer place-items-center rounded-[18px] bg-white text-slate-600 ring-1 ring-slate-200 shadow-sm transition-all hover:bg-slate-50 hover:scale-[1.03] active:scale-[0.97] sm:w-14.5"
             aria-label="Configurações"
           >
-            <Settings className="h-5 w-5" />
+            <Settings className="h-5 w-5 transition-transform hover:rotate-90 duration-300" />
           </button>
         </div>
 
         <div className="mt-7 flex flex-col items-center text-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-1.5 text-sm font-semibold text-blue-600">
+          <motion.div 
+            key={sessionType}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-1.5 text-sm font-semibold text-blue-600"
+          >
             <Circle className="h-2.5 w-2.5 fill-current stroke-0" />
             {sessionType === "focus"
               ? "Foco"
               : sessionType === "short_break"
                 ? "Pausa curta"
                 : "Pausa longa"}
-          </div>
+          </motion.div>
 
           <p className="mt-3 text-sm text-slate-500 sm:text-[15px]">
             Trabalhando em:{" "}
@@ -838,65 +870,85 @@ export default function PomodoroTimer({
           </p>
 
           <div className="relative mt-6 flex h-52 w-52 items-center justify-center sm:h-60 sm:w-60">
-            <div className="absolute inset-0 rounded-full border-8 border-slate-100" />
-            <div className="flex h-40 w-40 items-center justify-center rounded-full bg-slate-50 sm:h-48 sm:w-48">
-              <span className="text-4xl font-medium tracking-tight text-slate-700 sm:text-5xl">
+            {/* Efeito de respiração / pulso no timer quando rodando */}
+            <motion.div 
+              animate={
+                runningSession && !isPaused
+                  ? { scale: [1, 1.05, 1], opacity: [0.7, 1, 0.7] }
+                  : { scale: 1, opacity: 1 }
+              }
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute inset-0 rounded-full border-8 border-slate-100" 
+            />
+            
+            <div className="flex h-40 w-40 items-center justify-center rounded-full bg-slate-50 sm:h-48 sm:w-48 shadow-inner">
+              <span className="text-4xl font-medium tracking-tight text-slate-700 sm:text-5xl tabular-nums">
                 {timeLabel}
               </span>
             </div>
           </div>
 
-          <div className="mt-5 flex items-center gap-3">
+          <motion.div layout className="mt-5 flex items-center gap-3">
             <button
               type="button"
               onClick={handleReset}
               disabled={isFinishing}
-              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200 shadow-sm transition hover:bg-slate-50 hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
               aria-label="Reiniciar"
             >
               <RotateCcw className="h-4 w-4" />
             </button>
 
-            {!runningSession ? (
-              <button
-                type="button"
-                onClick={handleStart}
-                disabled={isStarting}
-                className="grid h-14 w-14 cursor-pointer place-items-center rounded-full bg-blue-600 text-white shadow-sm transition hover:scale-[1.02] hover:bg-blue-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
-                aria-label="Iniciar"
-              >
-                <Play className="ml-0.5 h-5 w-5 fill-current" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={togglePause}
-                disabled={isFinishing}
-                className={`grid h-14 w-14 cursor-pointer place-items-center rounded-full text-white shadow-sm transition hover:scale-[1.02] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 ${
-                  isPaused
-                    ? "bg-blue-600 hover:bg-blue-700"
-                    : "bg-amber-500 hover:bg-amber-600"
-                }`}
-                aria-label={isPaused ? "Retomar" : "Pausar"}
-              >
-                {isPaused ? (
+            <AnimatePresence mode="popLayout">
+              {!runningSession ? (
+                <motion.button
+                  key="start"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  type="button"
+                  onClick={handleStart}
+                  disabled={isStarting}
+                  className="grid h-14 w-14 cursor-pointer place-items-center rounded-full bg-blue-600 text-white shadow-md transition hover:scale-[1.05] hover:bg-blue-700 active:scale-[0.95] disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label="Iniciar"
+                >
                   <Play className="ml-0.5 h-5 w-5 fill-current" />
-                ) : (
-                  <Pause className="h-5 w-5 fill-current" />
-                )}
-              </button>
-            )}
+                </motion.button>
+              ) : (
+                <motion.button
+                  key="pause"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  type="button"
+                  onClick={togglePause}
+                  disabled={isFinishing}
+                  className={`grid h-14 w-14 cursor-pointer place-items-center rounded-full text-white shadow-md transition hover:scale-[1.05] active:scale-[0.95] disabled:cursor-not-allowed disabled:opacity-60 ${
+                    isPaused
+                      ? "bg-blue-600 hover:bg-blue-700"
+                      : "bg-amber-500 hover:bg-amber-600"
+                  }`}
+                  aria-label={isPaused ? "Retomar" : "Pausar"}
+                >
+                  {isPaused ? (
+                    <Play className="ml-0.5 h-5 w-5 fill-current" />
+                  ) : (
+                    <Pause className="h-5 w-5 fill-current" />
+                  )}
+                </motion.button>
+              )}
+            </AnimatePresence>
 
             <button
               type="button"
               onClick={handleSkip}
               disabled={isFinishing}
-              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200 shadow-sm transition hover:bg-slate-50 hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
               aria-label="Próximo ciclo"
             >
               <SkipForward className="h-4 w-4" />
             </button>
-          </div>
+          </motion.div>
 
           {(() => {
             const fullCycles = Math.floor(
@@ -926,207 +978,227 @@ export default function PomodoroTimer({
                 state: { selectedTaskId: selectedTask },
               })
             }
-            className="mt-4 cursor-pointer text-sm font-semibold text-blue-600 transition hover:text-blue-700"
+            className="mt-4 cursor-pointer text-sm font-semibold text-blue-600 transition-colors hover:text-blue-700"
           >
             Entrar no Modo Foco
           </button>
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <StatCard
-            title="Pomodoros"
-            value={String(stats.pomodoros)}
-            subtitle="sessões concluídas"
-            icon={<Target className="h-5 w-5" />}
-            iconTone="bg-blue-50 text-blue-700"
-          />
-
-          <StatCard
-            title="Minutos"
-            value={String(stats.minutes)}
-            subtitle="tempo focado"
-            icon={<Clock className="h-5 w-5" />}
-            iconTone="bg-emerald-50 text-emerald-700"
-          />
-
-          <StatCard
-            title="Pontos"
-            value={String(stats.points)}
-            subtitle="XP acumulado"
-            icon={<Star className="h-5 w-5" />}
-            iconTone="bg-amber-50 text-amber-700"
-          />
+          {[
+            {
+              title: "Pomodoros",
+              value: String(stats.pomodoros),
+              subtitle: "sessões concluídas",
+              icon: <Target className="h-5 w-5" />,
+              iconTone: "bg-blue-50 text-blue-700",
+            },
+            {
+              title: "Minutos",
+              value: String(stats.minutes),
+              subtitle: "tempo focado",
+              icon: <Clock className="h-5 w-5" />,
+              iconTone: "bg-emerald-50 text-emerald-700",
+            },
+            {
+              title: "Pontos",
+              value: String(stats.points),
+              subtitle: "XP acumulado",
+              icon: <Star className="h-5 w-5" />,
+              iconTone: "bg-amber-50 text-amber-700",
+            },
+          ].map((stat, i) => (
+            <motion.div
+              key={stat.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1, duration: 0.4 }}
+            >
+              <StatCard {...stat} />
+            </motion.div>
+          ))}
         </div>
-      </div>
+      </motion.div>
 
-      {showSettings && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-[2px]">
-          <div
-            className="scrollbar-hide max-h-[80vh] w-full max-w-md overflow-y-auto rounded-[15px] border border-slate-200 bg-white p-4 shadow-2xl sm:p-5"
-            style={{
-              msOverflowStyle: "none",
-              scrollbarWidth: "none",
-            }}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-[2px]"
           >
-            <style>
-              {`
-                .scrollbar-hide::-webkit-scrollbar {
-                  display: none;
-                }
-              `}
-            </style>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", bounce: 0.3, duration: 0.4 }}
+              className="scrollbar-hide max-h-[80vh] w-full max-w-md overflow-y-auto rounded-[24px] border border-slate-200 bg-white p-4 shadow-2xl sm:p-6"
+              style={{
+                msOverflowStyle: "none",
+                scrollbarWidth: "none",
+              }}
+            >
+              <style>
+                {`
+                  .scrollbar-hide::-webkit-scrollbar {
+                    display: none;
+                  }
+                `}
+              </style>
 
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold text-slate-800">
-                  Configurações do Pomodoro
-                </h2>
-                <p className="mt-1 text-xs text-slate-500">
-                  Ajuste os tempos das sessões.
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-800">
+                    Configurações do Pomodoro
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Ajuste os tempos das sessões.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowSettings(false)}
+                  className="grid h-9 w-9 cursor-pointer place-items-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:scale-105 active:scale-95"
+                  aria-label="Fechar configurações"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-6">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-3">
+                  Presets rápidos
                 </p>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => applyPreset("minimo")}
+                    className={getPresetButtonClass("minimo")}
+                  >
+                    Mínimo
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => applyPreset("padrao")}
+                    className={getPresetButtonClass("padrao")}
+                  >
+                    Padrão
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => applyPreset("maximo")}
+                    className={getPresetButtonClass("maximo")}
+                  >
+                    Máximo
+                  </button>
+                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowSettings(false)}
-                className="grid h-9 w-9 cursor-pointer place-items-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50"
-                aria-label="Fechar configurações"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+              <div className="mt-6 grid gap-3">
+                <SettingControl
+                  label="Tempo de foco"
+                  description="Duração da sessão."
+                  value={settings.focusMinutes}
+                  min={15}
+                  max={60}
+                  suffix="min"
+                  onDecrease={() =>
+                    updateSetting(
+                      "focusMinutes",
+                      Math.max(15, settings.focusMinutes - 1),
+                    )
+                  }
+                  onIncrease={() =>
+                    updateSetting(
+                      "focusMinutes",
+                      Math.min(60, settings.focusMinutes + 1),
+                    )
+                  }
+                />
 
-            <div className="mt-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                Presets rápidos
-              </p>
+                <SettingControl
+                  label="Pausa curta"
+                  description="Descanso entre ciclos."
+                  value={settings.shortBreakMinutes}
+                  min={3}
+                  max={15}
+                  suffix="min"
+                  onDecrease={() =>
+                    updateSetting(
+                      "shortBreakMinutes",
+                      Math.max(3, settings.shortBreakMinutes - 1),
+                    )
+                  }
+                  onIncrease={() =>
+                    updateSetting(
+                      "shortBreakMinutes",
+                      Math.min(15, settings.shortBreakMinutes + 1),
+                    )
+                  }
+                />
 
-              <div className="mt-2 flex flex-wrap gap-2">
+                <SettingControl
+                  label="Pausa longa"
+                  description="Descanso após ciclos."
+                  value={settings.longBreakMinutes}
+                  min={10}
+                  max={30}
+                  suffix="min"
+                  onDecrease={() =>
+                    updateSetting(
+                      "longBreakMinutes",
+                      Math.max(10, settings.longBreakMinutes - 1),
+                    )
+                  }
+                  onIncrease={() =>
+                    updateSetting(
+                      "longBreakMinutes",
+                      Math.min(30, settings.longBreakMinutes + 1),
+                    )
+                  }
+                />
+
+                <SettingControl
+                  label="Ciclos até pausa longa"
+                  description="Sessões antes da pausa longa."
+                  value={settings.cyclesBeforeLongBreak}
+                  min={2}
+                  max={6}
+                  suffix="ciclos"
+                  onDecrease={() =>
+                    updateSetting(
+                      "cyclesBeforeLongBreak",
+                      Math.max(2, settings.cyclesBeforeLongBreak - 1),
+                    )
+                  }
+                  onIncrease={() =>
+                    updateSetting(
+                      "cyclesBeforeLongBreak",
+                      Math.min(6, settings.cyclesBeforeLongBreak + 1),
+                    )
+                  }
+                />
+              </div>
+
+              <div className="mt-6 flex justify-end">
                 <button
                   type="button"
-                  onClick={() => applyPreset("minimo")}
-                  className={getPresetButtonClass("minimo")}
+                  onClick={handleSaveSettings}
+                  disabled={isSavingSettings}
+                  className="cursor-pointer rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Mínimo
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => applyPreset("padrao")}
-                  className={getPresetButtonClass("padrao")}
-                >
-                  Padrão
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => applyPreset("maximo")}
-                  className={getPresetButtonClass("maximo")}
-                >
-                  Máximo
+                  {isSavingSettings ? "Salvando..." : "Concluir"}
                 </button>
               </div>
-            </div>
-
-            <div className="mt-4 grid gap-3">
-              <SettingControl
-                label="Tempo de foco"
-                description="Duração da sessão."
-                value={settings.focusMinutes}
-                min={15}
-                max={60}
-                suffix="min"
-                onDecrease={() =>
-                  updateSetting(
-                    "focusMinutes",
-                    Math.max(15, settings.focusMinutes - 1),
-                  )
-                }
-                onIncrease={() =>
-                  updateSetting(
-                    "focusMinutes",
-                    Math.min(60, settings.focusMinutes + 1),
-                  )
-                }
-              />
-
-              <SettingControl
-                label="Pausa curta"
-                description="Descanso entre ciclos."
-                value={settings.shortBreakMinutes}
-                min={3}
-                max={15}
-                suffix="min"
-                onDecrease={() =>
-                  updateSetting(
-                    "shortBreakMinutes",
-                    Math.max(3, settings.shortBreakMinutes - 1),
-                  )
-                }
-                onIncrease={() =>
-                  updateSetting(
-                    "shortBreakMinutes",
-                    Math.min(15, settings.shortBreakMinutes + 1),
-                  )
-                }
-              />
-
-              <SettingControl
-                label="Pausa longa"
-                description="Descanso após ciclos."
-                value={settings.longBreakMinutes}
-                min={10}
-                max={30}
-                suffix="min"
-                onDecrease={() =>
-                  updateSetting(
-                    "longBreakMinutes",
-                    Math.max(10, settings.longBreakMinutes - 1),
-                  )
-                }
-                onIncrease={() =>
-                  updateSetting(
-                    "longBreakMinutes",
-                    Math.min(30, settings.longBreakMinutes + 1),
-                  )
-                }
-              />
-
-              <SettingControl
-                label="Ciclos até pausa longa"
-                description="Sessões antes da pausa longa."
-                value={settings.cyclesBeforeLongBreak}
-                min={2}
-                max={6}
-                suffix="ciclos"
-                onDecrease={() =>
-                  updateSetting(
-                    "cyclesBeforeLongBreak",
-                    Math.max(2, settings.cyclesBeforeLongBreak - 1),
-                  )
-                }
-                onIncrease={() =>
-                  updateSetting(
-                    "cyclesBeforeLongBreak",
-                    Math.min(6, settings.cyclesBeforeLongBreak + 1),
-                  )
-                }
-              />
-            </div>
-
-            <div className="mt-4 flex justify-end">
-              <button
-                type="button"
-                onClick={handleSaveSettings}
-                disabled={isSavingSettings}
-                className="cursor-pointer rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSavingSettings ? "Salvando..." : "Concluir"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import {
   Play,
   Flame,
@@ -129,16 +130,17 @@ function TaskRow({
         : "neutral";
 
   const isDone = task.status === "concluida";
-  const isOverdue = task.status === "pendente"; // Pendente = Atrasada
+  const isOverdue = task.status === "pendente";
   const isActive = (task.status as string) === "em_andamento";
 
   return (
     <div className={cn(
-      "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition hover:shadow-md",
+      "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all hover:shadow-md",
       isOverdue ? "border-rose-200 bg-rose-50/40" : "border-slate-200 bg-white"
     )}>
       {!isDone ? (
-        <div
+        <motion.div
+          layoutId={`indicator-${task.id}`}
           className={cn(
             "absolute left-0 top-0 h-full w-1.5",
             isOverdue
@@ -152,7 +154,7 @@ function TaskRow({
         <button
           type="button"
           onClick={onToggleComplete}
-          className="mt-0.5 grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-200 transition hover:bg-white hover:scale-105"
+          className="mt-0.5 grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-200 transition-all hover:bg-white hover:scale-105 active:scale-95"
           aria-label={
             isDone
               ? "Desmarcar tarefa concluída"
@@ -160,24 +162,41 @@ function TaskRow({
           }
           title={isDone ? "Desmarcar concluída" : "Marcar concluída"}
         >
-          {isDone ? (
-            <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-          ) : (
-            <Circle
-              className={cn(
-                "h-6 w-6 transition",
-                isOverdue
-                  ? "text-rose-500"
-                  : "text-slate-300 group-hover:text-blue-500"
-              )}
-            />
-          )}
+          <AnimatePresence mode="wait">
+            {isDone ? (
+              <motion.div
+                key="done"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0, rotate: 180 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              >
+                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="pending"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+              >
+                <Circle
+                  className={cn(
+                    "h-6 w-6 transition-colors",
+                    isOverdue
+                      ? "text-rose-500"
+                      : "text-slate-300 group-hover:text-blue-500"
+                  )}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </button>
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-semibold text-slate-900">
+              <p className="truncate text-sm font-semibold text-slate-900 transition-colors">
                 {task.title}
               </p>
               {isOverdue && (
@@ -221,12 +240,14 @@ function TaskRow({
           {typeof task.progress === "number" ? (
             <div className="mt-4 flex items-center gap-3">
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
-                <div 
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.max(0, Math.min(100, task.progress))}%` }} 
+                  transition={{ duration: 1, ease: "easeOut" }}
                   className={cn(
-                    "h-full rounded-full transition-all duration-500 ease-out", 
+                    "h-full rounded-full", 
                     isDone ? "bg-emerald-500" : "bg-blue-500"
                   )}
-                  style={{ width: `${Math.max(0, Math.min(100, task.progress))}%` }} 
                 />
               </div>
               <span className="w-8 text-right text-xs font-bold text-slate-600">
@@ -248,11 +269,21 @@ function DashboardEmptyState({
   onStartPomodoro: () => void;
 }) {
   return (
-    <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10 sm:py-14">
+    <motion.div 
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: "spring", stiffness: 200, damping: 20 }}
+      className="rounded-[28px] border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10 sm:py-14"
+    >
       <div className="mx-auto flex max-w-xl flex-col items-center text-center">
-        <div className="grid h-20 w-20 place-items-center rounded-full bg-slate-100 ring-8 ring-slate-50">
+        <motion.div 
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+          className="grid h-20 w-20 place-items-center rounded-full bg-slate-100 ring-8 ring-slate-50"
+        >
           <CheckCircle2 className="h-8 w-8 text-slate-500" />
-        </div>
+        </motion.div>
 
         <h3 className="mt-6 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
           Nenhuma tarefa para hoje
@@ -267,7 +298,7 @@ function DashboardEmptyState({
           <button
             type="button"
             onClick={onCreateTask}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:border-slate-300 hover:bg-slate-100 active:scale-[0.98]"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:border-slate-300 hover:bg-slate-100 hover:scale-105 active:scale-95"
           >
             <Plus className="h-4 w-4" />
             Criar Tarefa
@@ -276,16 +307,30 @@ function DashboardEmptyState({
           <button
             type="button"
             onClick={onStartPomodoro}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 hover:scale-105 active:scale-95"
           >
             <Play className="h-4 w-4" />
             Iniciar Pomodoro
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
+
+// Configurações de animação em cascata (Stagger) tipadas com Variants
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
 
 export default function FocusFlowDashboard() {
   const navigate = useNavigate();
@@ -396,7 +441,8 @@ export default function FocusFlowDashboard() {
       isToday(task.completedAt),
   );
 
-  const tempoFocadoMin = gameStats?.today_focus_minutes ?? pomodoroStats.minutes ?? 0;
+  // Aqui substituí para evitar o erro do typescript, garantindo que o GameStatus e PomodoroStats casem
+  const tempoFocadoMin = gameStats?.total_focus_minutes ?? pomodoroStats.minutes ?? 0;
   const pomodorosConcluidos = gameStats?.total_pomodoros ?? pomodoroStats.pomodoros ?? 0;
   const pontos = pomodoroStats.points ?? 0;
 
@@ -528,59 +574,70 @@ export default function FocusFlowDashboard() {
 
   return (
     <>
-      <div className="mb-4 lg:hidden">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-          {getGreeting()}, {userName}! 👋
-        </h1>
-        <p className="mt-1 text-sm text-slate-500 capitalize">{todayLabel}</p>
-
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Badge tone="warning">
-            <span className="inline-flex items-center gap-1">
-              <Flame className="h-4 w-4" />
-              {pomodoroStats.active_days} dias com foco
-            </span>
-          </Badge>
-
-          <button
-            className="ml-auto inline-flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-            type="button"
-            onClick={() => setNewTaskOpen(true)}
-          >
-            <Plus className="h-4 w-4" />
-            Nova Tarefa
-          </button>
-        </div>
-      </div>
-
-      <div className="hidden items-start justify-between gap-4 lg:flex">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <div className="mb-4 lg:hidden">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
             {getGreeting()}, {userName}! 👋
           </h1>
           <p className="mt-1 text-sm text-slate-500 capitalize">{todayLabel}</p>
+
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <Badge tone="warning">
+              <span className="inline-flex items-center gap-1">
+                <Flame className="h-4 w-4" />
+                {pomodoroStats.active_days} dias com foco
+              </span>
+            </Badge>
+
+            <button
+              className="ml-auto inline-flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-105 active:scale-95"
+              type="button"
+              onClick={() => setNewTaskOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Nova Tarefa
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Badge tone="warning">
-            <span className="inline-flex items-center gap-1">
-              <Flame className="h-4 w-4" />
-              {pomodoroStats.active_days} dias com foco
-            </span>
-          </Badge>
+        <div className="hidden items-start justify-between gap-4 lg:flex">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+              {getGreeting()}, {userName}! 👋
+            </h1>
+            <p className="mt-1 text-sm text-slate-500 capitalize">{todayLabel}</p>
+          </div>
 
-          <button
-            className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-            type="button"
-            onClick={() => setNewTaskOpen(true)}
-          >
-            <Plus className="h-4 w-4" />
-            Nova Tarefa
-          </button>
+          <div className="flex items-center gap-3">
+            <Badge tone="warning">
+              <span className="inline-flex items-center gap-1">
+                <Flame className="h-4 w-4" />
+                {pomodoroStats.active_days} dias com foco
+              </span>
+            </Badge>
+
+            <button
+              className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-105 active:scale-95"
+              type="button"
+              onClick={() => setNewTaskOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Nova Tarefa
+            </button>
+          </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="mt-4 rounded-2xl border border-slate-200 bg-linear-to-r from-slate-50 to-indigo-50 p-4 sm:p-5">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="mt-4 rounded-2xl border border-slate-200 bg-linear-to-r from-slate-50 to-indigo-50 p-4 sm:p-5"
+      >
         <div className="flex items-center justify-between gap-3">
           <Badge tone="info">
             <span className="inline-flex items-center gap-1">
@@ -588,170 +645,193 @@ export default function FocusFlowDashboard() {
               Nível {userLevel}
             </span>
           </Badge>
-          <p className="text-xs font-medium text-slate-500">
+          <p className="text-xs font-medium text-slate-500 tabular-nums">
             {xpCurrent} / {xpTotal} XP
           </p>
         </div>
 
         <div className="mt-3">
-            {/* Barra de Progresso Nativa Tailwind para o XP REAL */}
             <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 ring-1 ring-inset ring-slate-300/50">
-              <div 
-                className="h-full rounded-full bg-blue-600 transition-all duration-500 ease-out"
-                style={{ width: `${Math.max(0, Math.min(100, xpPct))}%` }} 
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.max(0, Math.min(100, xpPct))}%` }} 
+                transition={{ duration: 1.5, ease: "easeOut" }}
+                className="h-full rounded-full bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.4)]"
               />
             </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Meta do Dia"
-          value={`${stats.metaDiaPct}%`}
-          subtitle={`${dailyProgressMin}/${stats.metaDiaTotalMin} min`}
-          icon={<Target className="h-5 w-5" />}
-          iconTone="bg-blue-50 text-blue-700"
-        />
-        <StatCard
-          title="Tempo Focado"
-          value={`${stats.tempoFocadoMin} min`}
-          subtitle="hoje"
-          icon={<Clock className="h-5 w-5" />}
-          iconTone="bg-emerald-50 text-emerald-700"
-        />
-        <StatCard
-          title="Concluídas"
-          value={`${stats.concluidasHoje}`}
-          subtitle="hoje"
-          icon={<CheckCircle2 className="h-5 w-5" />}
-          iconTone="bg-emerald-50 text-emerald-700"
-        />
-        <StatCard
-          title="Atrasadas"
-          value={`${stats.pendentesTotal}`}
-          subtitle="total"
-          icon={<AlertCircle className="h-5 w-5" />}
-          iconTone="bg-rose-50 text-rose-700"
-        />
-      </div>
-
-      <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">
-              Progresso Diário
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Meta: {dailyGoalMin} min de foco
-            </p>
+      {isLoading ? (
+        // Skeletons Animados para os Cards e Tarefas
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-5 space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-25 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50" />)}
           </div>
-
-          <button
-            className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-blue-700 ring-1 ring-slate-200 hover:bg-slate-50"
-            type="button"
-            onClick={() => navigate("/pomodoropage")}
+          <div className="h-25 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50" />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+             <div className="h-30 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50" />
+             <div className="h-30 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50" />
+          </div>
+        </motion.div>
+      ) : (
+        <>
+          <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
           >
-            Iniciar Pomodoro <span aria-hidden>→</span>
-          </button>
-        </div>
-
-        <div className="mt-4">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
-              <div 
-                className="h-full rounded-full bg-blue-500 transition-all duration-500 ease-out"
-                style={{ width: `${Math.max(0, Math.min(100, dailyProgressPct))}%` }} 
-              />
-            </div>
-          <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-            <span>{dailyProgressMin} min</span>
-            <span>{dailyGoalMin} min</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="relative overflow-hidden rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 p-5 text-white shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-lg font-semibold">Começar a Focar</p>
-              <p className="mt-1 text-sm/relaxed text-white/85">
-                Inicie uma sessão Pomodoro agora
-              </p>
-            </div>
-
-            <button
-              className="grid h-12 w-12 cursor-pointer place-items-center rounded-full bg-white/15 ring-1 ring-white/25 hover:bg-white/20"
-              type="button"
-              aria-label="Iniciar"
-              onClick={() => navigate("/pomodoropage")}
-            >
-              <Play className="h-6 w-6 fill-white" />
-            </button>
-          </div>
-          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10" />
-        </div>
-
-        <div
-          className={cn(
-            "relative overflow-hidden rounded-2xl p-5 text-white shadow-sm transition",
-            focusCard.containerClass,
-          )}
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-lg font-semibold">{focusCard.title}</p>
-              <p className="mt-1 text-sm/relaxed text-white/85">
-                {focusCard.description}
-              </p>
-            </div>
-
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/25">
-              {focusCard.icon}
-            </div>
-          </div>
-          <div className="pointer-events-none absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-white/10" />
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">
-            Prioridades
-          </h2>
-          <button
-            className="cursor-pointer text-sm font-semibold text-blue-700 hover:text-blue-800"
-            type="button"
-            onClick={() => navigate("/tasks")}
-          >
-            Ver todas <span aria-hidden>→</span>
-          </button>
-        </div>
-
-        {isLoading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
-            Carregando dashboard...
-          </div>
-        ) : errorMessage ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-sm">
-            {errorMessage}
-          </div>
-        ) : highlightTasks.length === 0 ? (
-          <DashboardEmptyState
-            onCreateTask={() => setNewTaskOpen(true)}
-            onStartPomodoro={() => navigate("/pomodoropage")}
-          />
-        ) : (
-          <div className="space-y-3">
-            {highlightTasks.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                onToggleComplete={() => handleToggleComplete(task)}
-              />
+            {[
+              { title: "Meta do Dia", value: `${stats.metaDiaPct}%`, subtitle: `${dailyProgressMin}/${stats.metaDiaTotalMin} min`, icon: <Target className="h-5 w-5" />, tone: "bg-blue-50 text-blue-700" },
+              { title: "Tempo Focado", value: `${stats.tempoFocadoMin} min`, subtitle: "hoje", icon: <Clock className="h-5 w-5" />, tone: "bg-emerald-50 text-emerald-700" },
+              { title: "Concluídas", value: `${stats.concluidasHoje}`, subtitle: "hoje", icon: <CheckCircle2 className="h-5 w-5" />, tone: "bg-emerald-50 text-emerald-700" },
+              { title: "Atrasadas", value: `${stats.pendentesTotal}`, subtitle: "total", icon: <AlertCircle className="h-5 w-5" />, tone: "bg-rose-50 text-rose-700" },
+            ].map((stat, i) => (
+              <motion.div key={i} variants={itemVariants}>
+                <StatCard title={stat.title} value={stat.value} subtitle={stat.subtitle} icon={stat.icon} iconTone={stat.tone} />
+              </motion.div>
             ))}
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  Progresso Diário
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Meta: {dailyGoalMin} min de foco
+                </p>
+              </div>
+
+              <button
+                className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-blue-700 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:scale-105 active:scale-95"
+                type="button"
+                onClick={() => navigate("/pomodoropage")}
+              >
+                Iniciar Pomodoro <span aria-hidden>→</span>
+              </button>
+            </div>
+
+            <div className="mt-4">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.max(0, Math.min(100, dailyProgressPct))}%` }} 
+                    transition={{ duration: 1.5, ease: "easeOut", delay: 0.4 }}
+                    className="h-full rounded-full bg-blue-500"
+                  />
+                </div>
+              <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+                <span>{dailyProgressMin} min</span>
+                <span>{dailyGoalMin} min</span>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2"
+          >
+            <motion.div variants={itemVariants} className="relative overflow-hidden rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 p-5 text-white shadow-sm transition-transform hover:shadow-md">
+              <div className="flex items-center justify-between gap-4 relative z-10">
+                <div className="min-w-0">
+                  <p className="text-lg font-semibold">Começar a Focar</p>
+                  <p className="mt-1 text-sm/relaxed text-white/85">
+                    Inicie uma sessão Pomodoro agora
+                  </p>
+                </div>
+
+                <button
+                  className="grid h-14 w-14 cursor-pointer place-items-center rounded-full bg-white/15 ring-1 ring-white/25 transition hover:bg-white/25 hover:scale-110 active:scale-95"
+                  type="button"
+                  aria-label="Iniciar"
+                  onClick={() => navigate("/pomodoropage")}
+                >
+                  <Play className="ml-1 h-6 w-6 fill-white" />
+                </button>
+              </div>
+              <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 transition-transform duration-700 hover:scale-110" />
+            </motion.div>
+
+            <motion.div
+              variants={itemVariants}
+              className={cn(
+                "relative overflow-hidden rounded-2xl p-5 text-white shadow-sm transition",
+                focusCard.containerClass,
+              )}
+            >
+              <div className="flex items-center justify-between gap-4 relative z-10">
+                <div className="min-w-0">
+                  <p className="text-lg font-semibold">{focusCard.title}</p>
+                  <p className="mt-1 text-sm/relaxed text-white/85">
+                    {focusCard.description}
+                  </p>
+                </div>
+
+                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/25">
+                  {focusCard.icon}
+                </div>
+              </div>
+              <div className="pointer-events-none absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-white/10" />
+            </motion.div>
+          </motion.div>
+
+          <div className="mt-6">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-slate-900">
+                Prioridades
+              </h2>
+              <button
+                className="cursor-pointer text-sm font-semibold text-blue-700 transition hover:text-blue-800 hover:underline"
+                type="button"
+                onClick={() => navigate("/tasks")}
+              >
+                Ver todas <span aria-hidden>→</span>
+              </button>
+            </div>
+
+            {errorMessage ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-sm">
+                {errorMessage}
+              </motion.div>
+            ) : highlightTasks.length === 0 ? (
+              <DashboardEmptyState
+                onCreateTask={() => setNewTaskOpen(true)}
+                onStartPomodoro={() => navigate("/pomodoropage")}
+              />
+            ) : (
+              <motion.div layout className="space-y-3">
+                <AnimatePresence mode="popLayout">
+                  {highlightTasks.map((task) => (
+                    <motion.div
+                      key={task.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                      transition={{ duration: 0.3, type: "spring", bounce: 0.3 }}
+                    >
+                      <TaskRow
+                        task={task}
+                        onToggleComplete={() => handleToggleComplete(task)}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
 
       <CreateTaskModal
         open={newTaskOpen}

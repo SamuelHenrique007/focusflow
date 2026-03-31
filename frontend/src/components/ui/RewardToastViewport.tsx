@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Award, CheckCircle2, Coins, Sparkles, TrendingUp, X } from "lucide-react";
 
 import { cn } from "@/lib/cn";
@@ -28,14 +29,15 @@ function ToastIcon({ title }: { title: string }) {
 
 function ToastCard({ toast }: { toast: ToastItem }) {
   const removeToast = useToastStore((state) => state.removeToast);
+  const duration = toast.duration ?? 4200;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       removeToast(toast.id);
-    }, toast.duration ?? 4200);
+    }, duration);
 
     return () => window.clearTimeout(timer);
-  }, [removeToast, toast.duration, toast.id]);
+  }, [removeToast, duration, toast.id]);
 
   const styles = {
     success: {
@@ -67,14 +69,20 @@ function ToastCard({ toast }: { toast: ToastItem }) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border shadow-xl backdrop-blur-sm transition-all duration-300",
+        "relative overflow-hidden rounded-2xl border shadow-xl backdrop-blur-sm transition-colors",
         styles.wrapper,
       )}
     >
       <div className="flex items-start gap-3 p-4 pr-12">
-        <div className={cn("mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl", styles.icon)}>
+        {/* Efeito de Pop no ícone */}
+        <motion.div 
+          initial={{ scale: 0, rotate: -30 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", bounce: 0.5, delay: 0.1 }}
+          className={cn("mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl", styles.icon)}
+        >
           <ToastIcon title={toast.title} />
-        </div>
+        </motion.div>
 
         <div className="min-w-0 flex-1">
           <p className={cn("text-sm font-semibold", styles.title)}>{toast.title}</p>
@@ -88,7 +96,7 @@ function ToastCard({ toast }: { toast: ToastItem }) {
         type="button"
         onClick={() => removeToast(toast.id)}
         className={cn(
-          "absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-xl transition",
+          "absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-xl transition-all hover:scale-105 active:scale-95",
           styles.close,
         )}
         aria-label="Fechar aviso"
@@ -96,7 +104,13 @@ function ToastCard({ toast }: { toast: ToastItem }) {
         <X className="h-4 w-4" />
       </button>
 
-      <div className={cn("h-1 w-full", styles.bar)} />
+      {/* Barra de progresso animada baseada na duração do Toast */}
+      <motion.div 
+        initial={{ width: "100%" }}
+        animate={{ width: "0%" }}
+        transition={{ duration: duration / 1000, ease: "linear" }}
+        className={cn("h-1 absolute bottom-0 left-0", styles.bar)} 
+      />
     </div>
   );
 }
@@ -105,12 +119,22 @@ export default function RewardToastViewport() {
   const toasts = useToastStore((state) => state.toasts);
 
   return (
-    <div className="pointer-events-none fixed right-4 top-4 z-[200] flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-3 sm:right-6 sm:top-6">
-      {toasts.map((toast) => (
-        <div key={toast.id} className="pointer-events-auto">
-          <ToastCard toast={toast} />
-        </div>
-      ))}
+    <div className="pointer-events-none fixed right-4 top-4 z-[9999] flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-3 sm:right-6 sm:top-6">
+      <AnimatePresence mode="popLayout">
+        {toasts.map((toast) => (
+          <motion.div
+            key={toast.id}
+            layout // Faz com que os toasts remanescentes deslizem suavemente ao invés de pular
+            initial={{ opacity: 0, x: 50, scale: 0.9 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="pointer-events-auto w-full"
+          >
+            <ToastCard toast={toast} />
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>
   );
 }

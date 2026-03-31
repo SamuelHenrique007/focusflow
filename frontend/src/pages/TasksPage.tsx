@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { motion, AnimatePresence } from "framer-motion"; // <-- Importado aqui
 import {
   Plus,
   Search,
@@ -128,66 +129,74 @@ function SelectPro<T extends string>({
         />
       </button>
 
-      {open ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
-          <div className="max-h-64 overflow-y-auto p-2">
-            {options.map((o) => {
-              const isActive = o.value === value;
+      <AnimatePresence>
+        {open ? (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15 }}
+            className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+          >
+            <div className="max-h-64 overflow-y-auto p-2">
+              {options.map((o) => {
+                const isActive = o.value === value;
 
-              return (
-                <button
-                  key={o.value}
-                  type="button"
-                  onClick={() => {
-                    onChange(o.value);
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "cursor-pointer flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition",
-                    isActive
-                      ? "bg-blue-50 text-blue-800"
-                      : "text-slate-800 hover:bg-slate-50",
-                  )}
-                  role="option"
-                  aria-selected={isActive}
-                >
-                  <span className="flex min-w-0 items-center gap-3">
-                    {o.icon ? (
-                      <span
-                        className={cn(
-                          "grid h-9 w-9 place-items-center rounded-xl ring-1",
-                          isActive
-                            ? "bg-white ring-blue-100 text-blue-700"
-                            : "bg-slate-50 ring-slate-200 text-slate-600",
-                        )}
-                      >
-                        {o.icon}
-                      </span>
-                    ) : null}
-
-                    <span className="min-w-0">
-                      <span className="block truncate font-semibold">
-                        {o.label}
-                      </span>
-                      {o.meta ? (
-                        <span className="block truncate text-xs font-medium text-slate-500">
-                          {o.meta}
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(o.value);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "cursor-pointer flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition",
+                      isActive
+                        ? "bg-blue-50 text-blue-800"
+                        : "text-slate-800 hover:bg-slate-50",
+                    )}
+                    role="option"
+                    aria-selected={isActive}
+                  >
+                    <span className="flex min-w-0 items-center gap-3">
+                      {o.icon ? (
+                        <span
+                          className={cn(
+                            "grid h-9 w-9 place-items-center rounded-xl ring-1 transition-colors",
+                            isActive
+                              ? "bg-white ring-blue-100 text-blue-700"
+                              : "bg-slate-50 ring-slate-200 text-slate-600",
+                          )}
+                        >
+                          {o.icon}
                         </span>
                       ) : null}
-                    </span>
-                  </span>
 
-                  {isActive ? (
-                    <span className="grid h-8 w-8 place-items-center rounded-xl bg-white ring-1 ring-blue-100">
-                      <Check className="h-4 w-4 text-blue-700" />
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold">
+                          {o.label}
+                        </span>
+                        {o.meta ? (
+                          <span className="block truncate text-xs font-medium text-slate-500">
+                            {o.meta}
+                          </span>
+                        ) : null}
+                      </span>
                     </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
+
+                    {isActive ? (
+                      <span className="grid h-8 w-8 place-items-center rounded-xl bg-white ring-1 ring-blue-100">
+                        <Check className="h-4 w-4 text-blue-700" />
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
@@ -313,7 +322,7 @@ function RowMenu({
         onMouseDown={(e) => {
           e.stopPropagation();
         }}
-        className="cursor-pointer grid h-10 w-10 place-items-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+        className="cursor-pointer grid h-10 w-10 place-items-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 transition-colors"
         aria-label="Mais ações"
         title="Mais"
         aria-haspopup="menu"
@@ -324,9 +333,13 @@ function RowMenu({
 
       {mounted && open && pos
         ? createPortal(
-            <div
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
               ref={menuRef}
-              className="fixed z-9999 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
+              className="fixed z-[9999] w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl origin-top-right"
               style={{ top: pos.top, left: pos.left }}
               role="menu"
               onMouseDown={(e) => e.stopPropagation()}
@@ -340,7 +353,7 @@ function RowMenu({
                   onClose();
                   onEdit();
                 }}
-                className="cursor-pointer flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                className="cursor-pointer flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50 transition-colors"
                 role="menuitem"
               >
                 <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-50 ring-1 ring-slate-200 text-slate-600">
@@ -362,7 +375,7 @@ function RowMenu({
                   onClose();
                   onDelete();
                 }}
-                className="cursor-pointer mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                className="cursor-pointer mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50 transition-colors"
                 role="menuitem"
               >
                 <span className="grid h-9 w-9 place-items-center rounded-xl bg-rose-50 ring-1 ring-rose-100 text-rose-700">
@@ -375,7 +388,7 @@ function RowMenu({
                   </span>
                 </span>
               </button>
-            </div>,
+            </motion.div>,
             document.body,
           )
         : null}
@@ -432,13 +445,14 @@ function TaskRow({
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition hover:shadow-md",
+        "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all hover:shadow-md",
         isPending ? "border-rose-200 bg-rose-50/40" : "border-slate-200 bg-white",
-        isDone && "opacity-70",
+        isDone && "opacity-60 grayscale-[0.3]",
       )}
     >
       {(isActive || isPending) ? (
-        <div
+        <motion.div
+          layoutId={`indicator-${task.id}`}
           className={cn(
             "absolute left-0 top-0 h-full w-1.5",
             isPending ? "bg-rose-500" : "bg-blue-400",
@@ -456,7 +470,7 @@ function TaskRow({
           <button
             type="button"
             onClick={onToggleComplete}
-            className="cursor-pointer mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-200 transition hover:bg-white"
+            className="cursor-pointer mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-200 transition-all hover:bg-white hover:scale-105 active:scale-95"
             aria-label={
               isDone
                 ? "Desmarcar tarefa concluída"
@@ -464,26 +478,43 @@ function TaskRow({
             }
             title={isDone ? "Desmarcar concluída" : "Marcar concluída"}
           >
-            {isDone ? (
-              <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-            ) : (
-              <Circle
-                className={cn(
-                  "h-6 w-6 transition",
-                  isPending
-                    ? "text-rose-500"
-                    : "text-slate-300 group-hover:text-blue-500",
-                )}
-              />
-            )}
+            <AnimatePresence mode="wait">
+              {isDone ? (
+                <motion.div
+                  key="done"
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  exit={{ scale: 0, rotate: 180 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
+                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="pending"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                >
+                  <Circle
+                    className={cn(
+                      "h-6 w-6 transition-colors",
+                      isPending
+                        ? "text-rose-500"
+                        : "text-slate-300 group-hover:text-blue-500",
+                    )}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </button>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <p
                 className={cn(
-                  "truncate text-sm font-semibold text-slate-900",
-                  isDone && "line-through opacity-60",
+                  "truncate text-sm font-semibold text-slate-900 transition-all duration-300",
+                  isDone && "line-through text-slate-500",
                 )}
               >
                 {task.title}
@@ -534,14 +565,14 @@ function TaskRow({
             {typeof task.progress === "number" ? (
               <div className="mt-4 flex items-center gap-3">
                 <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
-                  <div
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.max(0, Math.min(100, task.progress))}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
                     className={cn(
-                      "h-full rounded-full transition-all duration-500 ease-out",
+                      "h-full rounded-full",
                       isDone ? "bg-emerald-500" : "bg-blue-500",
                     )}
-                    style={{
-                      width: `${Math.max(0, Math.min(100, task.progress))}%`,
-                    }}
                   />
                 </div>
                 <span className="w-8 text-right text-xs font-bold text-slate-600">
@@ -567,7 +598,7 @@ function TaskRow({
 
         <div
           className={cn(
-            "flex shrink-0 items-center gap-2 self-start",
+            "flex shrink-0 items-center gap-2 self-start transition-all duration-200",
             "opacity-100 translate-y-0 pointer-events-auto",
             "lg:opacity-0 lg:translate-y-1 lg:pointer-events-none",
             "lg:group-hover:opacity-100 lg:group-hover:translate-y-0 lg:group-hover:pointer-events-auto",
@@ -577,7 +608,7 @@ function TaskRow({
           {!isDone && (
             <button
               type="button"
-              className="cursor-pointer grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition hover:bg-blue-100"
+              className="cursor-pointer grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition hover:bg-blue-100 hover:scale-105 active:scale-95"
               aria-label="Iniciar pomodoro nesta tarefa"
               title="Iniciar"
               onClick={() =>
@@ -616,11 +647,21 @@ function EmptyTasksState({
   onClearFilters: () => void;
 }) {
   return (
-    <div className="rounded-[28px] border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10 sm:py-14">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 200, damping: 20 }}
+      className="rounded-[28px] border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10 sm:py-14"
+    >
       <div className="mx-auto flex max-w-xl flex-col items-center text-center">
-        <div className="grid h-20 w-20 place-items-center rounded-full bg-slate-100 ring-8 ring-slate-50">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+          className="grid h-20 w-20 place-items-center rounded-full bg-slate-100 ring-8 ring-slate-50"
+        >
           <CheckCircle2 className="h-8 w-8 text-slate-500" />
-        </div>
+        </motion.div>
 
         <h3 className="mt-6 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
           {hasFilters ? "Nenhuma tarefa encontrada" : "Nenhuma tarefa pendente"}
@@ -637,7 +678,7 @@ function EmptyTasksState({
             <button
               type="button"
               onClick={onCreateTask}
-              className="cursor-pointer inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-105 active:scale-95"
             >
               <Plus className="h-4 w-4" />
               Criar tarefa
@@ -655,7 +696,7 @@ function EmptyTasksState({
           ) : null}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -855,27 +896,27 @@ export default function TasksPage() {
   }
 
   async function handleToggleComplete(task: Task) {
-  try {
-    const isCurrentlyDone = task.status === "concluida";
+    try {
+      const isCurrentlyDone = task.status === "concluida";
 
-    const updated = await updateTask(task.id, {
-      completedAt: isCurrentlyDone ? null : new Date().toISOString(),
-    });
+      const updated = await updateTask(task.id, {
+        completedAt: isCurrentlyDone ? null : new Date().toISOString(),
+      });
 
-    setTasks((prev) =>
-      prev.map((item) => (item.id === updated.id ? updated : item)),
-    );
+      setTasks((prev) =>
+        prev.map((item) => (item.id === updated.id ? updated : item)),
+      );
 
-    if (selectedTask?.id === updated.id) {
-      setSelectedTask(updated);
+      if (selectedTask?.id === updated.id) {
+        setSelectedTask(updated);
+      }
+
+      await useGameStore.getState().fetchStatus({ notifyChanges: true });
+    } catch (error) {
+      console.error("Erro ao atualizar conclusão da tarefa", error);
+      alert("Não foi possível atualizar a conclusão da tarefa.");
     }
-
-    await useGameStore.getState().fetchStatus({ notifyChanges: true });
-  } catch (error) {
-    console.error("Erro ao atualizar conclusão da tarefa", error);
-    alert("Não foi possível atualizar a conclusão da tarefa.");
   }
-}
 
   function handleClearFilters() {
     setTab("todas");
@@ -895,7 +936,7 @@ export default function TasksPage() {
           </div>
 
           <button
-            className="cursor-pointer inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.97]"
+            className="cursor-pointer inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-105 active:scale-95"
             type="button"
             onClick={() => setCreateOpen(true)}
           >
@@ -913,7 +954,7 @@ export default function TasksPage() {
         </div>
 
         <button
-          className="cursor-pointer inline-flex shrink-0 items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.97]"
+          className="cursor-pointer inline-flex shrink-0 items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-105 active:scale-95"
           type="button"
           onClick={() => setCreateOpen(true)}
         >
@@ -923,13 +964,13 @@ export default function TasksPage() {
       </div>
 
       <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+        <div className="relative flex-1 group">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 transition group-focus-within:text-blue-500" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Pesquisar tarefas..."
-            className="w-full rounded-2xl border border-slate-200 bg-white px-10 py-3 text-sm text-slate-900 outline-none ring-blue-200 focus:border-blue-500 focus:ring-4"
+            className="w-full rounded-2xl border border-slate-200 bg-white px-10 py-3 text-sm text-slate-900 outline-none transition ring-blue-200 focus:border-blue-500 focus:ring-4"
           />
         </div>
 
@@ -970,9 +1011,9 @@ export default function TasksPage() {
               )
             }
             className={cn(
-              "cursor-pointer rounded-full px-4 py-2 text-sm font-semibold transition",
+              "cursor-pointer rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200",
               tab === t.id
-                ? "bg-white text-slate-900 ring-1 ring-slate-200 shadow-sm"
+                ? "bg-white text-slate-900 ring-1 ring-slate-200 shadow-sm scale-105"
                 : "text-slate-600 hover:bg-white hover:ring-1 hover:ring-slate-200",
             )}
           >
@@ -983,13 +1024,27 @@ export default function TasksPage() {
 
       <div className="mt-5 pb-10">
         {loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
-            A carregar tarefas...
-          </div>
+          // Skeleton Loading Animation
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-3"
+          >
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="h-[120px] w-full animate-pulse rounded-2xl bg-slate-100 ring-1 ring-slate-200/50"
+              />
+            ))}
+          </motion.div>
         ) : errorMessage ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-sm"
+          >
             {errorMessage}
-          </div>
+          </motion.div>
         ) : filtered.length === 0 ? (
           <EmptyTasksState
             hasFilters={hasActiveFilters || tasks.length > 0}
@@ -997,28 +1052,38 @@ export default function TasksPage() {
             onClearFilters={handleClearFilters}
           />
         ) : (
-          <div className="space-y-3">
-            {filtered.map((t) => (
-              <TaskRow
-                key={t.id}
-                task={t}
-                onEdit={() => {
-                  setOpenMenuTaskId(null);
-                  handleOpenEdit(t);
-                }}
-                onDelete={() => {
-                  setOpenMenuTaskId(null);
-                  handleDeleteTask(t.id);
-                }}
-                onToggleComplete={() => handleToggleComplete(t)}
-                menuOpen={openMenuTaskId === t.id}
-                onOpenMenu={() => setOpenMenuTaskId(t.id)}
-                onCloseMenu={() =>
-                  setOpenMenuTaskId((prev) => (prev === t.id ? null : prev))
-                }
-              />
-            ))}
-          </div>
+          <motion.div layout className="space-y-3">
+            <AnimatePresence mode="popLayout">
+              {filtered.map((t) => (
+                <motion.div
+                  key={t.id}
+                  layout
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                  transition={{ duration: 0.3, type: "spring", bounce: 0.3 }}
+                >
+                  <TaskRow
+                    task={t}
+                    onEdit={() => {
+                      setOpenMenuTaskId(null);
+                      handleOpenEdit(t);
+                    }}
+                    onDelete={() => {
+                      setOpenMenuTaskId(null);
+                      handleDeleteTask(t.id);
+                    }}
+                    onToggleComplete={() => handleToggleComplete(t)}
+                    menuOpen={openMenuTaskId === t.id}
+                    onOpenMenu={() => setOpenMenuTaskId(t.id)}
+                    onCloseMenu={() =>
+                      setOpenMenuTaskId((prev) => (prev === t.id ? null : prev))
+                    }
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         )}
       </div>
 

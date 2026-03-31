@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { motion, type Variants } from "framer-motion";
 import {
   Flame,
   Sparkles,
@@ -20,6 +21,27 @@ import {
 } from "@/services/pomodoro";
 import type { ChallengeStatus } from "@/services/gamificationService";
 
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: [0.25, 0.1, 0.25, 1],
+    },
+  },
+};
+
+const staggerContainer: Variants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
 function ChartFrame({
   title,
   subtitle,
@@ -32,7 +54,15 @@ function ChartFrame({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <motion.div
+      variants={fadeUp}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, amount: 0.15 }}
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.2 }}
+      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-slate-900">{title}</p>
@@ -41,14 +71,18 @@ function ChartFrame({
           ) : null}
         </div>
         {rightIcon ? (
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-slate-50 ring-1 ring-slate-200">
+          <motion.div
+            whileHover={{ scale: 1.06, rotate: 3 }}
+            transition={{ duration: 0.2 }}
+            className="grid h-10 w-10 place-items-center rounded-xl bg-slate-50 ring-1 ring-slate-200"
+          >
             {rightIcon}
-          </div>
+          </motion.div>
         ) : null}
       </div>
 
       <div className="mt-4">{children}</div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -66,20 +100,29 @@ function BarChartMock({
       <div className="flex items-end gap-2">
         {values.map((v, i) => {
           const h = maxValue ? Math.max(0, Math.min(1, v / maxValue)) : 0;
+
           return (
-            <div key={labels[i]} className="flex-1">
+            <motion.div
+              key={labels[i]}
+              className="flex-1"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.35, delay: i * 0.06 }}
+            >
               <div className="flex h-40 items-end rounded-2xl bg-slate-50 ring-1 ring-slate-200">
-                <div
-                  className="w-full rounded-2xl bg-blue-600/25 transition-all duration-500"
-                  style={{
-                    height: `${h * 100}%`,
-                  }}
+                <motion.div
+                  className="w-full rounded-2xl bg-blue-600/25"
+                  initial={{ height: 0 }}
+                  whileInView={{ height: `${h * 100}%` }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.55, delay: i * 0.08 }}
                 />
               </div>
               <p className="mt-2 text-center text-xs text-slate-500">
                 {labels[i]}
               </p>
-            </div>
+            </motion.div>
           );
         })}
       </div>
@@ -101,8 +144,16 @@ function LineChartMock({
       <div className="space-y-3">
         {values.map((v, i) => {
           const pct = maxValue ? Math.max(0, Math.min(1, v / maxValue)) : 0;
+
           return (
-            <div key={labels[i]} className="flex items-center gap-3">
+            <motion.div
+              key={labels[i]}
+              className="flex items-center gap-3"
+              initial={{ opacity: 0, x: -16 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.35, delay: i * 0.06 }}
+            >
               <span className="w-16 text-xs font-medium text-slate-600">
                 {labels[i]}
               </span>
@@ -112,7 +163,7 @@ function LineChartMock({
               <span className="w-10 text-right text-xs font-semibold text-slate-700">
                 {v}
               </span>
-            </div>
+            </motion.div>
           );
         })}
       </div>
@@ -159,8 +210,14 @@ function CategoryDistribution({
   return (
     <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
       <div className="space-y-4">
-        {categoryData.map((item) => (
-          <div key={item.label}>
+        {categoryData.map((item, index) => (
+          <motion.div
+            key={item.label}
+            initial={{ opacity: 0, y: 14 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.35, delay: index * 0.07 }}
+          >
             <div className="mb-2 flex items-center justify-between gap-3">
               <span className="text-sm font-medium text-slate-700">
                 {item.label}
@@ -170,7 +227,7 @@ function CategoryDistribution({
               </span>
             </div>
             <ProgressBar value={item.pct} barClassName={item.barClassName} />
-          </div>
+          </motion.div>
         ))}
 
         {total === 0 ? (
@@ -193,7 +250,12 @@ function ChallengeCard({
   value: number;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+    <motion.div
+      variants={fadeUp}
+      whileHover={{ y: -3, scale: 1.01 }}
+      transition={{ duration: 0.2 }}
+      className="rounded-2xl border border-slate-200 bg-white p-4"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-slate-900">{title}</p>
@@ -207,7 +269,7 @@ function ChallengeCard({
       <div className="mt-3">
         <ProgressBar value={value} barClassName="bg-blue-600" />
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -342,132 +404,188 @@ export default function EstatisticasPage() {
   }, [gameStats?.challenges]);
 
   return (
-    <>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-            Estatísticas
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Acompanhe seu progresso e desempenho com dados reais.
-          </p>
-        </div>
-
-        <div>
-          <Badge tone="warning">
-            <Flame className="h-4 w-4" />
-            {streakDays} {streakDays === 1 ? "dia" : "dias"}
-          </Badge>
-        </div>
-      </div>
-
-      {errorMessage ? (
-        <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">
-          {errorMessage}
-        </div>
-      ) : null}
-
-      <div className="mt-5 rounded-2xl border border-slate-200 bg-linear-to-r from-slate-50 to-indigo-50 p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-3">
-          <Badge tone="info">
-            <Sparkles className="h-4 w-4" />
-            Nível {level}
-          </Badge>
-          <p className="text-xs font-medium text-slate-500">
-            {xpNow}/{xpMax} XP
-          </p>
-        </div>
-
-        <div className="mt-4">
-          <ProgressBar value={xpPct} />
-        </div>
-      </div>
-
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Tempo Total"
-          value={loading ? "..." : overviewStats.tempoTotal}
-          subtitle="de foco"
-          icon={<Clock3 className="h-5 w-5" />}
-          iconTone="bg-blue-50 text-blue-700"
-        />
-        <StatCard
-          title="Tarefas"
-          value={loading ? "..." : overviewStats.tarefasConcluidas}
-          subtitle="concluídas"
-          icon={<CheckCircle2 className="h-5 w-5" />}
-          iconTone="bg-emerald-50 text-emerald-700"
-        />
-        <StatCard
-          title="Pomodoros"
-          value={loading ? "..." : overviewStats.pomodoros}
-          subtitle="completados"
-          icon={<Target className="h-5 w-5" />}
-          iconTone="bg-rose-50 text-rose-700"
-        />
-        <StatCard
-          title="Maior Sequência"
-          value={loading ? "..." : overviewStats.maiorSequencia}
-          subtitle="de produtividade"
-          icon={<Flame className="h-5 w-5" />}
-          iconTone="bg-amber-50 text-amber-800"
-        />
-      </div>
-
-      <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <ChartFrame
-          title="Tempo Focado"
-          subtitle="Últimos 7 dias"
-          rightIcon={<TrendingUp className="h-5 w-5 text-blue-600" />}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.35 }}
+    >
+      <motion.div
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div
+          variants={fadeUp}
+          className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
         >
-          <BarChartMock
-            labels={weeklyData.labels}
-            values={weeklyData.focusMinutes}
-            maxValue={weeklyData.focusMax}
-          />
-        </ChartFrame>
-
-        <ChartFrame
-          title="Pomodoros"
-          subtitle="Por dia"
-          rightIcon={<Calendar className="h-5 w-5 text-emerald-600" />}
-        >
-          <LineChartMock
-            labels={weeklyData.labels}
-            values={weeklyData.pomodorosPerDay}
-            maxValue={weeklyData.pomoMax}
-          />
-        </ChartFrame>
-      </div>
-
-      <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <ChartFrame title="Tarefas por Categoria">
-          <CategoryDistribution tasks={tasks} />
-        </ChartFrame>
-
-        <ChartFrame title="Desafios Ativos">
-          <div className="space-y-4">
-            {activeChallenges.length > 0 ? (
-              activeChallenges.map((challenge) => (
-                <ChallengeCard
-                  key={challenge.key}
-                  title={challenge.title}
-                  subtitle={challenge.description}
-                  progressLabel={`${challenge.current}/${challenge.target}`}
-                  value={Math.max(
-                    0,
-                    Math.min(1, challenge.progress_percent / 100)
-                  )}
-                />
-              ))
-            ) : (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                Nenhum desafio ativo encontrado no momento.
-              </div>
-            )}
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+              Estatísticas
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Acompanhe seu progresso e desempenho com dados reais.
+            </p>
           </div>
-        </ChartFrame>
-      </div>
-    </>
+
+          <motion.div
+            whileHover={{ scale: 1.04 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Badge tone="warning">
+              <Flame className="h-4 w-4" />
+              {streakDays} {streakDays === 1 ? "dia" : "dias"}
+            </Badge>
+          </motion.div>
+        </motion.div>
+
+        {errorMessage ? (
+          <motion.div
+            variants={fadeUp}
+            className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700"
+          >
+            {errorMessage}
+          </motion.div>
+        ) : null}
+
+        <motion.div
+          variants={fadeUp}
+          whileHover={{ scale: 1.01 }}
+          transition={{ duration: 0.2 }}
+          className="mt-5 rounded-2xl border border-slate-200 bg-linear-to-r from-slate-50 to-indigo-50 p-4 sm:p-5"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <motion.div
+              whileHover={{ scale: 1.03 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Badge tone="info">
+                <Sparkles className="h-4 w-4" />
+                Nível {level}
+              </Badge>
+            </motion.div>
+
+            <p className="text-xs font-medium text-slate-500">
+              {xpNow}/{xpMax} XP
+            </p>
+          </div>
+
+          <div className="mt-4">
+            <ProgressBar value={xpPct} />
+          </div>
+        </motion.div>
+
+        <motion.div
+          variants={staggerContainer}
+          className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        >
+          <motion.div variants={fadeUp} whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
+            <StatCard
+              title="Tempo Total"
+              value={loading ? "..." : overviewStats.tempoTotal}
+              subtitle="de foco"
+              icon={<Clock3 className="h-5 w-5" />}
+              iconTone="bg-blue-50 text-blue-700"
+            />
+          </motion.div>
+
+          <motion.div variants={fadeUp} whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
+            <StatCard
+              title="Tarefas"
+              value={loading ? "..." : overviewStats.tarefasConcluidas}
+              subtitle="concluídas"
+              icon={<CheckCircle2 className="h-5 w-5" />}
+              iconTone="bg-emerald-50 text-emerald-700"
+            />
+          </motion.div>
+
+          <motion.div variants={fadeUp} whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
+            <StatCard
+              title="Pomodoros"
+              value={loading ? "..." : overviewStats.pomodoros}
+              subtitle="completados"
+              icon={<Target className="h-5 w-5" />}
+              iconTone="bg-rose-50 text-rose-700"
+            />
+          </motion.div>
+
+          <motion.div variants={fadeUp} whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
+            <StatCard
+              title="Maior Sequência"
+              value={loading ? "..." : overviewStats.maiorSequencia}
+              subtitle="de produtividade"
+              icon={<Flame className="h-5 w-5" />}
+              iconTone="bg-amber-50 text-amber-800"
+            />
+          </motion.div>
+        </motion.div>
+
+        <motion.div
+          variants={staggerContainer}
+          className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2"
+        >
+          <ChartFrame
+            title="Tempo Focado"
+            subtitle="Últimos 7 dias"
+            rightIcon={<TrendingUp className="h-5 w-5 text-blue-600" />}
+          >
+            <BarChartMock
+              labels={weeklyData.labels}
+              values={weeklyData.focusMinutes}
+              maxValue={weeklyData.focusMax}
+            />
+          </ChartFrame>
+
+          <ChartFrame
+            title="Pomodoros"
+            subtitle="Por dia"
+            rightIcon={<Calendar className="h-5 w-5 text-emerald-600" />}
+          >
+            <LineChartMock
+              labels={weeklyData.labels}
+              values={weeklyData.pomodorosPerDay}
+              maxValue={weeklyData.pomoMax}
+            />
+          </ChartFrame>
+        </motion.div>
+
+        <motion.div
+          variants={staggerContainer}
+          className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2"
+        >
+          <ChartFrame title="Tarefas por Categoria">
+            <CategoryDistribution tasks={tasks} />
+          </ChartFrame>
+
+          <ChartFrame title="Desafios Ativos">
+            <motion.div
+              variants={staggerContainer}
+              className="space-y-4"
+            >
+              {activeChallenges.length > 0 ? (
+                activeChallenges.map((challenge) => (
+                  <ChallengeCard
+                    key={challenge.key}
+                    title={challenge.title}
+                    subtitle={challenge.description}
+                    progressLabel={`${challenge.current}/${challenge.target}`}
+                    value={Math.max(
+                      0,
+                      Math.min(1, challenge.progress_percent / 100)
+                    )}
+                  />
+                ))
+              ) : (
+                <motion.div
+                  variants={fadeUp}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500"
+                >
+                  Nenhum desafio ativo encontrado no momento.
+                </motion.div>
+              )}
+            </motion.div>
+          </ChartFrame>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }
