@@ -1,6 +1,6 @@
 import { api } from "./api";
 
-export type TaskStatus = "pendente" | "em_progresso" | "concluida";
+export type TaskStatus = "pendente" | "em_andamento" | "concluida";
 export type TaskCategory = "estudo" | "trabalho" | "pessoal";
 export type TaskPriority = "alta" | "media" | "baixa";
 

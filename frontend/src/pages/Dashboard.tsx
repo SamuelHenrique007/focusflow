@@ -34,8 +34,6 @@ import {
   type CreateTaskRequest,
   type UpdateTaskRequest,
 } from "@/services/tasks";
-
-// IMPORTAÇÃO DA GAMIFICAÇÃO
 import { useGameStore } from "@/store/useGameStore";
 
 type PomodoroSession = {
@@ -103,7 +101,7 @@ function shouldShowOnDashboard(task: Task) {
   if (task.status === "concluida") return false;
 
   const taskIsToday = !!task.dueDate && isToday(task.dueDate);
-  const isOverdue = task.status === "pendente"; // Nova lógica: pendente = atrasada
+  const isOverdue = task.status === "pendente";
 
   return taskIsToday || isOverdue;
 }
@@ -131,21 +129,21 @@ function TaskRow({
 
   const isDone = task.status === "concluida";
   const isOverdue = task.status === "pendente";
-  const isActive = (task.status as string) === "em_andamento";
+  const isActive = task.status === "em_andamento";
 
   return (
-    <div className={cn(
-      "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all hover:shadow-md",
-      isOverdue ? "border-rose-200 bg-rose-50/40" : "border-slate-200 bg-white"
-    )}>
+    <div
+      className={cn(
+        "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all hover:shadow-md",
+        isOverdue ? "border-rose-200 bg-rose-50/40" : "border-slate-200 bg-white",
+      )}
+    >
       {!isDone ? (
         <motion.div
           layoutId={`indicator-${task.id}`}
           className={cn(
             "absolute left-0 top-0 h-full w-1.5",
-            isOverdue
-              ? "bg-rose-500"
-              : "bg-blue-500"
+            isOverdue ? "bg-rose-500" : "bg-blue-500",
           )}
         />
       ) : null}
@@ -185,7 +183,7 @@ function TaskRow({
                     "h-6 w-6 transition-colors",
                     isOverdue
                       ? "text-rose-500"
-                      : "text-slate-300 group-hover:text-blue-500"
+                      : "text-slate-300 group-hover:text-blue-500",
                   )}
                 />
               </motion.div>
@@ -206,7 +204,7 @@ function TaskRow({
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
+            <div className="mt-2 flex flex-wrap items-center gap-2 sm:mt-0">
               <Badge tone={categoryTone}>
                 <span className="inline-flex items-center gap-1">
                   <CategoryIcon category={task.category} />
@@ -240,13 +238,15 @@ function TaskRow({
           {typeof task.progress === "number" ? (
             <div className="mt-4 flex items-center gap-3">
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
-                <motion.div 
+                <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: `${Math.max(0, Math.min(100, task.progress))}%` }} 
+                  animate={{
+                    width: `${Math.max(0, Math.min(100, task.progress))}%`,
+                  }}
                   transition={{ duration: 1, ease: "easeOut" }}
                   className={cn(
-                    "h-full rounded-full", 
-                    isDone ? "bg-emerald-500" : "bg-blue-500"
+                    "h-full rounded-full",
+                    isDone ? "bg-emerald-500" : "bg-blue-500",
                   )}
                 />
               </div>
@@ -269,14 +269,14 @@ function DashboardEmptyState({
   onStartPomodoro: () => void;
 }) {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 200, damping: 20 }}
       className="rounded-[28px] border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10 sm:py-14"
     >
       <div className="mx-auto flex max-w-xl flex-col items-center text-center">
-        <motion.div 
+        <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
@@ -318,25 +318,27 @@ function DashboardEmptyState({
   );
 }
 
-// Configurações de animação em cascata (Stagger) tipadas com Variants
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
+    transition: { staggerChildren: 0.1 },
+  },
 };
 
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 15 },
-  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring", stiffness: 300, damping: 24 },
+  },
 };
 
 export default function FocusFlowDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // GAMIFICAÇÃO GLOBAL
   const { stats: gameStats, fetchStatus } = useGameStore();
 
   const [newTaskOpen, setNewTaskOpen] = useState(false);
@@ -357,8 +359,8 @@ export default function FocusFlowDashboard() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    fetchStatus(); // Puxa os dados atualizados de XP e Nível
-    
+    fetchStatus();
+
     async function loadDashboardData() {
       try {
         setLoadingTasks(true);
@@ -404,9 +406,6 @@ export default function FocusFlowDashboard() {
   const userName = useMemo(() => getFirstAndSecondName(user?.name), [user?.name]);
   const todayLabel = getTodayLabel();
 
-  // ==========================================
-  // PROGRESSÃO REAL DO JOGO PELA STORE ZUSTAND
-  // ==========================================
   const xpCurrent = gameStats?.current_xp || 0;
   const xpTotal = gameStats?.xp_to_next_level || 100;
   const userLevel = gameStats?.level || 1;
@@ -417,7 +416,7 @@ export default function FocusFlowDashboard() {
   }, [tasks]);
 
   const overdueTasks = useMemo(() => {
-    return dashboardTasks.filter(task => task.status === "pendente"); // Pendente = Atrasada
+    return dashboardTasks.filter((task) => task.status === "pendente");
   }, [dashboardTasks]);
 
   const todayTasks = useMemo(() => {
@@ -427,51 +426,56 @@ export default function FocusFlowDashboard() {
   const inProgressTodayTasks = useMemo(() => {
     return dashboardTasks.filter(
       (task) =>
-        (task.status as string) === "em_andamento" &&
+        task.status === "em_andamento" &&
         !!task.dueDate &&
         isToday(task.dueDate),
     );
   }, [dashboardTasks]);
 
   const stats = useMemo(() => {
-  const completedTodayTasks = tasks.filter(
-    (task) =>
-      task.status === "concluida" &&
-      !!task.completedAt &&
-      isToday(task.completedAt),
-  );
+    const completedTodayTasks = tasks.filter(
+      (task) =>
+        task.status === "concluida" &&
+        !!task.completedAt &&
+        isToday(task.completedAt),
+    );
 
-  // Aqui substituí para evitar o erro do typescript, garantindo que o GameStatus e PomodoroStats casem
-  const tempoFocadoMin = gameStats?.total_focus_minutes ?? pomodoroStats.minutes ?? 0;
-  const pomodorosConcluidos = gameStats?.total_pomodoros ?? pomodoroStats.pomodoros ?? 0;
-  const pontos = pomodoroStats.points ?? 0;
+    const tempoFocadoReal = pomodoroStats.minutes ?? 0;
+    const pomodorosConcluidos = pomodoroStats.pomodoros ?? 0;
+    const pontos = pomodoroStats.points ?? 0;
 
-  const metaDiaTotalMin = gameStats?.daily_goal_minutes ?? 120;
-  const metaDiaPct = gameStats?.daily_goal_progress ?? 0;
+    const metaDiaTotalMin = gameStats?.daily_goal_minutes ?? 120;
+    const tempoFocadoMeta = Math.min(tempoFocadoReal, metaDiaTotalMin);
 
-  return {
-    metaDiaPct,
-    metaDiaTotalMin,
-    tempoFocadoMin,
-    pomodorosConcluidos,
-    pontos,
-    concluidasHoje: completedTodayTasks.length,
-    pendentesTotal: overdueTasks.length,
-    tarefasDoDia: todayTasks.length,
-  };
-}, [tasks, gameStats, pomodoroStats, overdueTasks, todayTasks]);
-  
-  const dailyProgressMin = stats.tempoFocadoMin;
+    const metaDiaPct =
+      metaDiaTotalMin > 0
+        ? Math.round((tempoFocadoMeta / metaDiaTotalMin) * 100)
+        : 0;
+
+    return {
+      metaDiaPct,
+      metaDiaTotalMin,
+      tempoFocadoMin: tempoFocadoReal,
+      tempoFocadoMeta,
+      pomodorosConcluidos,
+      pontos,
+      concluidasHoje: completedTodayTasks.length,
+      pendentesTotal: overdueTasks.length,
+      tarefasDoDia: todayTasks.length,
+    };
+  }, [tasks, gameStats, pomodoroStats, overdueTasks, todayTasks]);
+
+  const dailyProgressMin = stats.tempoFocadoMeta;
   const dailyGoalMin = stats.metaDiaTotalMin;
   const dailyProgressPct = stats.metaDiaPct;
-  
+
   const highlightTasks = useMemo(() => {
     return [...dashboardTasks]
       .sort((a, b) => {
         const getOrder = (task: Task) => {
-          if (task.status === "pendente") return 0; // Atrasadas primeiro
-          if (task.dueDate && isToday(task.dueDate)) return 1; // Para hoje depois
-          if ((task.status as string) === "em_andamento") return 2; // Ativas depois
+          if (task.status === "pendente") return 0;
+          if (task.dueDate && isToday(task.dueDate)) return 1;
+          if (task.status === "em_andamento") return 2;
           return 3;
         };
 
@@ -507,12 +511,12 @@ export default function FocusFlowDashboard() {
     }
 
     if (todayCount > 0) {
-        return {
-          title: "Foco no Dia",
-          description: `Você tem ${todayCount} tarefa(s) planejadas para hoje.`,
-          containerClass: "bg-linear-to-r from-amber-500 to-orange-600",
-          icon: <Target className="h-6 w-6" />,
-        };
+      return {
+        title: "Foco no Dia",
+        description: `Você tem ${todayCount} tarefa(s) planejadas para hoje.`,
+        containerClass: "bg-linear-to-r from-amber-500 to-orange-600",
+        icon: <Target className="h-6 w-6" />,
+      };
     }
 
     return {
@@ -574,7 +578,7 @@ export default function FocusFlowDashboard() {
 
   return (
     <>
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -632,7 +636,7 @@ export default function FocusFlowDashboard() {
         </div>
       </motion.div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, delay: 0.1 }}
@@ -651,50 +655,88 @@ export default function FocusFlowDashboard() {
         </div>
 
         <div className="mt-3">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 ring-1 ring-inset ring-slate-300/50">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.max(0, Math.min(100, xpPct))}%` }} 
-                transition={{ duration: 1.5, ease: "easeOut" }}
-                className="h-full rounded-full bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.4)]"
-              />
-            </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 ring-1 ring-inset ring-slate-300/50">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.max(0, Math.min(100, xpPct))}%` }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+              className="h-full rounded-full bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.4)]"
+            />
+          </div>
         </div>
       </motion.div>
 
       {isLoading ? (
-        // Skeletons Animados para os Cards e Tarefas
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-5 space-y-6">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mt-5 space-y-6"
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[1, 2, 3, 4].map(i => <div key={i} className="h-25 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50" />)}
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="h-25 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50"
+              />
+            ))}
           </div>
           <div className="h-25 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50" />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-             <div className="h-30 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50" />
-             <div className="h-30 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50" />
+            <div className="h-30 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50" />
+            <div className="h-30 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50" />
           </div>
         </motion.div>
       ) : (
         <>
-          <motion.div 
+          <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="show"
             className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
           >
             {[
-              { title: "Meta do Dia", value: `${stats.metaDiaPct}%`, subtitle: `${dailyProgressMin}/${stats.metaDiaTotalMin} min`, icon: <Target className="h-5 w-5" />, tone: "bg-blue-50 text-blue-700" },
-              { title: "Tempo Focado", value: `${stats.tempoFocadoMin} min`, subtitle: "hoje", icon: <Clock className="h-5 w-5" />, tone: "bg-emerald-50 text-emerald-700" },
-              { title: "Concluídas", value: `${stats.concluidasHoje}`, subtitle: "hoje", icon: <CheckCircle2 className="h-5 w-5" />, tone: "bg-emerald-50 text-emerald-700" },
-              { title: "Atrasadas", value: `${stats.pendentesTotal}`, subtitle: "total", icon: <AlertCircle className="h-5 w-5" />, tone: "bg-rose-50 text-rose-700" },
+              {
+                title: "Meta do Dia",
+                value: `${stats.metaDiaPct}%`,
+                subtitle: `${stats.tempoFocadoMeta}/${stats.metaDiaTotalMin} min`,
+                icon: <Target className="h-5 w-5" />,
+                tone: "bg-blue-50 text-blue-700",
+              },
+              {
+                title: "Tempo Focado",
+                value: `${stats.tempoFocadoMin} min`,
+                subtitle: "hoje",
+                icon: <Clock className="h-5 w-5" />,
+                tone: "bg-emerald-50 text-emerald-700",
+              },
+              {
+                title: "Concluídas",
+                value: `${stats.concluidasHoje}`,
+                subtitle: "hoje",
+                icon: <CheckCircle2 className="h-5 w-5" />,
+                tone: "bg-emerald-50 text-emerald-700",
+              },
+              {
+                title: "Atrasadas",
+                value: `${stats.pendentesTotal}`,
+                subtitle: "total",
+                icon: <AlertCircle className="h-5 w-5" />,
+                tone: "bg-rose-50 text-rose-700",
+              },
             ].map((stat, i) => (
               <motion.div key={i} variants={itemVariants}>
-                <StatCard title={stat.title} value={stat.value} subtitle={stat.subtitle} icon={stat.icon} iconTone={stat.tone} />
+                <StatCard
+                  title={stat.title}
+                  value={stat.value}
+                  subtitle={stat.subtitle}
+                  icon={stat.icon}
+                  iconTone={stat.tone}
+                />
               </motion.div>
             ))}
           </motion.div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -720,14 +762,14 @@ export default function FocusFlowDashboard() {
             </div>
 
             <div className="mt-4">
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.max(0, Math.min(100, dailyProgressPct))}%` }} 
-                    transition={{ duration: 1.5, ease: "easeOut", delay: 0.4 }}
-                    className="h-full rounded-full bg-blue-500"
-                  />
-                </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.max(0, Math.min(100, dailyProgressPct))}%` }}
+                  transition={{ duration: 1.5, ease: "easeOut", delay: 0.4 }}
+                  className="h-full rounded-full bg-blue-500"
+                />
+              </div>
               <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
                 <span>{dailyProgressMin} min</span>
                 <span>{dailyGoalMin} min</span>
@@ -735,14 +777,17 @@ export default function FocusFlowDashboard() {
             </div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="show"
             className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2"
           >
-            <motion.div variants={itemVariants} className="relative overflow-hidden rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 p-5 text-white shadow-sm transition-transform hover:shadow-md">
-              <div className="flex items-center justify-between gap-4 relative z-10">
+            <motion.div
+              variants={itemVariants}
+              className="relative overflow-hidden rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 p-5 text-white shadow-sm transition-transform hover:shadow-md"
+            >
+              <div className="relative z-10 flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-lg font-semibold">Começar a Focar</p>
                   <p className="mt-1 text-sm/relaxed text-white/85">
@@ -769,7 +814,7 @@ export default function FocusFlowDashboard() {
                 focusCard.containerClass,
               )}
             >
-              <div className="flex items-center justify-between gap-4 relative z-10">
+              <div className="relative z-10 flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-lg font-semibold">{focusCard.title}</p>
                   <p className="mt-1 text-sm/relaxed text-white/85">
@@ -800,7 +845,11 @@ export default function FocusFlowDashboard() {
             </div>
 
             {errorMessage ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-sm">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-sm"
+              >
                 {errorMessage}
               </motion.div>
             ) : highlightTasks.length === 0 ? (
