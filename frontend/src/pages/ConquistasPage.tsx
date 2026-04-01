@@ -189,7 +189,7 @@ export default function ConquistasPage() {
           >
             <Trophy className="h-8 w-8 text-amber-500" />
           </motion.div>
-          Conquistas & Recompensas
+          Desafios & Conquistas
         </h1>
         <p className="mt-2 text-sm text-slate-500">
           Acompanhe seu progresso diário, abra baús e desbloqueie medalhas.

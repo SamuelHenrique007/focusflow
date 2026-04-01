@@ -51,7 +51,7 @@ const MAIN_NAV: Array<{ key: NavKey; label: string; icon: React.ReactNode }> = [
   },
   {
     key: "achievements",
-    label: "Conquistas",
+    label: "Desfios e conquistas",
     icon: <Trophy className="h-4 w-4" />,
   },
   {
