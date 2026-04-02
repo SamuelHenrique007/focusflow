@@ -33,6 +33,7 @@ class UnreadNotificationCountView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        sync_user_notifications(request.user)
 
         count = active_notifications_queryset(request.user).filter(is_read=False).count()
 

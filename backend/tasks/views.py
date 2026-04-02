@@ -3,6 +3,8 @@ from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
+from notifications.services import notify_task_completed
+
 from gamification.services import get_profile, reward_completed_task
 from .models import Task
 from .serializers import TaskSerializer
@@ -38,5 +40,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             profile = get_profile(task.user)
             reward_completed_task(profile)
 
+            notify_task_completed(task)
+            
             task.reward_granted = True
             task.save(update_fields=["reward_granted"])

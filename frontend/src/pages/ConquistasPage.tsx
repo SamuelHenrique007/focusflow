@@ -325,7 +325,7 @@ export default function ConquistasPage() {
                             disabled={claimingChest === chest.key}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.94 }}
-                            className="whitespace-nowrap rounded-full bg-amber-500 px-4 py-2 text-[11px] font-black text-white shadow-lg shadow-amber-200 transition hover:bg-amber-600 disabled:opacity-50"
+                            className="cursor-pointer disabled:cursor-not-allowed whitespace-nowrap rounded-full bg-amber-500 px-4 py-2 text-[11px] font-black text-white shadow-lg shadow-amber-200 transition hover:bg-amber-600 disabled:opacity-50"
                           >
                             {claimingChest === chest.key ? "RESGATANDO..." : "RESGATAR"}
                           </motion.button>
@@ -444,7 +444,7 @@ export default function ConquistasPage() {
                             disabled={claimingChest === chest.key}
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.96 }}
-                            className="whitespace-nowrap rounded-full bg-amber-500 px-4 py-2 text-[11px] font-black text-white shadow-lg shadow-amber-200 transition hover:bg-amber-600 disabled:opacity-50"
+                            className="cursor-pointer disabled:cursor-not-allowed whitespace-nowrap rounded-full bg-amber-500 px-4 py-2 text-[11px] font-black text-white shadow-lg shadow-amber-200 transition hover:bg-amber-600 disabled:opacity-50"
                           >
                             {claimingChest === chest.key ? "RESGATANDO..." : "RESGATAR"}
                           </motion.button>

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
   LayoutDashboard,
   CheckSquare,
@@ -16,7 +16,7 @@ import { cn } from "@/lib/cn";
 import { useGameStore } from "@/store/useGameStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useAvatarStore } from "@/store/useAvatarStore";
-import { notificationsService } from "@/services/notifications";
+import { useNotificationsStore } from "@/store/useNotificationsStore";
 
 export type NavKey =
   | "dashboard"
@@ -209,39 +209,31 @@ export function SidebarNav({
   activeKey: NavKey;
   onSelect?: (key: NavKey) => void;
 }) {
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
-
-  const loadUnreadCount = useCallback(async () => {
-    try {
-      const data = await notificationsService.unreadCount();
-      setHasUnreadNotifications((data.count ?? 0) > 0);
-    } catch (error) {
-      console.error("Erro ao carregar contador de notificações", error);
-      setHasUnreadNotifications(false);
-    }
-  }, []);
+  const hasUnreadNotifications = useNotificationsStore(
+    (state) => state.hasUnreadNotifications
+  );
+  const fetchUnreadCount = useNotificationsStore(
+    (state) => state.fetchUnreadCount
+  );
 
   useEffect(() => {
-    const handleNotificationsChanged = () => {
-      void loadUnreadCount();
-    };
+    void fetchUnreadCount();
 
     const handleWindowFocus = () => {
-      void loadUnreadCount();
+      void fetchUnreadCount();
     };
 
-    window.addEventListener("notifications:changed", handleNotificationsChanged);
+    const interval = window.setInterval(() => {
+      void fetchUnreadCount();
+    }, 5000);
+
     window.addEventListener("focus", handleWindowFocus);
 
-    queueMicrotask(() => {
-      void loadUnreadCount();
-    });
-
     return () => {
-      window.removeEventListener("notifications:changed", handleNotificationsChanged);
+      window.clearInterval(interval);
       window.removeEventListener("focus", handleWindowFocus);
     };
-  }, [loadUnreadCount]);
+  }, [fetchUnreadCount]);
 
   return (
     <div className="flex h-full flex-col justify-between">
