@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { applyTheme } from "@/lib/applyTheme";
+import { DEFAULT_THEME_KEY, normalizeThemeKey } from "@/lib/themeCatalog";
 
 const STORAGE_KEY = "focusflow_equipped_theme";
-export const DEFAULT_THEME_KEY = "focusflow_default";
 
 type ThemeState = {
   equippedThemeKey: string;
@@ -12,20 +12,23 @@ type ThemeState = {
   clearTheme: () => void;
 };
 
+function sanitizeThemeKey(themeKey?: string | null) {
+  return normalizeThemeKey(themeKey);
+}
+
 export function getStoredThemeKey() {
   if (typeof window === "undefined") {
     return DEFAULT_THEME_KEY;
   }
 
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored || DEFAULT_THEME_KEY;
+  return sanitizeThemeKey(localStorage.getItem(STORAGE_KEY));
 }
 
 export const useThemeStore = create<ThemeState>((set) => ({
-  equippedThemeKey: getStoredThemeKey(),
+  equippedThemeKey: DEFAULT_THEME_KEY,
 
   setEquippedThemeKey: (themeKey) => {
-    const safeKey = themeKey?.trim() || DEFAULT_THEME_KEY;
+    const safeKey = sanitizeThemeKey(themeKey);
 
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY, safeKey);
@@ -36,7 +39,7 @@ export const useThemeStore = create<ThemeState>((set) => ({
   },
 
   hydrateFromBackend: (themeKey) => {
-    const safeKey = themeKey?.trim() || DEFAULT_THEME_KEY;
+    const safeKey = sanitizeThemeKey(themeKey);
 
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY, safeKey);
@@ -48,12 +51,9 @@ export const useThemeStore = create<ThemeState>((set) => ({
 
   loadTheme: () => {
     const storedTheme = getStoredThemeKey();
+    const safeKey = applyTheme(storedTheme);
 
-    if (typeof window !== "undefined") {
-      applyTheme(storedTheme);
-    }
-
-    set({ equippedThemeKey: storedTheme });
+    set({ equippedThemeKey: safeKey });
   },
 
   clearTheme: () => {

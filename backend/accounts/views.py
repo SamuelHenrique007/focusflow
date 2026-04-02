@@ -5,7 +5,13 @@ from rest_framework.response import Response
 from rest_framework import generics, status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import RegisterSerializer, MeSerializer, LoginSerializer
+from .serializers import (
+    RegisterSerializer,
+    MeSerializer,
+    LoginSerializer,
+    UpdateMeSerializer,
+    ChangePasswordSerializer,
+)
 
 
 class LoginView(TokenObtainPairView):
@@ -44,3 +50,38 @@ class MeView(APIView):
     def get(self, request):
         serializer = MeSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        serializer = UpdateMeSerializer(
+            request.user,
+            data=request.data,
+            partial=True,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            {
+                "message": "Dados atualizados com sucesso.",
+                "user": MeSerializer(request.user).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            {"message": "Senha alterada com sucesso."},
+            status=status.HTTP_200_OK,
+        )

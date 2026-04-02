@@ -1,14 +1,22 @@
-import { THEME_CATALOG } from "@/lib/themeCatalog";
+import {
+  DEFAULT_THEME_KEY,
+  getThemeDefinition,
+  normalizeThemeKey,
+} from "@/lib/themeCatalog";
 
-export function applyTheme(themeKey: string) {
-  if (typeof window === "undefined") return;
+export function applyTheme(themeKey?: string | null) {
+  if (typeof window === "undefined") return DEFAULT_THEME_KEY;
 
   const root = document.documentElement;
-  const theme = THEME_CATALOG[themeKey] || THEME_CATALOG.focusflow_default;
+  const safeThemeKey = normalizeThemeKey(themeKey);
+  const theme = getThemeDefinition(safeThemeKey);
 
-  Object.entries(theme).forEach(([cssVar, value]) => {
+  Object.entries(theme.vars).forEach(([cssVar, value]) => {
     root.style.setProperty(cssVar, value);
   });
 
-  root.dataset.theme = themeKey;
+  root.dataset.theme = safeThemeKey;
+  root.style.colorScheme = safeThemeKey === "night_mode" ? "dark" : "light";
+
+  return safeThemeKey;
 }

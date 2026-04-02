@@ -16,6 +16,8 @@ import { AppShell } from "./components/layout/AppShell";
 import ConquistasPage from "@/pages/ConquistasPage";
 import StorePage from "@/pages/StorePage";
 import RewardToastViewport from "@/components/ui/RewardToastViewport";
+import NotificationsPage from "./pages/NotificationsPage";
+import SettingsPage from "./pages/SettingsPage";
 
 export default function App() {
   return (
@@ -42,6 +44,8 @@ export default function App() {
             <Route path="/pomodoropage" element={<PomodoroPage />} />
             <Route path="/achievements" element={<ConquistasPage />} />
             <Route path="/store" element={<StorePage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Route>
 

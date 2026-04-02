@@ -142,4 +142,13 @@ export const gamificationService = {
     );
     return response.data;
   },
+
+  async resetEquipment(category: "avatar" | "theme" | "sound") {
+    const response = await api.post<GenericGamificationResponse>(
+      "/gamification/store/reset-equipment/",
+      { category }
+    );
+    return response.data;
+  },
+
 };

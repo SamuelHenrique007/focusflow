@@ -1,0 +1,737 @@
+import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Palette,
+  Volume2,
+  Smile,
+  RotateCcw,
+  Clock3,
+  Save,
+  CheckCircle2,
+  AlertCircle,
+  Sparkles,
+  UserCog,
+  ShieldCheck,
+} from "lucide-react";
+
+import { useAuth } from "@/hooks/useAuth";
+import { useGameStore } from "@/store/useGameStore";
+import { useThemeStore } from "@/store/useThemeStore";
+import { useAvatarStore } from "@/store/useAvatarStore";
+import { useSoundStore, DEFAULT_SOUND_KEY } from "@/store/useSoundStore";
+import { gamificationService } from "@/services/gamificationService";
+import {
+  getPomodoroSettings,
+  updatePomodoroSettings,
+  type PomodoroSettings,
+} from "@/services/pomodoro";
+import { getThemeDefinition } from "@/lib/themeCatalog";
+import { cn } from "@/lib/cn";
+
+// Variantes de animação do Framer Motion
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1, // Faz os elementos aparecerem em cascata
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
+
+function SectionCard({
+  title,
+  description,
+  icon,
+  children,
+}: {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.section
+      variants={itemVariants}
+      className="rounded-3xl border border-(--ff-border) bg-(--ff-surface) p-6 shadow-sm"
+    >
+      <div className="mb-5 flex items-start gap-3">
+        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-(--ff-primary-soft) text-(--ff-primary)">
+          {icon}
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-(--ff-text)">{title}</h2>
+          <p className="text-sm text-(--ff-text-soft)">{description}</p>
+        </div>
+      </div>
+      {children}
+    </motion.section>
+  );
+}
+
+function PreferenceRow({
+  label,
+  value,
+  action,
+  muted,
+}: {
+  label: string;
+  value: string;
+  action?: React.ReactNode;
+  muted?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-sm font-semibold text-(--ff-text)">{label}</p>
+        <p
+          className={cn(
+            "text-sm",
+            muted ? "text-(--ff-text-muted)" : "text-(--ff-text-soft)"
+          )}
+        >
+          {value}
+        </p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+type FlashMessage = {
+  type: "success" | "error";
+  text: string;
+} | null;
+
+export default function SettingsPage() {
+  const { user, updateProfile, changePassword } = useAuth();
+
+  // Removido: const stats = useGameStore((state) => state.stats); -> Estava gerando warning de variável não utilizada
+  const fetchStatus = useGameStore((state) => state.fetchStatus);
+
+  const equippedThemeKey = useThemeStore((state) => state.equippedThemeKey);
+  const clearTheme = useThemeStore((state) => state.clearTheme);
+  const loadTheme = useThemeStore((state) => state.loadTheme);
+
+  const equippedAvatar = useAvatarStore((state) => state.equippedAvatar);
+  const clearAvatar = useAvatarStore((state) => state.clearAvatar);
+  const loadAvatar = useAvatarStore((state) => state.loadAvatar);
+
+  const equippedSoundKey = useSoundStore((state) => state.equippedSoundKey);
+  const clearSound = useSoundStore((state) => state.clearSound);
+  const loadSound = useSoundStore((state) => state.loadSound);
+
+  const [profileForm, setProfileForm] = useState({
+    name: "",
+    email: "",
+  });
+
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: "",
+    new_password: "",
+    confirm_new_password: "",
+  });
+
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  const [pomodoroSettings, setPomodoroSettings] = useState<PomodoroSettings>({
+    focus_minutes: 25,
+    short_break_minutes: 5,
+    long_break_minutes: 15,
+    cycles_before_long_break: 4,
+  });
+
+  const [isSavingPomodoro, setIsSavingPomodoro] = useState(false);
+  const [isLoadingPomodoro, setIsLoadingPomodoro] = useState(true);
+  const [busySection, setBusySection] = useState<
+    "theme" | "avatar" | "sound" | null
+  >(null);
+
+  const [message, setMessage] = useState<FlashMessage>(null);
+
+  const currentThemeLabel = useMemo(() => {
+    return getThemeDefinition(equippedThemeKey).label;
+  }, [equippedThemeKey]);
+
+  useEffect(() => {
+    fetchStatus();
+    loadTheme();
+    loadAvatar();
+    loadSound();
+  }, [fetchStatus, loadTheme, loadAvatar, loadSound]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    setProfileForm({
+      name: user.name || "",
+      email: user.email || "",
+    });
+  }, [user]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadPomodoro() {
+      try {
+        setIsLoadingPomodoro(true);
+        const data = await getPomodoroSettings();
+        if (!active) return;
+        setPomodoroSettings(data);
+      } catch (error) {
+        console.error("Erro ao carregar configurações do pomodoro:", error);
+        if (!active) return;
+        setMessage({
+          type: "error",
+          text: "Não foi possível carregar as configurações do pomodoro.",
+        });
+      } finally {
+        if (active) setIsLoadingPomodoro(false);
+      }
+    }
+
+    loadPomodoro();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!message) return;
+    const timer = window.setTimeout(() => setMessage(null), 3200);
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
+  function extractErrorMessage(error: unknown, fallback: string) {
+    const err = error as {
+      response?: {
+        data?: Record<string, unknown>;
+      };
+    };
+
+    const data = err?.response?.data;
+
+    if (!data) return fallback;
+
+    if (typeof data.detail === "string") return data.detail;
+    if (typeof data.message === "string") return data.message;
+
+    for (const value of Object.values(data)) {
+      if (typeof value === "string") return value;
+      if (Array.isArray(value) && typeof value[0] === "string") return value[0];
+    }
+
+    return fallback;
+  }
+
+  function updatePomodoroField<K extends keyof PomodoroSettings>(
+    key: K,
+    value: PomodoroSettings[K]
+  ) {
+    setPomodoroSettings((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleSaveProfile(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!profileForm.name.trim()) {
+      setMessage({
+        type: "error",
+        text: "Informe o nome do usuário.",
+      });
+      return;
+    }
+
+    if (!profileForm.email.trim()) {
+      setMessage({
+        type: "error",
+        text: "Informe o e-mail do usuário.",
+      });
+      return;
+    }
+
+    try {
+      setIsSavingProfile(true);
+
+      await updateProfile({
+        name: profileForm.name.trim(),
+        email: profileForm.email.trim(),
+      });
+
+      setMessage({
+        type: "success",
+        text: "Dados do usuário atualizados com sucesso.",
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar dados do usuário:", error);
+      setMessage({
+        type: "error",
+        text: extractErrorMessage(
+          error,
+          "Não foi possível atualizar os dados do usuário."
+        ),
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }
+
+  async function handleChangePassword(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    if (
+      !passwordForm.current_password ||
+      !passwordForm.new_password ||
+      !passwordForm.confirm_new_password
+    ) {
+      setMessage({
+        type: "error",
+        text: "Preencha todos os campos da senha.",
+      });
+      return;
+    }
+
+    if (passwordForm.new_password.length < 8) {
+      setMessage({
+        type: "error",
+        text: "A nova senha deve ter pelo menos 8 caracteres.",
+      });
+      return;
+    }
+
+    if (passwordForm.new_password !== passwordForm.confirm_new_password) {
+      setMessage({
+        type: "error",
+        text: "A confirmação da nova senha não confere.",
+      });
+      return;
+    }
+
+    try {
+      setIsSavingPassword(true);
+
+      await changePassword(passwordForm);
+
+      setPasswordForm({
+        current_password: "",
+        new_password: "",
+        confirm_new_password: "",
+      });
+
+      setMessage({
+        type: "success",
+        text: "Senha alterada com sucesso.",
+      });
+    } catch (error) {
+      console.error("Erro ao alterar senha:", error);
+      setMessage({
+        type: "error",
+        text: extractErrorMessage(
+          error,
+          "Não foi possível alterar a senha."
+        ),
+      });
+    } finally {
+      setIsSavingPassword(false);
+    }
+  }
+
+  async function handleSavePomodoro() {
+    try {
+      setIsSavingPomodoro(true);
+      const data = await updatePomodoroSettings(pomodoroSettings);
+      setPomodoroSettings(data);
+      setMessage({
+        type: "success",
+        text: "Configurações do pomodoro salvas com sucesso.",
+      });
+    } catch (error) {
+      console.error("Erro ao salvar configurações do pomodoro:", error);
+      setMessage({
+        type: "error",
+        text: "Não foi possível salvar as configurações do pomodoro.",
+      });
+    } finally {
+      setIsSavingPomodoro(false);
+    }
+  }
+
+  async function handleResetCategory(category: "theme" | "avatar" | "sound") {
+    try {
+      setBusySection(category);
+      const data = await gamificationService.resetEquipment(category);
+
+      if (category === "theme") clearTheme();
+      if (category === "avatar") clearAvatar();
+      if (category === "sound") clearSound();
+
+      await fetchStatus();
+
+      setMessage({
+        type: "success",
+        text:
+          data?.message ||
+          (category === "theme"
+            ? "Tema restaurado para o padrão."
+            : category === "avatar"
+              ? "Avatar restaurado para o padrão."
+              : "Som restaurado para o padrão."),
+      });
+    } catch (error) {
+      console.error(`Erro ao redefinir ${category}:`, error);
+      setMessage({
+        type: "error",
+        text: `Não foi possível redefinir ${
+          category === "theme"
+            ? "o tema"
+            : category === "avatar"
+              ? "o avatar"
+              : "o som"
+        }.`,
+      });
+    } finally {
+      setBusySection(null);
+    }
+  }
+
+  return (
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="mx-auto max-w-5xl space-y-6 pb-12"
+    >
+      <motion.div
+        variants={itemVariants}
+        className="rounded-3xl border border-(--ff-border) bg-(--ff-surface) p-6 shadow-sm"
+      >
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-(--ff-primary-soft) px-3 py-1 text-xs font-semibold text-(--ff-primary)">
+              <Sparkles className="h-3.5 w-3.5" />
+              Personalização
+            </p>
+            <h1 className="text-2xl font-bold text-(--ff-text)">Configurações</h1>
+            <p className="mt-1 text-sm text-(--ff-text-soft)">
+              Aqui você pode gerenciar sua conta, restaurar itens equipados e
+              ajustar o pomodoro.
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
+      {message ? (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className={cn(
+            "flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm",
+            message.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-rose-200 bg-rose-50 text-rose-700"
+          )}
+        >
+          {message.type === "success" ? (
+            <CheckCircle2 className="h-4 w-4" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
+          {message.text}
+        </motion.div>
+      ) : null}
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SectionCard
+          title="Dados do usuário"
+          description="Atualize seu nome e e-mail da conta."
+          icon={<UserCog className="h-5 w-5" />}
+        >
+          <form className="space-y-4" onSubmit={handleSaveProfile}>
+            <div className="grid gap-4">
+              <label className="space-y-2 cursor-pointer">
+                <span className="block text-sm font-semibold text-(--ff-text)">
+                  Nome
+                </span>
+                <input
+                  type="text"
+                  value={profileForm.name}
+                  onChange={(event) =>
+                    setProfileForm((prev) => ({
+                      ...prev,
+                      name: event.target.value,
+                    }))
+                  }
+                  placeholder="Digite seu nome"
+                  disabled={isSavingProfile}
+                  className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) px-3 py-2 text-sm text-(--ff-text) outline-none transition focus:border-(--ff-primary)"
+                />
+              </label>
+
+              <label className="space-y-2 cursor-pointer">
+                <span className="block text-sm font-semibold text-(--ff-text)">
+                  E-mail
+                </span>
+                <input
+                  type="email"
+                  value={profileForm.email}
+                  onChange={(event) =>
+                    setProfileForm((prev) => ({
+                      ...prev,
+                      email: event.target.value,
+                    }))
+                  }
+                  placeholder="Digite seu e-mail"
+                  disabled={isSavingProfile}
+                  className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) px-3 py-2 text-sm text-(--ff-text) outline-none transition focus:border-(--ff-primary)"
+                />
+              </label>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={isSavingProfile}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-(--ff-primary) px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Save className="h-4 w-4" />
+                {isSavingProfile ? "Salvando..." : "Salvar dados"}
+              </button>
+            </div>
+          </form>
+        </SectionCard>
+
+        <SectionCard
+          title="Segurança"
+          description="Altere sua senha para manter sua conta protegida."
+          icon={<ShieldCheck className="h-5 w-5" />}
+        >
+          <form className="space-y-4" onSubmit={handleChangePassword}>
+            <div className="grid gap-4">
+              <label className="space-y-2 cursor-pointer">
+                <span className="block text-sm font-semibold text-(--ff-text)">
+                  Senha atual
+                </span>
+                <input
+                  type="password"
+                  value={passwordForm.current_password}
+                  onChange={(event) =>
+                    setPasswordForm((prev) => ({
+                      ...prev,
+                      current_password: event.target.value,
+                    }))
+                  }
+                  placeholder="Digite sua senha atual"
+                  disabled={isSavingPassword}
+                  className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) px-3 py-2 text-sm text-(--ff-text) outline-none transition focus:border-(--ff-primary)"
+                />
+              </label>
+
+              <label className="space-y-2 cursor-pointer">
+                <span className="block text-sm font-semibold text-(--ff-text)">
+                  Nova senha
+                </span>
+                <input
+                  type="password"
+                  value={passwordForm.new_password}
+                  onChange={(event) =>
+                    setPasswordForm((prev) => ({
+                      ...prev,
+                      new_password: event.target.value,
+                    }))
+                  }
+                  placeholder="Digite a nova senha"
+                  disabled={isSavingPassword}
+                  className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) px-3 py-2 text-sm text-(--ff-text) outline-none transition focus:border-(--ff-primary)"
+                />
+              </label>
+
+              <label className="space-y-2 cursor-pointer">
+                <span className="block text-sm font-semibold text-(--ff-text)">
+                  Confirmar nova senha
+                </span>
+                <input
+                  type="password"
+                  value={passwordForm.confirm_new_password}
+                  onChange={(event) =>
+                    setPasswordForm((prev) => ({
+                      ...prev,
+                      confirm_new_password: event.target.value,
+                    }))
+                  }
+                  placeholder="Confirme a nova senha"
+                  disabled={isSavingPassword}
+                  className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) px-3 py-2 text-sm text-(--ff-text) outline-none transition focus:border-(--ff-primary)"
+                />
+              </label>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={isSavingPassword}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-(--ff-primary) px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                {isSavingPassword ? "Alterando..." : "Alterar senha"}
+              </button>
+            </div>
+          </form>
+        </SectionCard>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SectionCard
+          title="Aparência"
+          description="Gerencie o tema visual do FocusFlow e volte ao padrão quando quiser."
+          icon={<Palette className="h-5 w-5" />}
+        >
+          <div className="space-y-4">
+            <PreferenceRow
+              label="Tema atual"
+              value={currentThemeLabel}
+              action={
+                <button
+                  type="button"
+                  onClick={() => handleResetCategory("theme")}
+                  disabled={busySection === "theme"}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-(--ff-primary) px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  {busySection === "theme" ? "Restaurando..." : "Voltar ao normal"}
+                </button>
+              }
+            />
+            <p className="text-xs text-(--ff-text-muted)">
+              O tema padrão do sistema é restaurado imediatamente e remove o
+              tema equipado da loja.
+            </p>
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Perfil visual"
+          description="Redefina rapidamente avatar e som para os padrões do aplicativo."
+          icon={<Smile className="h-5 w-5" />}
+        >
+          <div className="space-y-4">
+            <PreferenceRow
+              label="Avatar equipado"
+              value={equippedAvatar || "🙂"}
+              action={
+                <button
+                  type="button"
+                  onClick={() => handleResetCategory("avatar")}
+                  disabled={busySection === "avatar"}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-(--ff-border) bg-(--ff-surface) px-4 py-2 text-sm font-semibold text-(--ff-text) transition hover:bg-(--ff-surface-soft) disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  {busySection === "avatar" ? "Redefinindo..." : "Usar avatar padrão"}
+                </button>
+              }
+            />
+
+            <PreferenceRow
+              label="Som equipado"
+              value={equippedSoundKey || DEFAULT_SOUND_KEY}
+              action={
+                <button
+                  type="button"
+                  onClick={() => handleResetCategory("sound")}
+                  disabled={busySection === "sound"}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-(--ff-border) bg-(--ff-surface) px-4 py-2 text-sm font-semibold text-(--ff-text) transition hover:bg-(--ff-surface-soft) disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Volume2 className="h-4 w-4" />
+                  {busySection === "sound" ? "Redefinindo..." : "Usar som padrão"}
+                </button>
+              }
+            />
+          </div>
+        </SectionCard>
+      </div>
+
+      <SectionCard
+        title="Pomodoro"
+        description="Ajuste os tempos padrão das sessões e pausas."
+        icon={<Clock3 className="h-5 w-5" />}
+      >
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {[
+            {
+              key: "focus_minutes" as const,
+              label: "Foco",
+              min: 15,
+              max: 60,
+            },
+            {
+              key: "short_break_minutes" as const,
+              label: "Pausa curta",
+              min: 3,
+              max: 15,
+            },
+            {
+              key: "long_break_minutes" as const,
+              label: "Pausa longa",
+              min: 10,
+              max: 30,
+            },
+            {
+              key: "cycles_before_long_break" as const,
+              label: "Ciclos até pausa longa",
+              min: 2,
+              max: 6,
+            },
+          ].map((field) => (
+            <label
+              key={field.key}
+              className="rounded-2xl cursor-pointer border border-(--ff-border) bg-(--ff-surface-soft) p-4"
+            >
+              <span className="mb-2 block text-sm font-semibold text-(--ff-text)">
+                {field.label}
+              </span>
+              <input
+                type="number"
+                min={field.min}
+                max={field.max}
+                value={pomodoroSettings[field.key]}
+                onChange={(event) => {
+                  const rawValue = Number(event.target.value);
+                  const safeValue = Number.isNaN(rawValue)
+                    ? field.min
+                    : Math.min(field.max, Math.max(field.min, rawValue));
+                  updatePomodoroField(field.key, safeValue);
+                }}
+                disabled={isLoadingPomodoro || isSavingPomodoro}
+                className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) px-3 py-2 text-sm text-(--ff-text) outline-none ring-0 transition focus:border-(--ff-primary)"
+              />
+            </label>
+          ))}
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-(--ff-text-soft)">
+            Essas configurações são usadas nas suas próximas sessões de foco.
+          </p>
+          <button
+            type="button"
+            onClick={handleSavePomodoro}
+            disabled={isLoadingPomodoro || isSavingPomodoro}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-(--ff-primary) px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" />
+            {isSavingPomodoro ? "Salvando..." : "Salvar pomodoro"}
+          </button>
+        </div>
+      </SectionCard>
+    </motion.div>
+  );
+}

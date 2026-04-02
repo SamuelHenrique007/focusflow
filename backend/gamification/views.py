@@ -233,6 +233,58 @@ class EquipItemView(APIView):
         )
 
 
+
+
+class ResetEquippedItemView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def post(self, request):
+        profile = get_profile(request.user)
+        category = request.data.get("category")
+
+        if category not in {"avatar", "sound", "theme"}:
+            return Response(
+                {
+                    "success": False,
+                    "error": "Categoria inválida para redefinir equipamento.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        update_fields = []
+
+        if category == "avatar":
+            profile.equipped_avatar_item = None
+            update_fields.append("equipped_avatar_item")
+        elif category == "sound":
+            profile.equipped_sound_item = None
+            update_fields.append("equipped_sound_item")
+        elif category == "theme":
+            profile.equipped_theme_item = None
+            update_fields.append("equipped_theme_item")
+
+        if update_fields:
+            profile.save(update_fields=update_fields)
+
+        UserInventory.objects.filter(
+            user=request.user,
+            item__category=category,
+            is_equipped=True,
+        ).update(is_equipped=False)
+
+        sync_profile_progress(profile)
+
+        return Response(
+            {
+                "success": True,
+                "message": "Configuração redefinida com sucesso.",
+                "stats": serialize_profile(profile),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class ConvertFocusMinutesView(APIView):
     permission_classes = [IsAuthenticated]
 

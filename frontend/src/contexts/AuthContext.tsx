@@ -12,9 +12,8 @@ import {
   meRequest,
   refreshRequest,
   registerRequest,
-  type LoginPayload,
-  type RegisterPayload,
-  type User,
+  updateMeRequest,
+  changePasswordRequest,
 } from "@/services/auth";
 import {
   clearTokens,
@@ -23,7 +22,15 @@ import {
   setAccessToken,
   setTokens,
 } from "@/services/token";
-import { AuthContext, type AuthContextType } from "./auth-context";
+import { AuthContext } from "./auth-context";
+import type {
+  AuthContextType,
+  LoginPayload,
+  RegisterPayload,
+  User,
+  UpdateMePayload,
+  ChangePasswordPayload,
+} from "@/types/auth";
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -50,6 +57,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const me = await meRequest();
     setUser(me);
   }, []);
+
+  const updateProfile = useCallback(async (data: UpdateMePayload) => {
+    const response = await updateMeRequest(data);
+    setUser(response.user);
+  }, []);
+
+  const changePassword = useCallback(
+    async (data: ChangePasswordPayload) => {
+      await changePasswordRequest(data);
+    },
+    [],
+  );
 
   const refreshAccessToken = useCallback(async (): Promise<string | null> => {
     const refresh = getRefreshToken();
@@ -88,38 +107,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [logout]);
 
   const login = useCallback(
-  async (data: LoginPayload) => {
-    const response = await loginRequest(data);
+    async (data: LoginPayload) => {
+      const response = await loginRequest(data);
 
-    setTokens(response.access, response.refresh);
-    setAccessTokenState(response.access);
-    api.defaults.headers.common.Authorization = `Bearer ${response.access}`;
+      setTokens(response.access, response.refresh);
+      setAccessTokenState(response.access);
+      api.defaults.headers.common.Authorization = `Bearer ${response.access}`;
 
-    if (response.user) {
-      setUser(response.user);
-    } else {
-      await fetchMe();
-    }
-  },
-  [fetchMe],
-);
+      if (response.user) {
+        setUser(response.user);
+      } else {
+        await fetchMe();
+      }
+    },
+    [fetchMe],
+  );
 
-const register = useCallback(
-  async (data: RegisterPayload) => {
-    const response = await registerRequest(data);
+  const register = useCallback(
+    async (data: RegisterPayload) => {
+      const response = await registerRequest(data);
 
-    setTokens(response.access, response.refresh);
-    setAccessTokenState(response.access);
-    api.defaults.headers.common.Authorization = `Bearer ${response.access}`;
+      setTokens(response.access, response.refresh);
+      setAccessTokenState(response.access);
+      api.defaults.headers.common.Authorization = `Bearer ${response.access}`;
 
-    if (response.user) {
-      setUser(response.user);
-    } else {
-      await fetchMe();
-    }
-  },
-  [fetchMe],
-);
+      if (response.user) {
+        setUser(response.user);
+      } else {
+        await fetchMe();
+      }
+    },
+    [fetchMe],
+  );
 
   useEffect(() => {
     const requestInterceptor = api.interceptors.request.use(
@@ -208,6 +227,8 @@ const register = useCallback(
       logout,
       fetchMe,
       refreshAccessToken,
+      updateProfile,
+      changePassword,
     }),
     [
       user,
@@ -218,6 +239,8 @@ const register = useCallback(
       logout,
       fetchMe,
       refreshAccessToken,
+      updateProfile,
+      changePassword,
     ],
   );
 

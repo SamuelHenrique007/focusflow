@@ -1,21 +1,11 @@
 import { api } from "./api";
-
-export type RegisterPayload = {
-  name: string;
-  email: string;
-  password: string;
-};
-
-export type LoginPayload = {
-  email: string;
-  password: string;
-};
-
-export type User = {
-  id: number;
-  name: string;
-  email: string;
-};
+import type {
+  RegisterPayload,
+  LoginPayload,
+  User,
+  UpdateMePayload,
+  ChangePasswordPayload,
+} from "@/types/auth";
 
 export type AuthResponse = {
   user?: User;
@@ -42,9 +32,31 @@ export async function meRequest(): Promise<User> {
   return response.data;
 }
 
+export async function updateMeRequest(
+  data: UpdateMePayload,
+): Promise<{ message: string; user: User }> {
+  const response = await api.patch("/auth/me/", data);
+  return response.data;
+}
+
+export async function changePasswordRequest(
+  data: ChangePasswordPayload,
+): Promise<{ message: string }> {
+  const response = await api.post("/auth/change-password/", data);
+  return response.data;
+}
+
 export async function refreshRequest(
   refresh: string,
 ): Promise<{ access: string }> {
   const response = await api.post("/auth/login/refresh/", { refresh });
   return response.data;
 }
+
+export type {
+  RegisterPayload,
+  LoginPayload,
+  User,
+  UpdateMePayload,
+  ChangePasswordPayload,
+};
