@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   LayoutDashboard,
   CheckSquare,
@@ -16,6 +16,7 @@ import { cn } from "@/lib/cn";
 import { useGameStore } from "@/store/useGameStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useAvatarStore } from "@/store/useAvatarStore";
+import { notificationsService } from "@/services/notifications";
 
 export type NavKey =
   | "dashboard"
@@ -51,7 +52,7 @@ const MAIN_NAV: Array<{ key: NavKey; label: string; icon: React.ReactNode }> = [
   },
   {
     key: "achievements",
-    label: "Desfios e conquistas",
+    label: "Desafios e conquistas",
     icon: <Trophy className="h-4 w-4" />,
   },
   {
@@ -94,6 +95,7 @@ function SidebarItem({
   to,
   onClick,
   danger,
+  showIndicator,
 }: {
   active?: boolean;
   icon: React.ReactNode;
@@ -101,17 +103,23 @@ function SidebarItem({
   to?: string;
   onClick?: () => void;
   danger?: boolean;
+  showIndicator?: boolean;
 }) {
   const content = (
     <>
       <span
         className={cn(
-          "grid h-8 w-8 place-items-center rounded-xl",
-          active ? "bg-white shadow-sm" : danger ? "bg-rose-50" : "bg-slate-100",
+          "relative grid h-8 w-8 place-items-center rounded-xl",
+          active ? "bg-white shadow-sm" : danger ? "bg-rose-50" : "bg-slate-100"
         )}
       >
         {icon}
+
+        {showIndicator && (
+          <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+        )}
       </span>
+
       <span className="truncate">{label}</span>
     </>
   );
@@ -122,7 +130,7 @@ function SidebarItem({
       ? "bg-blue-50 text-blue-700"
       : danger
         ? "text-rose-600 hover:bg-rose-50"
-        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
   );
 
   if (to) {
@@ -153,7 +161,7 @@ function UserAvatar({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {
     <div
       className={cn(
         "grid shrink-0 place-items-center rounded-full border border-blue-100 bg-blue-50 shadow-sm",
-        sizeClasses[size],
+        sizeClasses[size]
       )}
     >
       <span>{avatar || "🙂"}</span>
@@ -169,11 +177,11 @@ function UserGamerCard() {
   const loadAvatar = useAvatarStore((state) => state.loadAvatar);
 
   useEffect(() => {
-    fetchStatus();
+    void fetchStatus();
   }, [fetchStatus]);
 
   useEffect(() => {
-    loadAvatar();
+    void loadAvatar();
   }, [loadAvatar]);
 
   const userName = getFirstAndSecondName(user?.name);
@@ -201,6 +209,40 @@ export function SidebarNav({
   activeKey: NavKey;
   onSelect?: (key: NavKey) => void;
 }) {
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+
+  const loadUnreadCount = useCallback(async () => {
+    try {
+      const data = await notificationsService.unreadCount();
+      setHasUnreadNotifications((data.count ?? 0) > 0);
+    } catch (error) {
+      console.error("Erro ao carregar contador de notificações", error);
+      setHasUnreadNotifications(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleNotificationsChanged = () => {
+      void loadUnreadCount();
+    };
+
+    const handleWindowFocus = () => {
+      void loadUnreadCount();
+    };
+
+    window.addEventListener("notifications:changed", handleNotificationsChanged);
+    window.addEventListener("focus", handleWindowFocus);
+
+    queueMicrotask(() => {
+      void loadUnreadCount();
+    });
+
+    return () => {
+      window.removeEventListener("notifications:changed", handleNotificationsChanged);
+      window.removeEventListener("focus", handleWindowFocus);
+    };
+  }, [loadUnreadCount]);
+
   return (
     <div className="flex h-full flex-col justify-between">
       <div>
@@ -222,6 +264,7 @@ export function SidebarNav({
             active={activeKey === "notifications"}
             icon={<Bell className="h-4 w-4" />}
             label="Notificações"
+            showIndicator={hasUnreadNotifications}
             to={ROUTES.notifications}
             onClick={onSelect ? () => onSelect("notifications") : undefined}
           />

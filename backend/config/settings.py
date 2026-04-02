@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'pomodoro',
     'gamification',
     'statistics_app',
+    'notifications',
 ]
 
 MIDDLEWARE = [

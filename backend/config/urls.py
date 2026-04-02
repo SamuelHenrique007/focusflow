@@ -7,5 +7,6 @@ urlpatterns = [
     path("api/tasks/", include("tasks.urls")),
     path('api/pomodoro/', include('pomodoro.urls')),
     path('api/gamification/', include('gamification.urls')),
+    path('api/notifications/', include('notifications.urls')),
 
 ]
