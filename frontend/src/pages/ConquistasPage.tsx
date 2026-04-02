@@ -202,7 +202,7 @@ export default function ConquistasPage() {
         animate="show"
         className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
       >
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-8 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Trilha de Foco</h2>
             <p className="text-sm text-slate-500">
@@ -218,142 +218,257 @@ export default function ConquistasPage() {
           </div>
         </div>
 
-        <div className="relative mt-10 px-6 pb-24 sm:px-10 sm:pb-28">
-  <div className="relative h-32 w-full">
-    <div className="absolute left-0 top-6 h-1.5 w-full rounded-full bg-slate-100" />
+        {/* Desktop / tablet */}
+        <div className="hidden sm:block">
+          <div className="relative px-6 pt-2">
+            <div className="absolute left-6 right-6 top-7 h-1.5 rounded-full bg-slate-100" />
 
-    <motion.div
-      className="absolute left-0 top-6 h-1.5 rounded-full bg-violet-500"
-      initial={{ width: 0 }}
-      animate={{ width: `${progressPercentage}%` }}
-      transition={{ duration: 0.9, ease: [0.25, 0.1, 0.25, 1] }}
-    />
+            <motion.div
+              className="absolute left-6 top-7 h-1.5 rounded-full bg-violet-500"
+              initial={{ width: 0 }}
+              animate={{ width: `calc((100% - 3rem) * ${progressPercentage / 100})` }}
+              transition={{ duration: 0.9, ease: [0.25, 0.1, 0.25, 1] }}
+            />
 
-    {chests.map((chest, index) => {
-      const isReady = chest.ready_to_claim;
-      const isClaimed = chest.claimed;
-      const isLocked = !chest.unlocked;
+            <div className="grid grid-cols-3 gap-6 pt-0">
+              {chests.map((chest, index) => {
+                const isReady = chest.ready_to_claim;
+                const isClaimed = chest.claimed;
+                const isLocked = !chest.unlocked;
 
-      const isFirst = index === 0;
-      const isLast = index === chests.length - 1;
+                return (
+                  <motion.div
+                    key={chest.key}
+                    initial={{ opacity: 0, y: 20, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{
+                      duration: 0.35,
+                      delay: 0.15 + index * 0.08,
+                    }}
+                    className="relative flex flex-col items-center"
+                  >
+                    <div className="flex h-14 items-center">
+                      <motion.div
+                        animate={
+                          isReady && !isClaimed
+                            ? {
+                                y: [0, -6, 0],
+                                scale: [1, 1.06, 1],
+                                boxShadow: [
+                                  "0px 0px 0px rgba(0,0,0,0)",
+                                  "0px 10px 25px rgba(245,158,11,0.25)",
+                                  "0px 0px 0px rgba(0,0,0,0)",
+                                ],
+                              }
+                            : {}
+                        }
+                        transition={
+                          isReady && !isClaimed
+                            ? {
+                                duration: 1.8,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                              }
+                            : { duration: 0.2 }
+                        }
+                        whileHover={{ y: -4, scale: 1.06 }}
+                        className={cn(
+                          "z-10 grid h-12 w-12 place-items-center rounded-2xl border-4 border-white shadow-md transition-all duration-300",
+                          chestButtonClass(chest)
+                        )}
+                      >
+                        {isLocked ? (
+                          <Lock className="h-5 w-5" />
+                        ) : (
+                          <motion.div
+                            animate={
+                              isReady && !isClaimed
+                                ? { rotate: [0, -8, 8, -4, 4, 0] }
+                                : {}
+                            }
+                            transition={
+                              isReady && !isClaimed
+                                ? {
+                                    duration: 1.2,
+                                    repeat: Infinity,
+                                    repeatDelay: 1.2,
+                                  }
+                                : undefined
+                            }
+                          >
+                            <Gift className="h-6 w-6" />
+                          </motion.div>
+                        )}
+                      </motion.div>
+                    </div>
 
-      return (
-        <motion.div
-          key={chest.key}
-          className={cn(
-            "absolute top-0 flex flex-col items-center",
-            isFirst
-              ? "translate-x-0"
-              : isLast
-              ? "-translate-x-full"
-              : "-translate-x-1/2"
-          )}
-          style={{
-            left: `${chest.threshold_percent}%`,
-          }}
-          initial={{ opacity: 0, y: 20, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{
-            duration: 0.35,
-            delay: 0.15 + index * 0.08,
-          }}
-        >
-          <motion.div
-            animate={
-              isReady && !isClaimed
-                ? {
-                    y: [0, -6, 0],
-                    scale: [1, 1.06, 1],
-                    boxShadow: [
-                      "0px 0px 0px rgba(0,0,0,0)",
-                      "0px 10px 25px rgba(245,158,11,0.25)",
-                      "0px 0px 0px rgba(0,0,0,0)",
-                    ],
-                  }
-                : {}
-            }
-            transition={
-              isReady && !isClaimed
-                ? {
-                    duration: 1.8,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }
-                : { duration: 0.2 }
-            }
-            whileHover={{ y: -4, scale: 1.06 }}
-            className={cn(
-              "z-10 grid h-12 w-12 place-items-center rounded-2xl border-4 border-white shadow-md transition-all duration-300",
-              chestButtonClass(chest)
-            )}
-          >
-            {isLocked ? (
-              <Lock className="h-5 w-5" />
-            ) : (
-              <motion.div
-                animate={
-                  isReady && !isClaimed
-                    ? { rotate: [0, -8, 8, -4, 4, 0] }
-                    : {}
-                }
-                transition={
-                  isReady && !isClaimed
-                    ? {
-                        duration: 1.2,
-                        repeat: Infinity,
-                        repeatDelay: 1.2,
-                      }
-                    : undefined
-                }
-              >
-                <Gift className="h-6 w-6" />
-              </motion.div>
-            )}
-          </motion.div>
+                    <div className="mt-4 flex min-h-[148px] w-full flex-col items-center rounded-2xl bg-slate-50 px-3 py-4 text-center">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {chest.type_label}
+                      </p>
 
-          <div className="mt-4 w-32 text-center">
-            <p className="text-xs font-semibold text-slate-900">
-              {chest.type_label}
-            </p>
+                      <p
+                        className={cn(
+                          "mt-1 text-[11px] font-semibold uppercase leading-snug tracking-tight",
+                          isReady && !isClaimed
+                            ? chestRewardTone(chest)
+                            : "text-slate-400"
+                        )}
+                      >
+                        {chest.threshold_percent}% · {chest.reward_label}
+                      </p>
 
-            <p
-              className={cn(
-                "text-[10px] font-semibold uppercase leading-tight tracking-tight",
-                isReady && !isClaimed
-                  ? chestRewardTone(chest)
-                  : "text-slate-400"
-              )}
-            >
-              {chest.threshold_percent}% · {chest.reward_label}
-            </p>
+                      <div className="mt-4">
+                        {isReady && !isClaimed && (
+                          <motion.button
+                            onClick={() => handleClaimChest(chest.key)}
+                            disabled={claimingChest === chest.key}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.94 }}
+                            className="whitespace-nowrap rounded-full bg-amber-500 px-4 py-2 text-[11px] font-black text-white shadow-lg shadow-amber-200 transition hover:bg-amber-600 disabled:opacity-50"
+                          >
+                            {claimingChest === chest.key ? "RESGATANDO..." : "RESGATAR"}
+                          </motion.button>
+                        )}
 
-            {isReady && (
-              <motion.button
-                onClick={() => handleClaimChest(chest.key)}
-                disabled={claimingChest === chest.key}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.94 }}
-                className="mt-3 whitespace-nowrap rounded-full bg-amber-500 px-4 py-1.5 text-[10px] font-black text-white shadow-lg shadow-amber-200 transition hover:bg-amber-600 disabled:opacity-50"
-              >
-                {claimingChest === chest.key ? "RESGATANDO..." : "RESGATAR"}
-              </motion.button>
-            )}
+                        {isClaimed && (
+                          <motion.span
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="inline-flex rounded-full bg-emerald-100 px-3 py-1.5 text-[11px] font-black text-emerald-700"
+                          >
+                            RESGATADO
+                          </motion.span>
+                        )}
 
-            {isClaimed && (
-              <motion.span
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="mt-3 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700"
-              >
-                RESGATADO
-              </motion.span>
-            )}
+                        {!isReady && !isClaimed && (
+                          <span className="inline-flex rounded-full bg-slate-200 px-3 py-1.5 text-[11px] font-bold text-slate-500">
+                            {isLocked ? "BLOQUEADO" : "EM PROGRESSO"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
-        </motion.div>
-      );
-    })}
-  </div>
-</div>
+        </div>
+
+        {/* Mobile */}
+        <div className="space-y-4 sm:hidden">
+          <div>
+            <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-400">
+              <span>Progresso diário</span>
+              <span>{progressPercentage.toFixed(0)}%</span>
+            </div>
+
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+              <motion.div
+                className="h-full rounded-full bg-violet-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPercentage}%` }}
+                transition={{ duration: 0.9, ease: [0.25, 0.1, 0.25, 1] }}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            {chests.map((chest, index) => {
+              const isReady = chest.ready_to_claim;
+              const isClaimed = chest.claimed;
+              const isLocked = !chest.unlocked;
+
+              return (
+                <motion.div
+                  key={chest.key}
+                  initial={{ opacity: 0, y: 20, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{
+                    duration: 0.35,
+                    delay: 0.15 + index * 0.08,
+                  }}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                >
+                  <div className="flex items-start gap-4">
+                    <motion.div
+                      animate={
+                        isReady && !isClaimed
+                          ? {
+                              y: [0, -6, 0],
+                              scale: [1, 1.06, 1],
+                            }
+                          : {}
+                      }
+                      transition={
+                        isReady && !isClaimed
+                          ? {
+                              duration: 1.8,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                            }
+                          : { duration: 0.2 }
+                      }
+                      className={cn(
+                        "grid h-12 w-12 shrink-0 place-items-center rounded-2xl border-4 border-white shadow-md transition-all duration-300",
+                        chestButtonClass(chest)
+                      )}
+                    >
+                      {isLocked ? (
+                        <Lock className="h-5 w-5" />
+                      ) : (
+                        <Gift className="h-6 w-6" />
+                      )}
+                    </motion.div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {chest.type_label}
+                      </p>
+
+                      <p
+                        className={cn(
+                          "mt-1 text-[11px] font-semibold uppercase leading-snug",
+                          isReady && !isClaimed
+                            ? chestRewardTone(chest)
+                            : "text-slate-400"
+                        )}
+                      >
+                        {chest.threshold_percent}% · {chest.reward_label}
+                      </p>
+
+                      <div className="mt-3">
+                        {isReady && !isClaimed && (
+                          <motion.button
+                            onClick={() => handleClaimChest(chest.key)}
+                            disabled={claimingChest === chest.key}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.96 }}
+                            className="whitespace-nowrap rounded-full bg-amber-500 px-4 py-2 text-[11px] font-black text-white shadow-lg shadow-amber-200 transition hover:bg-amber-600 disabled:opacity-50"
+                          >
+                            {claimingChest === chest.key ? "RESGATANDO..." : "RESGATAR"}
+                          </motion.button>
+                        )}
+
+                        {isClaimed && (
+                          <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1.5 text-[11px] font-black text-emerald-700">
+                            RESGATADO
+                          </span>
+                        )}
+
+                        {!isReady && !isClaimed && (
+                          <span className="inline-flex rounded-full bg-slate-200 px-3 py-1.5 text-[11px] font-bold text-slate-500">
+                            {isLocked ? "BLOQUEADO" : "EM PROGRESSO"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
       </motion.section>
 
       <motion.section

@@ -120,3 +120,14 @@ SIMPLE_JWT = {
 AUTH_USER_MODEL = "accounts.User"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+FRONTEND_URL = "http://localhost:8080"
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "equipe.focusflow@gmail.com"
+EMAIL_HOST_PASSWORD = "cvqm slwu uztp kiit"
+DEFAULT_FROM_EMAIL = "FocusFlow <equipe.focusflow@gmail.com>"
+FRONTEND_URL = "http://localhost:5173"

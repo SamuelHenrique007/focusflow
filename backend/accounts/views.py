@@ -11,6 +11,8 @@ from .serializers import (
     LoginSerializer,
     UpdateMeSerializer,
     ChangePasswordSerializer,
+    ForgotPasswordSerializer,
+    ResetPasswordSerializer,
 )
 
 
@@ -83,5 +85,34 @@ class ChangePasswordView(APIView):
 
         return Response(
             {"message": "Senha alterada com sucesso."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            {
+                "message": "Se existir uma conta com este e-mail, enviaremos um link de recuperação."
+            },
+            status=status.HTTP_200_OK,
+        )
+
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            {"message": "Senha redefinida com sucesso."},
             status=status.HTTP_200_OK,
         )

@@ -60,3 +60,20 @@ export type {
   UpdateMePayload,
   ChangePasswordPayload,
 };
+
+export async function forgotPasswordRequest(
+  email: string,
+): Promise<{ message: string }> {
+  const response = await api.post("/auth/forgot-password/", { email });
+  return response.data;
+}
+
+export async function resetPasswordRequest(data: {
+  uid: string;
+  token: string;
+  new_password: string;
+  confirm_new_password: string;
+}): Promise<{ message: string }> {
+  const response = await api.post("/auth/reset-password/", data);
+  return response.data;
+}

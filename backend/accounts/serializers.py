@@ -1,6 +1,13 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.conf import settings
+from django.core.mail import send_mail
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -146,6 +153,86 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def save(self, **kwargs):
         user = self.context["request"].user
+        new_password = self.validated_data["new_password"]
+        user.set_password(new_password)
+        user.save()
+        return user
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
+    def validate_email(self, value):
+        value = value.strip().lower()
+        if not value:
+            raise serializers.ValidationError("O e-mail é obrigatório.")
+        return value
+
+    def save(self, **kwargs):
+        email = self.validated_data["email"]
+        user = User.objects.filter(email=email).first()
+
+        # Por segurança, mesmo que o usuário não exista,
+        # retornamos a mesma resposta no endpoint.
+        if not user:
+            return
+
+        token_generator = PasswordResetTokenGenerator()
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = token_generator.make_token(user)
+
+        frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:8080")
+        reset_link = f"{frontend_url}/reset-password/{uid}/{token}"
+
+        send_mail(
+            subject="Recuperação de senha - FocusFlow",
+            message=(
+                f"Olá, {user.name or user.email}!\n\n"
+                f"Recebemos uma solicitação para redefinir sua senha.\n"
+                f"Acesse o link abaixo:\n\n{reset_link}\n\n"
+                f"Se você não fez essa solicitação, ignore este e-mail."
+            ),
+            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@focusflow.com"),
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+class ResetPasswordSerializer(serializers.Serializer):
+    uid = serializers.CharField(required=True)
+    token = serializers.CharField(required=True)
+    new_password = serializers.CharField(write_only=True, required=True, min_length=8)
+    confirm_new_password = serializers.CharField(write_only=True, required=True)
+
+    def validate(self, attrs):
+        uid = attrs.get("uid")
+        token = attrs.get("token")
+        new_password = attrs.get("new_password")
+        confirm_new_password = attrs.get("confirm_new_password")
+
+        if new_password != confirm_new_password:
+            raise serializers.ValidationError(
+                {"confirm_new_password": "A confirmação da nova senha não confere."}
+            )
+
+        try:
+            user_id = force_str(urlsafe_base64_decode(uid))
+            user = User.objects.get(pk=user_id)
+        except Exception:
+            raise serializers.ValidationError({"detail": "Link de recuperação inválido."})
+
+        token_generator = PasswordResetTokenGenerator()
+        if not token_generator.check_token(user, token):
+            raise serializers.ValidationError({"detail": "Token inválido ou expirado."})
+
+        try:
+            validate_password(new_password, user=user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"new_password": list(exc.messages)})
+
+        attrs["user"] = user
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.validated_data["user"]
         new_password = self.validated_data["new_password"]
         user.set_password(new_password)
         user.save()

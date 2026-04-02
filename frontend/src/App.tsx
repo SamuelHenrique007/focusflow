@@ -11,13 +11,14 @@ import PomodoroPage from "./pages/PomodoroPage";
 import PomodoroFocusPage from "@/pages/pomodoro/PomodoroFocusPage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { PublicRoute } from "./routes/PublicRoute";
-//import ForgotPassword from "@/pages/ForgotPassword";
 import { AppShell } from "./components/layout/AppShell";
 import ConquistasPage from "@/pages/ConquistasPage";
 import StorePage from "@/pages/StorePage";
 import RewardToastViewport from "@/components/ui/RewardToastViewport";
 import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 
 export default function App() {
   return (
@@ -31,7 +32,8 @@ export default function App() {
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<AuthFocusFlow />} />
           <Route path="/register" element={<AuthFocusFlow />} />
-          {/* <Route path="/forgot-password" element={<ForgotPassword />} /> */}
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
         </Route>
 
         <Route element={<ProtectedRoute />}>
