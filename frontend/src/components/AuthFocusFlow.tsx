@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { Clock3, Sparkles, Target, Timer } from "lucide-react";
+import { Clock3, Sparkles, Target, Timer, Eye, EyeOff } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import FeedbackMessage from "@/components/ui/FeedbackMessage";
+import { motion, AnimatePresence } from "framer-motion";
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -58,6 +59,7 @@ function TextField({
   value,
   onChange,
   autoComplete,
+  isPassword = false,
 }: {
   id: string;
   label: string;
@@ -66,21 +68,45 @@ function TextField({
   value: string;
   onChange: (v: string) => void;
   autoComplete?: string;
+  isPassword?: boolean;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+  
+  const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+
   return (
-    <div>
+    <div className="w-full">
       <label htmlFor={id} className="text-sm font-semibold text-slate-800">
         {label}
       </label>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        autoComplete={autoComplete}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none ring-blue-200 placeholder:text-slate-400 transition focus:border-blue-500 focus:bg-white focus:ring-4"
-      />
+      <div className="relative mt-2">
+        <input
+          id={id}
+          type={inputType}
+          value={value}
+          autoComplete={autoComplete}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={cx(
+            "w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 text-sm text-slate-900 outline-none ring-blue-200 placeholder:text-slate-400 transition focus:border-blue-500 focus:bg-white focus:ring-4",
+            isPassword ? "pr-12" : "pr-4"
+          )}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-blue-600 focus:outline-none transition-colors"
+            tabIndex={-1}
+          >
+            {showPassword ? (
+              <EyeOff className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <Eye className="h-5 w-5" aria-hidden="true" />
+            )}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -308,29 +334,50 @@ export default function AuthFocusFlow() {
             </div>
 
             <div className="text-center lg:text-left">
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900">
+              <motion.h2 
+                key={title}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-3xl font-bold tracking-tight text-slate-900"
+              >
                 {title}
-              </h2>
+              </motion.h2>
 
-              <p className="mt-2 text-sm leading-relaxed text-slate-500">
+              <motion.p 
+                key={subtitle}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="mt-2 text-sm leading-relaxed text-slate-500"
+              >
                 {subtitle}
-              </p>
+              </motion.p>
             </div>
 
-            <form className="mt-8 space-y-4" onSubmit={onSubmit}>
-              {mode === "register" && (
-                <TextField
-                  id="name"
-                  label="Nome de usuário"
-                  placeholder="Seu nome de usuário"
-                  value={name}
-                  onChange={(value) => {
-                    setName(value);
-                    if (errorMessage) setErrorMessage("");
-                  }}
-                  autoComplete="username"
-                />
-              )}
+            <form className="mt-8 flex flex-col gap-4" onSubmit={onSubmit}>
+              <AnimatePresence initial={false}>
+                {mode === "register" && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <TextField
+                      id="name"
+                      label="Nome de usuário"
+                      placeholder="Seu nome de usuário"
+                      value={name}
+                      onChange={(value) => {
+                        setName(value);
+                        if (errorMessage) setErrorMessage("");
+                      }}
+                      autoComplete="username"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <TextField
                 id="email"
@@ -349,6 +396,7 @@ export default function AuthFocusFlow() {
                 id="password"
                 label="Senha"
                 type="password"
+                isPassword={true}
                 placeholder={
                   mode === "register" ? "Mínimo 8 caracteres" : "••••••••"
                 }
@@ -362,32 +410,40 @@ export default function AuthFocusFlow() {
                 }
               />
 
-              {mode === "login" && (
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => navigate("/forgot-password")}
-                    className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+              <AnimatePresence>
+                {mode === "login" && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="flex justify-end overflow-hidden"
                   >
-                    Esqueceu a senha?
-                  </button>
-                </div>
-              )}
+                    <button
+                      type="button"
+                      onClick={() => navigate("/forgot-password")}
+                      className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline mt-1"
+                    >
+                      Esqueceu a senha?
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <FeedbackMessage message={errorMessage} variant="error" />
               <FeedbackMessage message={successMessage} variant="success" />
 
-              <button
+              <motion.button
+                whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={loading}
                 className={cx(
-                  "cursor-pointer inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition",
+                  "cursor-pointer mt-2 inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition",
                   "bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200",
                   loading && "cursor-not-allowed opacity-70",
                 )}
               >
                 {primaryLabel}
-              </button>
+              </motion.button>
             </form>
 
             <div className="mt-6 border-t border-slate-200 pt-5 text-center text-sm text-slate-600">
@@ -397,7 +453,7 @@ export default function AuthFocusFlow() {
                   <button
                     type="button"
                     onClick={() => switchMode("register")}
-                    className="cursor-pointer font-semibold text-blue-700 hover:text-blue-800"
+                    className="cursor-pointer font-semibold text-blue-700 hover:text-blue-800 transition-colors"
                   >
                     Criar conta
                   </button>
@@ -408,7 +464,7 @@ export default function AuthFocusFlow() {
                   <button
                     type="button"
                     onClick={() => switchMode("login")}
-                    className="cursor-pointer font-semibold text-blue-700 hover:text-blue-800"
+                    className="cursor-pointer font-semibold text-blue-700 hover:text-blue-800 transition-colors"
                   >
                     Entrar
                   </button>

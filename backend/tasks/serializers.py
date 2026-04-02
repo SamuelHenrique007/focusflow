@@ -87,10 +87,12 @@ class TaskSerializer(serializers.ModelSerializer):
         return round(min(progresso, 100), 1)
 
     def get_dueLabel(self, obj):
-        """Formata a data de entrega para exibição simples no frontend."""
+        """Formata a data de entrega no fuso local para exibição no frontend."""
         if not obj.due_date:
             return "Sem prazo"
-        return obj.due_date.strftime("%d/%m/%Y %H:%M")
+
+        local_due_date = timezone.localtime(obj.due_date)
+        return local_due_date.strftime("%d/%m/%Y %H:%M")
 
     def validate(self, attrs):
         """Garante a integridade básica dos dados de Pomodoro, mas permite exceder a estimativa."""
@@ -167,8 +169,16 @@ class TaskSerializer(serializers.ModelSerializer):
         return instance
 
     def to_representation(self, instance):
-        """Garante formato ISO 8601 nas datas de saída do JSON."""
+        """Garante formato ISO 8601 nas datas de saída do JSON no fuso local."""
         rep = super().to_representation(instance)
-        rep["completedAt"] = instance.completed_at.isoformat() if instance.completed_at else None
-        rep["dueDate"] = instance.due_date.isoformat() if instance.due_date else None
+        rep["completedAt"] = (
+            timezone.localtime(instance.completed_at).isoformat()
+            if instance.completed_at
+            else None
+        )
+        rep["dueDate"] = (
+            timezone.localtime(instance.due_date).isoformat()
+            if instance.due_date
+            else None
+        )
         return rep
