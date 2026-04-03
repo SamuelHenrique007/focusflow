@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { motion } from "framer-motion"; // <-- Importação adicionada
 import {
   LayoutDashboard,
   CheckSquare,
@@ -30,36 +31,12 @@ export type NavKey =
   | "logout";
 
 const MAIN_NAV: Array<{ key: NavKey; label: string; icon: React.ReactNode }> = [
-  {
-    key: "dashboard",
-    label: "Dashboard",
-    icon: <LayoutDashboard className="h-4 w-4" />,
-  },
-  {
-    key: "tasks",
-    label: "Tarefas",
-    icon: <CheckSquare className="h-4 w-4" />,
-  },
-  {
-    key: "pomodoro",
-    label: "Pomodoro",
-    icon: <Timer className="h-4 w-4" />,
-  },
-  {
-    key: "stats",
-    label: "Estatísticas",
-    icon: <BarChart3 className="h-4 w-4" />,
-  },
-  {
-    key: "achievements",
-    label: "Desafios e conquistas",
-    icon: <Trophy className="h-4 w-4" />,
-  },
-  {
-    key: "store",
-    label: "Loja",
-    icon: <Store className="h-4 w-4" />,
-  },
+  { key: "dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
+  { key: "tasks", label: "Tarefas", icon: <CheckSquare className="h-4 w-4" /> },
+  { key: "pomodoro", label: "Pomodoro", icon: <Timer className="h-4 w-4" /> },
+  { key: "stats", label: "Estatísticas", icon: <BarChart3 className="h-4 w-4" /> },
+  { key: "achievements", label: "Desafios e conquistas", icon: <Trophy className="h-4 w-4" /> },
+  { key: "store", label: "Loja", icon: <Store className="h-4 w-4" /> },
 ];
 
 const ROUTES: Record<Exclude<NavKey, "logout">, string> = {
@@ -72,6 +49,23 @@ const ROUTES: Record<Exclude<NavKey, "logout">, string> = {
   notifications: "/notifications",
   settings: "/settings",
 };
+
+// --- VARIÁVEIS DE ANIMAÇÃO ---
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05, // Atraso entre a entrada de cada item
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -20 }, // Começa invisível e levemente para a esquerda
+  show: { opacity: 1, x: 0 },     // Termina visível e na posição original
+};
+// ------------------------------
 
 function getFirstAndSecondName(name?: string) {
   if (!name?.trim()) return "Usuário";
@@ -109,23 +103,21 @@ function SidebarItem({
     <>
       <span
         className={cn(
-          "relative grid h-8 w-8 place-items-center rounded-xl",
+          "relative grid h-8 w-8 place-items-center rounded-xl transition-colors",
           active ? "bg-white shadow-sm" : danger ? "bg-rose-50" : "bg-slate-100"
         )}
       >
         {icon}
-
         {showIndicator && (
           <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" />
         )}
       </span>
-
       <span className="truncate">{label}</span>
     </>
   );
 
   const classes = cn(
-    "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition",
+    "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
     active
       ? "bg-blue-50 text-blue-700"
       : danger
@@ -133,18 +125,23 @@ function SidebarItem({
         : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
   );
 
-  if (to) {
-    return (
-      <Link to={to} className={classes} onClick={onClick}>
-        {content}
-      </Link>
-    );
-  }
-
   return (
-    <button className={classes} type="button" onClick={onClick}>
-      {content}
-    </button>
+    <motion.div
+      variants={itemVariants}
+      whileHover={{ scale: 1.02, x: 4 }} // Efeito de hover: cresce um pouco e move para direita
+      whileTap={{ scale: 0.98 }}         // Efeito de clique: "afunda" o botão
+      className="w-full"
+    >
+      {to ? (
+        <Link to={to} className={classes} onClick={onClick}>
+          {content}
+        </Link>
+      ) : (
+        <button className={classes} type="button" onClick={onClick}>
+          {content}
+        </button>
+      )}
+    </motion.div>
   );
 }
 
@@ -173,7 +170,6 @@ function UserGamerCard() {
   const level = useGameStore((state) => state.stats?.level ?? 1);
   const fetchStatus = useGameStore((state) => state.fetchStatus);
   const { user } = useAuth();
-
   const loadAvatar = useAvatarStore((state) => state.loadAvatar);
 
   useEffect(() => {
@@ -187,9 +183,13 @@ function UserGamerCard() {
   const userName = getFirstAndSecondName(user?.name);
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-xs">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4, duration: 0.4 }} // Entra logo após os itens do menu
+      className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-xs hover:shadow-sm transition-shadow cursor-pointer"
+    >
       <UserAvatar size="sm" />
-
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-sm leading-tight font-semibold text-slate-900">
           {userName}
@@ -198,7 +198,7 @@ function UserGamerCard() {
           Nível: {level}
         </span>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -237,7 +237,12 @@ export function SidebarNav({
 
   return (
     <div className="flex h-full flex-col justify-between">
-      <div>
+      {/* Container Pai gerenciando a cascata de animações */}
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
         <nav className="space-y-0.5">
           {MAIN_NAV.map((item) => (
             <SidebarItem
@@ -276,7 +281,7 @@ export function SidebarNav({
             onClick={onSelect ? () => onSelect("logout") : undefined}
           />
         </div>
-      </div>
+      </motion.div>
 
       <div className="pt-4">
         <UserGamerCard />

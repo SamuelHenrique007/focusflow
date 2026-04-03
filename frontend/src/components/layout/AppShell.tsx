@@ -31,7 +31,7 @@ export function AppShell({
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth(); 
+  const { logout } = useAuth();
 
   const activeKey = useMemo(
     () => getActiveKey(location.pathname),
@@ -68,55 +68,49 @@ export function AppShell({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[var(--ff-background)] text-[var(--ff-text)]">
       <div className="mx-auto max-w-[1400px]">
         <div className="flex">
-          
-          {/* SIDEBAR DESKTOP */}
-          <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-slate-200 bg-white p-5 lg:flex lg:flex-col">
-            
-            {/* Adicionado shrink-0 aqui para o cabeçalho não ser esmagado */}
+          <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-[var(--ff-border)] bg-[var(--ff-surface)] p-5 lg:flex lg:flex-col">
             <div className="flex items-center gap-2.5 shrink-0">
-  {/* Caixa azul reduzida para h-8 w-8 e bordas levemente menores */}
-  <div className="grid h-8 w-8 place-items-center rounded-xl bg-blue-600 text-white shadow-sm">
-    {/* Ícone interno reduzido para h-4 w-4 */}
-    <Timer className="h-4 w-4" />
-  </div>
-  <div>
-    {/* Título reduzido de text-base para text-sm */}
-    <p className="text-sm font-semibold text-slate-900 leading-tight">{title}</p>
-    {/* Subtítulo reduzido levemente com tamanho customizado [11px] */}
-    <p className="text-[11px] text-slate-500">{subtitle}</p>
-  </div>
-</div>
-
-            {/* Adicionado min-h-0 e mt-6 aqui para forçar o scroll interno */}
-            <div className="mt-6 flex flex-1 flex-col min-h-0">
-              <SidebarNav activeKey={activeKey} onSelect={handleShellSelect} />
+              <div className="grid h-8 w-8 place-items-center rounded-xl bg-[var(--ff-primary)] text-white shadow-sm">
+                <Timer className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold leading-tight text-[var(--ff-text)]">
+                  {title}
+                </p>
+                <p className="text-[11px] text-[var(--ff-text-muted)]">
+                  {subtitle}
+                </p>
+              </div>
             </div>
 
+            <div className="mt-6 flex min-h-0 flex-1 flex-col">
+              <SidebarNav activeKey={activeKey} onSelect={handleShellSelect} />
+            </div>
           </aside>
 
-          {/* ÁREA PRINCIPAL */}
           <div className="w-full">
-            {/* HEADER MOBILE */}
-            <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur lg:hidden">
+            <header className="sticky top-0 z-30 border-b border-[var(--ff-border)] bg-[color:color-mix(in_srgb,var(--ff-surface)_88%,transparent)] backdrop-blur lg:hidden">
               <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 py-3">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-blue-600 text-white shadow-sm">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[var(--ff-primary)] text-white shadow-sm">
                     <Timer className="h-5 w-5" />
                   </div>
 
                   <div className="min-w-0 leading-tight">
-                    <p className="truncate text-sm font-semibold text-slate-900">
+                    <p className="truncate text-sm font-semibold text-[var(--ff-text)]">
                       {title}
                     </p>
-                    <p className="truncate text-xs text-slate-500">{subtitle}</p>
+                    <p className="truncate text-xs text-[var(--ff-text-muted)]">
+                      {subtitle}
+                    </p>
                   </div>
                 </div>
 
                 <button
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-700"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[var(--ff-border)] bg-[var(--ff-surface-soft)] text-[var(--ff-text-soft)]"
                   type="button"
                   onClick={() => setMobileOpen(true)}
                   aria-label="Abrir menu"
@@ -126,7 +120,6 @@ export function AppShell({
               </div>
             </header>
 
-            {/* MENU MOBILE EXPANDIDO */}
             {mobileOpen ? (
               <div
                 className="fixed inset-0 z-50 lg:hidden"
@@ -139,32 +132,34 @@ export function AppShell({
                   onClick={() => setMobileOpen(false)}
                 />
 
-                <div className="absolute right-0 top-0 h-full w-[88%] max-w-sm bg-white shadow-2xl">
+                <div className="absolute right-0 top-0 h-full w-[88%] max-w-sm border-l border-[var(--ff-border)] bg-[var(--ff-surface)] shadow-2xl">
                   <div className="flex h-full flex-col p-5">
                     <div className="flex items-center justify-between shrink-0">
                       <div className="flex items-center gap-3">
-                        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-600 text-white">
+                        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--ff-primary)] text-white">
                           <Timer className="h-5 w-5" />
                         </div>
                         <div>
-                          <p className="text-base font-semibold text-slate-900">
+                          <p className="text-base font-semibold text-[var(--ff-text)]">
                             {title}
                           </p>
-                          <p className="text-xs text-slate-500">{subtitle}</p>
+                          <p className="text-xs text-[var(--ff-text-muted)]">
+                            {subtitle}
+                          </p>
                         </div>
                       </div>
 
                       <button
-                        className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100"
+                        className="grid h-10 w-10 place-items-center rounded-xl border border-[var(--ff-border)] bg-[var(--ff-surface-soft)] text-[var(--ff-text-soft)]"
                         type="button"
                         onClick={() => setMobileOpen(false)}
                         aria-label="Fechar menu"
                       >
-                        <X className="h-5 w-5 text-slate-700" />
+                        <X className="h-5 w-5" />
                       </button>
                     </div>
 
-                    <div className="mt-6 flex flex-1 flex-col overflow-y-auto pr-1 min-h-0">
+                    <div className="mt-6 flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
                       <SidebarNav
                         activeKey={activeKey}
                         onSelect={(key) => {
@@ -178,7 +173,6 @@ export function AppShell({
               </div>
             ) : null}
 
-            {/* CONTEÚDO DA PÁGINA */}
             <main className="p-4 sm:p-6 lg:p-8">
               <div className="hidden lg:flex lg:justify-end lg:pb-4">
                 {rightActions ? rightActions : null}

@@ -61,20 +61,22 @@ function ChartFrame({
       viewport={{ once: true, amount: 0.15 }}
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
-      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+      className="rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface)] p-4 shadow-sm sm:p-5"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-slate-900">{title}</p>
+          <p className="text-sm font-semibold text-[var(--ff-text)]">{title}</p>
           {subtitle ? (
-            <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
+            <p className="mt-1 text-xs text-[var(--ff-text-muted)]">
+              {subtitle}
+            </p>
           ) : null}
         </div>
         {rightIcon ? (
           <motion.div
             whileHover={{ scale: 1.06, rotate: 3 }}
             transition={{ duration: 0.2 }}
-            className="grid h-10 w-10 place-items-center rounded-xl bg-slate-50 ring-1 ring-slate-200"
+            className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--ff-surface-soft)] ring-1 ring-[var(--ff-border)] text-[var(--ff-primary)]"
           >
             {rightIcon}
           </motion.div>
@@ -110,16 +112,16 @@ function BarChartMock({
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay: i * 0.06 }}
             >
-              <div className="flex h-40 items-end rounded-2xl bg-slate-50 ring-1 ring-slate-200">
+              <div className="flex h-40 items-end rounded-2xl bg-[var(--ff-surface-soft)] ring-1 ring-[var(--ff-border)]">
                 <motion.div
-                  className="w-full rounded-2xl bg-blue-600/25"
+                  className="w-full rounded-2xl bg-[var(--ff-primary)]/30"
                   initial={{ height: 0 }}
                   whileInView={{ height: `${h * 100}%` }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.55, delay: i * 0.08 }}
                 />
               </div>
-              <p className="mt-2 text-center text-xs text-slate-500">
+              <p className="mt-2 text-center text-xs text-[var(--ff-text-muted)]">
                 {labels[i]}
               </p>
             </motion.div>
@@ -140,7 +142,7 @@ function LineChartMock({
   maxValue: number;
 }) {
   return (
-    <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
+    <div className="rounded-2xl bg-[var(--ff-surface-soft)] p-4 ring-1 ring-[var(--ff-border)]">
       <div className="space-y-3">
         {values.map((v, i) => {
           const pct = maxValue ? Math.max(0, Math.min(1, v / maxValue)) : 0;
@@ -154,13 +156,13 @@ function LineChartMock({
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay: i * 0.06 }}
             >
-              <span className="w-16 text-xs font-medium text-slate-600">
+              <span className="w-16 text-xs font-medium text-[var(--ff-text-soft)]">
                 {labels[i]}
               </span>
               <div className="flex-1">
-                <ProgressBar value={pct} barClassName="bg-emerald-500" />
+                <ProgressBar value={pct} barClassName="bg-[var(--ff-primary)]" />
               </div>
-              <span className="w-10 text-right text-xs font-semibold text-slate-700">
+              <span className="w-10 text-right text-xs font-semibold text-[var(--ff-text)]">
                 {v}
               </span>
             </motion.div>
@@ -190,25 +192,25 @@ function CategoryDistribution({
         label: "Estudo",
         count: counts.estudo,
         pct: total > 0 ? counts.estudo / total : 0,
-        barClassName: "bg-blue-600",
+        barClassName: "bg-[var(--ff-primary)]",
       },
       {
         label: "Trabalho",
         count: counts.trabalho,
         pct: total > 0 ? counts.trabalho / total : 0,
-        barClassName: "bg-emerald-500",
+        barClassName: "bg-[var(--ff-primary)] opacity-85",
       },
       {
         label: "Pessoal",
         count: counts.pessoal,
         pct: total > 0 ? counts.pessoal / total : 0,
-        barClassName: "bg-amber-500",
+        barClassName: "bg-[var(--ff-primary)] opacity-70",
       },
     ];
   }, [tasks, total]);
 
   return (
-    <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
+    <div className="rounded-2xl bg-[var(--ff-surface-soft)] p-4 ring-1 ring-[var(--ff-border)]">
       <div className="space-y-4">
         {categoryData.map((item, index) => (
           <motion.div
@@ -219,10 +221,10 @@ function CategoryDistribution({
             transition={{ duration: 0.35, delay: index * 0.07 }}
           >
             <div className="mb-2 flex items-center justify-between gap-3">
-              <span className="text-sm font-medium text-slate-700">
+              <span className="text-sm font-medium text-[var(--ff-text-soft)]">
                 {item.label}
               </span>
-              <span className="text-xs font-semibold text-slate-500">
+              <span className="text-xs font-semibold text-[var(--ff-text-muted)]">
                 {item.count} {item.count === 1 ? "tarefa" : "tarefas"}
               </span>
             </div>
@@ -231,7 +233,9 @@ function CategoryDistribution({
         ))}
 
         {total === 0 ? (
-          <p className="text-sm text-slate-500">Nenhuma tarefa cadastrada ainda.</p>
+          <p className="text-sm text-[var(--ff-text-muted)]">
+            Nenhuma tarefa cadastrada ainda.
+          </p>
         ) : null}
       </div>
     </div>
@@ -254,20 +258,20 @@ function ChallengeCard({
       variants={fadeUp}
       whileHover={{ y: -3, scale: 1.01 }}
       transition={{ duration: 0.2 }}
-      className="rounded-2xl border border-slate-200 bg-white p-4"
+      className="rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface)] p-4"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-slate-900">{title}</p>
-          <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
+          <p className="text-sm font-semibold text-[var(--ff-text)]">{title}</p>
+          <p className="mt-1 text-xs text-[var(--ff-text-muted)]">{subtitle}</p>
         </div>
-        <span className="text-xs font-semibold text-slate-700">
+        <span className="text-xs font-semibold text-[var(--ff-text-soft)]">
           {progressLabel}
         </span>
       </div>
 
       <div className="mt-3">
-        <ProgressBar value={value} barClassName="bg-blue-600" />
+        <ProgressBar value={value} barClassName="bg-[var(--ff-primary)]" />
       </div>
     </motion.div>
   );
@@ -419,10 +423,10 @@ export default function EstatisticasPage() {
           className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
         >
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+            <h1 className="text-3xl font-semibold tracking-tight text-[var(--ff-text)]">
               Estatísticas
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-[var(--ff-text-muted)]">
               Acompanhe seu progresso e desempenho com dados reais.
             </p>
           </div>
@@ -441,7 +445,7 @@ export default function EstatisticasPage() {
         {errorMessage ? (
           <motion.div
             variants={fadeUp}
-            className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700"
+            className="mt-5 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-primary-soft)] p-4 text-sm font-medium text-[var(--ff-text)]"
           >
             {errorMessage}
           </motion.div>
@@ -451,7 +455,7 @@ export default function EstatisticasPage() {
           variants={fadeUp}
           whileHover={{ scale: 1.01 }}
           transition={{ duration: 0.2 }}
-          className="mt-5 rounded-2xl border border-slate-200 bg-linear-to-r from-slate-50 to-indigo-50 p-4 sm:p-5"
+          className="mt-5 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface)] p-4 sm:p-5"
         >
           <div className="flex items-center justify-between gap-3">
             <motion.div
@@ -464,7 +468,7 @@ export default function EstatisticasPage() {
               </Badge>
             </motion.div>
 
-            <p className="text-xs font-medium text-slate-500">
+            <p className="text-xs font-medium text-[var(--ff-text-muted)]">
               {xpNow}/{xpMax} XP
             </p>
           </div>
@@ -484,7 +488,7 @@ export default function EstatisticasPage() {
               value={loading ? "..." : overviewStats.tempoTotal}
               subtitle="de foco"
               icon={<Clock3 className="h-5 w-5" />}
-              iconTone="bg-blue-50 text-blue-700"
+              iconTone="bg-[var(--ff-primary-soft)] text-[var(--ff-primary)]"
             />
           </motion.div>
 
@@ -494,7 +498,7 @@ export default function EstatisticasPage() {
               value={loading ? "..." : overviewStats.tarefasConcluidas}
               subtitle="concluídas"
               icon={<CheckCircle2 className="h-5 w-5" />}
-              iconTone="bg-emerald-50 text-emerald-700"
+              iconTone="bg-[var(--ff-primary-soft)] text-[var(--ff-primary)]"
             />
           </motion.div>
 
@@ -504,7 +508,7 @@ export default function EstatisticasPage() {
               value={loading ? "..." : overviewStats.pomodoros}
               subtitle="completados"
               icon={<Target className="h-5 w-5" />}
-              iconTone="bg-rose-50 text-rose-700"
+              iconTone="bg-[var(--ff-primary-soft)] text-[var(--ff-primary)]"
             />
           </motion.div>
 
@@ -514,7 +518,7 @@ export default function EstatisticasPage() {
               value={loading ? "..." : overviewStats.maiorSequencia}
               subtitle="de produtividade"
               icon={<Flame className="h-5 w-5" />}
-              iconTone="bg-amber-50 text-amber-800"
+              iconTone="bg-[var(--ff-primary-soft)] text-[var(--ff-primary)]"
             />
           </motion.div>
         </motion.div>
@@ -526,7 +530,7 @@ export default function EstatisticasPage() {
           <ChartFrame
             title="Tempo Focado"
             subtitle="Últimos 7 dias"
-            rightIcon={<TrendingUp className="h-5 w-5 text-blue-600" />}
+            rightIcon={<TrendingUp className="h-5 w-5" />}
           >
             <BarChartMock
               labels={weeklyData.labels}
@@ -538,7 +542,7 @@ export default function EstatisticasPage() {
           <ChartFrame
             title="Pomodoros"
             subtitle="Por dia"
-            rightIcon={<Calendar className="h-5 w-5 text-emerald-600" />}
+            rightIcon={<Calendar className="h-5 w-5" />}
           >
             <LineChartMock
               labels={weeklyData.labels}
@@ -577,7 +581,7 @@ export default function EstatisticasPage() {
               ) : (
                 <motion.div
                   variants={fadeUp}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500"
+                  className="rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-soft)] p-4 text-sm text-[var(--ff-text-muted)]"
                 >
                   Nenhum desafio ativo encontrado no momento.
                 </motion.div>

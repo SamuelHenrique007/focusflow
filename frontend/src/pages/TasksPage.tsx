@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion"; // <-- Importado aqui
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
   Search,
@@ -102,19 +102,23 @@ function SelectPro<T extends string>({
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "cursor-pointer flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition hover:border-slate-300 hover:bg-slate-50",
-          "ring-blue-200 focus:border-blue-500 focus:ring-4",
+          "flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-sm outline-none transition",
+          "border-[var(--ff-border)] bg-[var(--ff-surface)] text-[var(--ff-text)]",
+          "hover:bg-[var(--ff-surface-soft)]",
+          "focus:border-[var(--ff-primary)] focus:ring-4 focus:ring-[var(--ff-primary-soft)]",
         )}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
         <span className="inline-flex min-w-0 items-center gap-2">
-          {leftIcon ? <span className="text-slate-500">{leftIcon}</span> : null}
+          {leftIcon ? (
+            <span className="text-[var(--ff-text-soft)]">{leftIcon}</span>
+          ) : null}
           <span className="min-w-0 truncate">
             {selected ? (
               selected.label
             ) : (
-              <span className="font-semibold text-slate-500">
+              <span className="font-semibold text-[var(--ff-text-muted)]">
                 {placeholder}
               </span>
             )}
@@ -123,7 +127,7 @@ function SelectPro<T extends string>({
 
         <ChevronDown
           className={cn(
-            "h-5 w-5 text-slate-400 transition",
+            "h-5 w-5 text-[var(--ff-text-muted)] transition",
             open ? "rotate-180" : "",
           )}
         />
@@ -136,7 +140,7 @@ function SelectPro<T extends string>({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 overflow-hidden rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface)] shadow-2xl"
           >
             <div className="max-h-64 overflow-y-auto p-2">
               {options.map((o) => {
@@ -151,10 +155,10 @@ function SelectPro<T extends string>({
                       setOpen(false);
                     }}
                     className={cn(
-                      "cursor-pointer flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition",
+                      "flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition",
                       isActive
-                        ? "bg-blue-50 text-blue-800"
-                        : "text-slate-800 hover:bg-slate-50",
+                        ? "bg-[var(--ff-primary-soft)] text-[var(--ff-primary)]"
+                        : "text-[var(--ff-text)] hover:bg-[var(--ff-surface-soft)]",
                     )}
                     role="option"
                     aria-selected={isActive}
@@ -165,8 +169,8 @@ function SelectPro<T extends string>({
                           className={cn(
                             "grid h-9 w-9 place-items-center rounded-xl ring-1 transition-colors",
                             isActive
-                              ? "bg-white ring-blue-100 text-blue-700"
-                              : "bg-slate-50 ring-slate-200 text-slate-600",
+                              ? "bg-[var(--ff-surface)] ring-[var(--ff-border)] text-[var(--ff-primary)]"
+                              : "bg-[var(--ff-surface-soft)] ring-[var(--ff-border)] text-[var(--ff-text-soft)]",
                           )}
                         >
                           {o.icon}
@@ -178,7 +182,7 @@ function SelectPro<T extends string>({
                           {o.label}
                         </span>
                         {o.meta ? (
-                          <span className="block truncate text-xs font-medium text-slate-500">
+                          <span className="block truncate text-xs font-medium text-[var(--ff-text-muted)]">
                             {o.meta}
                           </span>
                         ) : null}
@@ -186,8 +190,8 @@ function SelectPro<T extends string>({
                     </span>
 
                     {isActive ? (
-                      <span className="grid h-8 w-8 place-items-center rounded-xl bg-white ring-1 ring-blue-100">
-                        <Check className="h-4 w-4 text-blue-700" />
+                      <span className="grid h-8 w-8 place-items-center rounded-xl bg-[var(--ff-surface)] ring-1 ring-[var(--ff-border)]">
+                        <Check className="h-4 w-4 text-[var(--ff-primary)]" />
                       </span>
                     ) : null}
                   </button>
@@ -322,7 +326,7 @@ function RowMenu({
         onMouseDown={(e) => {
           e.stopPropagation();
         }}
-        className="cursor-pointer grid h-10 w-10 place-items-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 transition-colors"
+        className="grid h-10 w-10 cursor-pointer place-items-center rounded-xl bg-[var(--ff-surface)] text-[var(--ff-text-soft)] ring-1 ring-[var(--ff-border)] transition-colors hover:bg-[var(--ff-surface-soft)]"
         aria-label="Mais ações"
         title="Mais"
         aria-haspopup="menu"
@@ -339,7 +343,7 @@ function RowMenu({
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
               ref={menuRef}
-              className="fixed z-[9999] w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl origin-top-right"
+              className="fixed z-[9999] w-56 origin-top-right rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface)] p-2 shadow-2xl"
               style={{ top: pos.top, left: pos.left }}
               role="menu"
               onMouseDown={(e) => e.stopPropagation()}
@@ -353,15 +357,15 @@ function RowMenu({
                   onClose();
                   onEdit();
                 }}
-                className="cursor-pointer flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50 transition-colors"
+                className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[var(--ff-text)] transition-colors hover:bg-[var(--ff-surface-soft)]"
                 role="menuitem"
               >
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-50 ring-1 ring-slate-200 text-slate-600">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--ff-surface-soft)] text-[var(--ff-text-soft)] ring-1 ring-[var(--ff-border)]">
                   <Pencil className="h-4 w-4" />
                 </span>
                 <span className="min-w-0">
                   <span className="block">Editar</span>
-                  <span className="block text-xs font-medium text-slate-500">
+                  <span className="block text-xs font-medium text-[var(--ff-text-muted)]">
                     Alterar detalhes da tarefa
                   </span>
                 </span>
@@ -375,15 +379,15 @@ function RowMenu({
                   onClose();
                   onDelete();
                 }}
-                className="cursor-pointer mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50 transition-colors"
+                className="mt-1 flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[var(--ff-primary)] transition-colors hover:bg-[var(--ff-primary-soft)]"
                 role="menuitem"
               >
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-rose-50 ring-1 ring-rose-100 text-rose-700">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--ff-primary-soft)] text-[var(--ff-primary)] ring-1 ring-[var(--ff-border)]">
                   <Trash2 className="h-4 w-4" />
                 </span>
                 <span className="min-w-0">
                   <span className="block">Excluir</span>
-                  <span className="block text-xs font-medium text-rose-600/80">
+                  <span className="block text-xs font-medium text-[var(--ff-text-muted)]">
                     Remover permanentemente
                   </span>
                 </span>
@@ -446,16 +450,18 @@ function TaskRow({
     <div
       className={cn(
         "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all hover:shadow-md",
-        isPending ? "border-rose-200 bg-rose-50/40" : "border-slate-200 bg-white",
+        isPending
+          ? "border-[var(--ff-border)] bg-[var(--ff-primary-soft)]/30"
+          : "border-[var(--ff-border)] bg-[var(--ff-surface)]",
         isDone && "opacity-60 grayscale-[0.3]",
       )}
     >
-      {(isActive || isPending) ? (
+      {isActive || isPending ? (
         <motion.div
           layoutId={`indicator-${task.id}`}
           className={cn(
             "absolute left-0 top-0 h-full w-1.5",
-            isPending ? "bg-rose-500" : "bg-blue-400",
+            "bg-[var(--ff-primary)]",
           )}
         />
       ) : null}
@@ -463,14 +469,14 @@ function TaskRow({
       <div
         className={cn(
           "flex items-start justify-between gap-3",
-          (isActive || isPending) ? "pl-2" : "",
+          isActive || isPending ? "pl-2" : "",
         )}
       >
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <button
             type="button"
             onClick={onToggleComplete}
-            className="cursor-pointer mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-200 transition-all hover:bg-white hover:scale-105 active:scale-95"
+            className="mt-0.5 grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-2xl bg-[var(--ff-surface-soft)] ring-1 ring-[var(--ff-border)] transition-all hover:scale-105 hover:bg-[var(--ff-surface)] active:scale-95"
             aria-label={
               isDone
                 ? "Desmarcar tarefa concluída"
@@ -487,7 +493,7 @@ function TaskRow({
                   exit={{ scale: 0, rotate: 180 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
-                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                  <CheckCircle2 className="h-6 w-6 text-[var(--ff-primary)]" />
                 </motion.div>
               ) : (
                 <motion.div
@@ -500,8 +506,8 @@ function TaskRow({
                     className={cn(
                       "h-6 w-6 transition-colors",
                       isPending
-                        ? "text-rose-500"
-                        : "text-slate-300 group-hover:text-blue-500",
+                        ? "text-[var(--ff-primary)]"
+                        : "text-[var(--ff-text-muted)] group-hover:text-[var(--ff-primary)]",
                     )}
                   />
                 </motion.div>
@@ -513,21 +519,21 @@ function TaskRow({
             <div className="flex items-center gap-2">
               <p
                 className={cn(
-                  "truncate text-sm font-semibold text-slate-900 transition-all duration-300",
-                  isDone && "line-through text-slate-500",
+                  "truncate text-sm font-semibold text-[var(--ff-text)] transition-all duration-300",
+                  isDone && "text-[var(--ff-text-muted)] line-through",
                 )}
               >
                 {task.title}
               </p>
               {isPending && (
-                <span title="Atrasada" className="flex items-center shrink-0">
-                  <AlertCircle className="h-4 w-4 text-rose-500" />
+                <span title="Atrasada" className="flex shrink-0 items-center">
+                  <AlertCircle className="h-4 w-4 text-[var(--ff-primary)]" />
                 </span>
               )}
             </div>
 
             {task.description ? (
-              <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+              <p className="mt-1 line-clamp-2 text-sm text-[var(--ff-text-muted)]">
                 {task.description}
               </p>
             ) : null}
@@ -564,26 +570,23 @@ function TaskRow({
 
             {typeof task.progress === "number" ? (
               <div className="mt-4 flex items-center gap-3">
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--ff-surface-soft)] ring-1 ring-inset ring-[var(--ff-border)]">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.max(0, Math.min(100, task.progress))}%` }}
                     transition={{ duration: 1, ease: "easeOut" }}
-                    className={cn(
-                      "h-full rounded-full",
-                      isDone ? "bg-emerald-500" : "bg-blue-500",
-                    )}
+                    className="h-full rounded-full bg-[var(--ff-primary)]"
                   />
                 </div>
-                <span className="w-8 text-right text-xs font-bold text-slate-600">
+                <span className="w-8 text-right text-xs font-bold text-[var(--ff-text-soft)]">
                   {Math.round(task.progress)}%
                 </span>
               </div>
             ) : null}
 
             {task.subtasks?.length ? (
-              <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600 ring-1 ring-slate-200">
-                <span className="font-semibold text-slate-800">
+              <div className="mt-3 rounded-xl bg-[var(--ff-surface-soft)] px-3 py-2 text-xs text-[var(--ff-text-soft)] ring-1 ring-[var(--ff-border)]">
+                <span className="font-semibold text-[var(--ff-text)]">
                   Subtarefas:
                 </span>{" "}
                 {task.subtasks
@@ -599,16 +602,16 @@ function TaskRow({
         <div
           className={cn(
             "flex shrink-0 items-center gap-2 self-start transition-all duration-200",
-            "opacity-100 translate-y-0 pointer-events-auto",
-            "lg:opacity-0 lg:translate-y-1 lg:pointer-events-none",
-            "lg:group-hover:opacity-100 lg:group-hover:translate-y-0 lg:group-hover:pointer-events-auto",
-            menuOpen ? "lg:opacity-100 lg:translate-y-0 lg:pointer-events-auto" : "",
+            "pointer-events-auto translate-y-0 opacity-100",
+            "lg:pointer-events-none lg:translate-y-1 lg:opacity-0",
+            "lg:group-hover:pointer-events-auto lg:group-hover:translate-y-0 lg:group-hover:opacity-100",
+            menuOpen ? "lg:pointer-events-auto lg:translate-y-0 lg:opacity-100" : "",
           )}
         >
           {!isDone && (
             <button
               type="button"
-              className="cursor-pointer grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition hover:bg-blue-100 hover:scale-105 active:scale-95"
+              className="grid h-10 w-10 cursor-pointer place-items-center rounded-xl bg-[var(--ff-primary-soft)] text-[var(--ff-primary)] ring-1 ring-[var(--ff-border)] transition hover:scale-105 hover:brightness-95 active:scale-95"
               aria-label="Iniciar pomodoro nesta tarefa"
               title="Iniciar"
               onClick={() =>
@@ -651,23 +654,23 @@ function EmptyTasksState({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 200, damping: 20 }}
-      className="rounded-[28px] border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10 sm:py-14"
+      className="rounded-[28px] border border-[var(--ff-border)] bg-[var(--ff-surface)] px-6 py-10 shadow-sm sm:px-10 sm:py-14"
     >
       <div className="mx-auto flex max-w-xl flex-col items-center text-center">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-          className="grid h-20 w-20 place-items-center rounded-full bg-slate-100 ring-8 ring-slate-50"
+          className="grid h-20 w-20 place-items-center rounded-full bg-[var(--ff-surface-soft)] ring-8 ring-[var(--ff-background)]"
         >
-          <CheckCircle2 className="h-8 w-8 text-slate-500" />
+          <CheckCircle2 className="h-8 w-8 text-[var(--ff-text-muted)]" />
         </motion.div>
 
-        <h3 className="mt-6 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+        <h3 className="mt-6 text-xl font-semibold tracking-tight text-[var(--ff-text)] sm:text-2xl">
           {hasFilters ? "Nenhuma tarefa encontrada" : "Nenhuma tarefa pendente"}
         </h3>
 
-        <p className="mt-2 max-w-md text-sm leading-6 text-slate-500 sm:text-base">
+        <p className="mt-2 max-w-md text-sm leading-6 text-[var(--ff-text-muted)] sm:text-base">
           {hasFilters
             ? "Tente ajustar os filtros ou a busca para localizar as suas tarefas com mais facilidade."
             : "Crie uma nova tarefa para começar a organizar a sua rotina e produzir melhor."}
@@ -678,7 +681,7 @@ function EmptyTasksState({
             <button
               type="button"
               onClick={onCreateTask}
-              className="cursor-pointer inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-105 active:scale-95"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-[var(--ff-primary)] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:scale-105 hover:opacity-90 active:scale-95"
             >
               <Plus className="h-4 w-4" />
               Criar tarefa
@@ -689,7 +692,7 @@ function EmptyTasksState({
             <button
               type="button"
               onClick={onClearFilters}
-              className="cursor-pointer inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-[var(--ff-text-soft)] transition hover:bg-[var(--ff-surface-soft)] hover:text-[var(--ff-text)]"
             >
               Limpar filtros
             </button>
@@ -818,19 +821,19 @@ export default function TasksPage() {
       {
         label: "Alta",
         value: "alta",
-        icon: <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />,
+        icon: <span className="h-2.5 w-2.5 rounded-full bg-[var(--ff-primary)]" />,
         meta: "",
       },
       {
         label: "Média",
         value: "media",
-        icon: <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />,
+        icon: <span className="h-2.5 w-2.5 rounded-full bg-[var(--ff-primary)] opacity-70" />,
         meta: "",
       },
       {
         label: "Baixa",
         value: "baixa",
-        icon: <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />,
+        icon: <span className="h-2.5 w-2.5 rounded-full bg-[var(--ff-text-muted)]" />,
         meta: "",
       },
     ];
@@ -930,13 +933,13 @@ export default function TasksPage() {
       <div className="mb-4 lg:hidden">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            <h1 className="text-2xl font-semibold tracking-tight text-[var(--ff-text)]">
               As Minhas Tarefas
             </h1>
           </div>
 
           <button
-            className="cursor-pointer inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-105 active:scale-95"
+            className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-[var(--ff-primary)] px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:scale-105 hover:opacity-90 active:scale-95"
             type="button"
             onClick={() => setCreateOpen(true)}
           >
@@ -948,13 +951,13 @@ export default function TasksPage() {
 
       <div className="hidden items-start justify-between gap-4 lg:flex">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+          <h1 className="text-3xl font-semibold tracking-tight text-[var(--ff-text)]">
             As Minhas Tarefas
           </h1>
         </div>
 
         <button
-          className="cursor-pointer inline-flex shrink-0 items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-105 active:scale-95"
+          className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-2xl bg-[var(--ff-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:scale-105 hover:opacity-90 active:scale-95"
           type="button"
           onClick={() => setCreateOpen(true)}
         >
@@ -964,13 +967,13 @@ export default function TasksPage() {
       </div>
 
       <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="relative flex-1 group">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 transition group-focus-within:text-blue-500" />
+        <div className="group relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--ff-text-muted)] transition group-focus-within:text-[var(--ff-primary)]" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Pesquisar tarefas..."
-            className="w-full rounded-2xl border border-slate-200 bg-white px-10 py-3 text-sm text-slate-900 outline-none transition ring-blue-200 focus:border-blue-500 focus:ring-4"
+            className="w-full rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface)] px-10 py-3 text-sm text-[var(--ff-text)] outline-none transition focus:border-[var(--ff-primary)] focus:ring-4 focus:ring-[var(--ff-primary-soft)]"
           />
         </div>
 
@@ -1013,8 +1016,8 @@ export default function TasksPage() {
             className={cn(
               "cursor-pointer rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200",
               tab === t.id
-                ? "bg-white text-slate-900 ring-1 ring-slate-200 shadow-sm scale-105"
-                : "text-slate-600 hover:bg-white hover:ring-1 hover:ring-slate-200",
+                ? "scale-105 bg-[var(--ff-surface)] text-[var(--ff-text)] shadow-sm ring-1 ring-[var(--ff-border)]"
+                : "text-[var(--ff-text-soft)] hover:bg-[var(--ff-surface)] hover:ring-1 hover:ring-[var(--ff-border)]",
             )}
           >
             {t.label}
@@ -1024,7 +1027,6 @@ export default function TasksPage() {
 
       <div className="mt-5 pb-10">
         {loading ? (
-          // Skeleton Loading Animation
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1033,7 +1035,7 @@ export default function TasksPage() {
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="h-[120px] w-full animate-pulse rounded-2xl bg-slate-100 ring-1 ring-slate-200/50"
+                className="h-[120px] w-full animate-pulse rounded-2xl bg-[var(--ff-surface-soft)] ring-1 ring-[var(--ff-border)]"
               />
             ))}
           </motion.div>
@@ -1041,7 +1043,7 @@ export default function TasksPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-sm"
+            className="rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-primary-soft)] p-6 text-sm text-[var(--ff-text)] shadow-sm"
           >
             {errorMessage}
           </motion.div>
