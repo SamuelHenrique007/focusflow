@@ -135,9 +135,7 @@ function TaskRow({
     <div
       className={cn(
         "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all hover:shadow-md",
-        isOverdue
-          ? "border-[var(--ff-border)] bg-[var(--ff-primary-soft)]/35"
-          : "border-[var(--ff-border)] bg-[var(--ff-surface)]",
+        isOverdue ? "border-rose-200 bg-rose-50/40" : "border-slate-200 bg-white",
       )}
     >
       {!isDone ? (
@@ -145,9 +143,7 @@ function TaskRow({
           layoutId={`indicator-${task.id}`}
           className={cn(
             "absolute left-0 top-0 h-full w-1.5",
-            isOverdue
-              ? "bg-[var(--ff-primary)]"
-              : "bg-[var(--ff-primary)]",
+            isOverdue ? "bg-rose-500" : "bg-blue-500",
           )}
         />
       ) : null}
@@ -156,7 +152,7 @@ function TaskRow({
         <button
           type="button"
           onClick={onToggleComplete}
-          className="mt-0.5 grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-2xl bg-[var(--ff-surface-soft)] ring-1 ring-[var(--ff-border)] transition-all hover:scale-105 hover:bg-[var(--ff-surface)] active:scale-95"
+          className="mt-0.5 grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-200 transition-all hover:bg-white hover:scale-105 active:scale-95"
           aria-label={
             isDone
               ? "Desmarcar tarefa concluída"
@@ -173,7 +169,7 @@ function TaskRow({
                 exit={{ scale: 0, rotate: 180 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
-                <CheckCircle2 className="h-6 w-6 text-[var(--ff-primary)]" />
+                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
               </motion.div>
             ) : (
               <motion.div
@@ -186,8 +182,8 @@ function TaskRow({
                   className={cn(
                     "h-6 w-6 transition-colors",
                     isOverdue
-                      ? "text-[var(--ff-primary)]"
-                      : "text-[var(--ff-text-muted)] group-hover:text-[var(--ff-primary)]",
+                      ? "text-rose-500"
+                      : "text-slate-300 group-hover:text-blue-500",
                   )}
                 />
               </motion.div>
@@ -198,12 +194,12 @@ function TaskRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-semibold text-[var(--ff-text)] transition-colors">
+              <p className="truncate text-sm font-semibold text-slate-900 transition-colors">
                 {task.title}
               </p>
               {isOverdue && (
                 <span title="Atrasada" className="flex shrink-0 items-center">
-                  <AlertCircle className="h-4 w-4 text-[var(--ff-primary)]" />
+                  <AlertCircle className="h-4 w-4 text-rose-500" />
                 </span>
               )}
             </div>
@@ -241,7 +237,7 @@ function TaskRow({
 
           {typeof task.progress === "number" ? (
             <div className="mt-4 flex items-center gap-3">
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--ff-surface-soft)] ring-1 ring-inset ring-[var(--ff-border)]">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{
@@ -250,13 +246,11 @@ function TaskRow({
                   transition={{ duration: 1, ease: "easeOut" }}
                   className={cn(
                     "h-full rounded-full",
-                    isDone
-                      ? "bg-[var(--ff-primary)]"
-                      : "bg-[var(--ff-primary)]",
+                    isDone ? "bg-emerald-500" : "bg-blue-500",
                   )}
                 />
               </div>
-              <span className="w-8 text-right text-xs font-bold text-[var(--ff-text-muted)]">
+              <span className="w-8 text-right text-xs font-bold text-slate-600">
                 {Math.round(task.progress)}%
               </span>
             </div>
@@ -279,23 +273,23 @@ function DashboardEmptyState({
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 200, damping: 20 }}
-      className="rounded-[28px] border border-[var(--ff-border)] bg-[var(--ff-surface)] px-6 py-10 shadow-sm sm:px-10 sm:py-14"
+      className="rounded-[28px] border border-slate-200 bg-white px-6 py-10 shadow-sm sm:px-10 sm:py-14"
     >
       <div className="mx-auto flex max-w-xl flex-col items-center text-center">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-          className="grid h-20 w-20 place-items-center rounded-full bg-[var(--ff-surface-soft)] ring-8 ring-[var(--ff-background)]"
+          className="grid h-20 w-20 place-items-center rounded-full bg-slate-100 ring-8 ring-slate-50"
         >
-          <CheckCircle2 className="h-8 w-8 text-[var(--ff-text-muted)]" />
+          <CheckCircle2 className="h-8 w-8 text-slate-500" />
         </motion.div>
 
-        <h3 className="mt-6 text-xl font-semibold tracking-tight text-[var(--ff-text)] sm:text-2xl">
+        <h3 className="mt-6 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
           Nenhuma tarefa para hoje
         </h3>
 
-        <p className="mt-2 max-w-md text-sm leading-6 text-[var(--ff-text-muted)] sm:text-base">
+        <p className="mt-2 max-w-md text-sm leading-6 text-slate-500 sm:text-base">
           Você está com o painel livre no momento. Crie uma nova tarefa para
           começar a produzir ou inicie uma sessão de foco.
         </p>
@@ -304,7 +298,7 @@ function DashboardEmptyState({
           <button
             type="button"
             onClick={onCreateTask}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-soft)] px-5 py-3 text-sm font-semibold text-[var(--ff-text)] shadow-sm transition hover:scale-105 hover:bg-[var(--ff-surface)] active:scale-95"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-900 shadow-sm transition hover:border-slate-300 hover:bg-slate-100 hover:scale-105 active:scale-95"
           >
             <Plus className="h-4 w-4" />
             Criar Tarefa
@@ -313,7 +307,7 @@ function DashboardEmptyState({
           <button
             type="button"
             onClick={onStartPomodoro}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-[var(--ff-text-soft)] transition hover:scale-105 hover:bg-[var(--ff-surface-soft)] hover:text-[var(--ff-text)] active:scale-95"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 hover:scale-105 active:scale-95"
           >
             <Play className="h-4 w-4" />
             Iniciar Pomodoro
@@ -344,7 +338,6 @@ const itemVariants: Variants = {
 export default function FocusFlowDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-
   const { stats: gameStats, fetchStatus } = useGameStore();
 
   const [newTaskOpen, setNewTaskOpen] = useState(false);
@@ -502,8 +495,7 @@ export default function FocusFlowDashboard() {
       return {
         title: "Atenção: Atrasos",
         description: `Você tem ${overdueCount} tarefa(s) atrasada(s). Vale priorizar isso agora.`,
-        containerClass:
-          "border border-[var(--ff-border)] bg-[var(--ff-surface)] text-[var(--ff-text)]",
+        containerClass: "bg-gradient-to-r from-rose-600 to-red-700",
         icon: <AlertCircle className="h-6 w-6" />,
       };
     }
@@ -512,7 +504,7 @@ export default function FocusFlowDashboard() {
       return {
         title: "Bom ritmo!",
         description: `Você tem ${inProgressCount} tarefa(s) em andamento para hoje.`,
-        containerClass: "bg-[var(--ff-primary)] text-white",
+        containerClass: "bg-gradient-to-r from-blue-600 to-indigo-600",
         icon: <Rocket className="h-6 w-6" />,
       };
     }
@@ -521,8 +513,7 @@ export default function FocusFlowDashboard() {
       return {
         title: "Foco no Dia",
         description: `Você tem ${todayCount} tarefa(s) planejadas para hoje.`,
-        containerClass:
-          "border border-[var(--ff-border)] bg-[var(--ff-primary-soft)] text-[var(--ff-text)]",
+        containerClass: "bg-gradient-to-r from-amber-500 to-orange-600",
         icon: <Target className="h-6 w-6" />,
       };
     }
@@ -530,8 +521,7 @@ export default function FocusFlowDashboard() {
     return {
       title: "Tudo tranquilo!",
       description: "Você não tem tarefas atrasadas ou urgentes no momento.",
-      containerClass:
-        "border border-[var(--ff-border)] bg-[var(--ff-surface)] text-[var(--ff-text)]",
+      containerClass: "bg-gradient-to-r from-emerald-500 to-green-600",
       icon: <Sparkles className="h-6 w-6" />,
     };
   }, [overdueTasks.length, inProgressTodayTasks.length, todayTasks.length]);
@@ -593,12 +583,10 @@ export default function FocusFlowDashboard() {
         transition={{ duration: 0.4 }}
       >
         <div className="mb-4 lg:hidden">
-          <h1 className="text-2xl font-semibold tracking-tight text-[var(--ff-text)]">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
             {getGreeting()}, {userName}! 👋
           </h1>
-          <p className="mt-1 text-sm capitalize text-[var(--ff-text-muted)]">
-            {todayLabel}
-          </p>
+          <p className="mt-1 text-sm capitalize text-slate-500">{todayLabel}</p>
 
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <Badge tone="warning">
@@ -609,7 +597,7 @@ export default function FocusFlowDashboard() {
             </Badge>
 
             <button
-              className="ml-auto inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[var(--ff-primary)] px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:scale-105 hover:opacity-90 active:scale-95"
+              className="ml-auto inline-flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-105 active:scale-95"
               type="button"
               onClick={() => setNewTaskOpen(true)}
             >
@@ -621,12 +609,10 @@ export default function FocusFlowDashboard() {
 
         <div className="hidden items-start justify-between gap-4 lg:flex">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-[var(--ff-text)]">
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
               {getGreeting()}, {userName}! 👋
             </h1>
-            <p className="mt-1 text-sm capitalize text-[var(--ff-text-muted)]">
-              {todayLabel}
-            </p>
+            <p className="mt-1 text-sm capitalize text-slate-500">{todayLabel}</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -638,7 +624,7 @@ export default function FocusFlowDashboard() {
             </Badge>
 
             <button
-              className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-[var(--ff-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:scale-105 hover:opacity-90 active:scale-95"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-105 active:scale-95"
               type="button"
               onClick={() => setNewTaskOpen(true)}
             >
@@ -689,14 +675,14 @@ export default function FocusFlowDashboard() {
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="h-25 animate-pulse rounded-2xl bg-[var(--ff-surface-soft)] ring-1 ring-[var(--ff-border)]"
+                className="h-25 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50"
               />
             ))}
           </div>
-          <div className="h-25 animate-pulse rounded-2xl bg-[var(--ff-surface-soft)] ring-1 ring-[var(--ff-border)]" />
+          <div className="h-25 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50" />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className="h-30 animate-pulse rounded-2xl bg-[var(--ff-surface-soft)] ring-1 ring-[var(--ff-border)]" />
-            <div className="h-30 animate-pulse rounded-2xl bg-[var(--ff-surface-soft)] ring-1 ring-[var(--ff-border)]" />
+            <div className="h-30 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50" />
+            <div className="h-30 animate-pulse rounded-2xl bg-slate-100/80 ring-1 ring-slate-200/50" />
           </div>
         </motion.div>
       ) : (
@@ -713,32 +699,28 @@ export default function FocusFlowDashboard() {
                 value: `${stats.metaDiaPct}%`,
                 subtitle: `${stats.tempoFocadoMeta}/${stats.metaDiaTotalMin} min`,
                 icon: <Target className="h-5 w-5" />,
-                tone:
-                  "bg-[var(--ff-primary-soft)] text-[var(--ff-primary)]",
+                tone: "bg-blue-50 text-blue-700",
               },
               {
                 title: "Tempo Focado",
                 value: `${stats.tempoFocadoMin} min`,
                 subtitle: "hoje",
                 icon: <Clock className="h-5 w-5" />,
-                tone:
-                  "bg-[var(--ff-primary-soft)] text-[var(--ff-primary)]",
+                tone: "bg-emerald-50 text-emerald-700",
               },
               {
                 title: "Concluídas",
                 value: `${stats.concluidasHoje}`,
                 subtitle: "hoje",
                 icon: <CheckCircle2 className="h-5 w-5" />,
-                tone:
-                  "bg-[var(--ff-primary-soft)] text-[var(--ff-primary)]",
+                tone: "bg-emerald-50 text-emerald-700",
               },
               {
                 title: "Atrasadas",
                 value: `${stats.pendentesTotal}`,
                 subtitle: "total",
                 icon: <AlertCircle className="h-5 w-5" />,
-                tone:
-                  "bg-[var(--ff-primary-soft)] text-[var(--ff-primary)]",
+                tone: "bg-rose-50 text-rose-700",
               },
             ].map((stat, i) => (
               <motion.div key={i} variants={itemVariants}>
@@ -757,20 +739,20 @@ export default function FocusFlowDashboard() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="mt-5 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface)] p-4 shadow-sm sm:p-5"
+            className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-[var(--ff-text)]">
+                <p className="text-sm font-semibold text-slate-900">
                   Progresso Diário
                 </p>
-                <p className="mt-1 text-xs text-[var(--ff-text-muted)]">
+                <p className="mt-1 text-xs text-slate-500">
                   Meta: {dailyGoalMin} min de foco
                 </p>
               </div>
 
               <button
-                className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--ff-border)] bg-[var(--ff-surface-soft)] px-3 py-2 text-sm font-semibold text-[var(--ff-primary)] transition hover:scale-105 hover:opacity-90 active:scale-95"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-blue-700 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:scale-105 active:scale-95"
                 type="button"
                 onClick={() => navigate("/pomodoropage")}
               >
@@ -779,17 +761,17 @@ export default function FocusFlowDashboard() {
             </div>
 
             <div className="mt-4">
-              <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--ff-surface-soft)] ring-1 ring-inset ring-[var(--ff-border)]">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/50">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{
                     width: `${Math.max(0, Math.min(100, dailyProgressPct))}%`,
                   }}
                   transition={{ duration: 1.5, ease: "easeOut", delay: 0.4 }}
-                  className="h-full rounded-full bg-[var(--ff-primary)]"
+                  className="h-full rounded-full bg-blue-500"
                 />
               </div>
-              <div className="mt-2 flex items-center justify-between text-xs text-[var(--ff-text-muted)]">
+              <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
                 <span>{dailyProgressMin} min</span>
                 <span>{dailyGoalMin} min</span>
               </div>
@@ -804,7 +786,9 @@ export default function FocusFlowDashboard() {
           >
             <motion.div
               variants={itemVariants}
-              className="relative overflow-hidden rounded-2xl bg-[var(--ff-primary)] p-5 text-white shadow-sm transition-transform hover:shadow-md"
+              whileHover={{ y: -4, scale: 1.01 }}
+              transition={{ type: "spring", stiffness: 260, damping: 20 }}
+              className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 p-5 text-white shadow-sm transition-transform hover:shadow-md"
             >
               <div className="relative z-10 flex items-center justify-between gap-4">
                 <div className="min-w-0">
@@ -815,7 +799,7 @@ export default function FocusFlowDashboard() {
                 </div>
 
                 <button
-                  className="grid h-14 w-14 cursor-pointer place-items-center rounded-full bg-white/15 ring-1 ring-white/25 transition hover:scale-110 hover:bg-white/25 active:scale-95"
+                  className="grid h-14 w-14 cursor-pointer place-items-center rounded-full bg-white/15 ring-1 ring-white/25 transition hover:bg-white/25 hover:scale-110 active:scale-95"
                   type="button"
                   aria-label="Iniciar"
                   onClick={() => navigate("/pomodoropage")}
@@ -828,55 +812,36 @@ export default function FocusFlowDashboard() {
 
             <motion.div
               variants={itemVariants}
+              whileHover={{ y: -4, scale: 1.01 }}
+              transition={{ type: "spring", stiffness: 260, damping: 20 }}
               className={cn(
-                "relative overflow-hidden rounded-2xl p-5 shadow-sm transition",
+                "relative overflow-hidden rounded-2xl p-5 text-white shadow-sm transition hover:shadow-md",
                 focusCard.containerClass,
               )}
             >
               <div className="relative z-10 flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-lg font-semibold">{focusCard.title}</p>
-                  <p
-                    className={cn(
-                      "mt-1 text-sm/relaxed",
-                      focusCard.containerClass.includes("text-white")
-                        ? "text-white/85"
-                        : "text-[var(--ff-text-muted)]",
-                    )}
-                  >
+                  <p className="mt-1 text-sm/relaxed text-white/85">
                     {focusCard.description}
                   </p>
                 </div>
 
-                <div
-                  className={cn(
-                    "grid h-14 w-14 place-items-center rounded-2xl",
-                    focusCard.containerClass.includes("text-white")
-                      ? "bg-white/15 ring-1 ring-white/25"
-                      : "bg-[var(--ff-surface-soft)] ring-1 ring-[var(--ff-border)]",
-                  )}
-                >
+                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/25">
                   {focusCard.icon}
                 </div>
               </div>
-              <div
-                className={cn(
-                  "pointer-events-none absolute -right-10 -bottom-10 h-40 w-40 rounded-full",
-                  focusCard.containerClass.includes("text-white")
-                    ? "bg-white/10"
-                    : "bg-[var(--ff-primary-soft)]/35",
-                )}
-              />
+              <div className="pointer-events-none absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-white/10" />
             </motion.div>
           </motion.div>
 
           <div className="mt-6">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[var(--ff-text)]">
+              <h2 className="text-base font-semibold text-slate-900">
                 Prioridades
               </h2>
               <button
-                className="cursor-pointer text-sm font-semibold text-[var(--ff-primary)] transition hover:opacity-90 hover:underline"
+                className="cursor-pointer text-sm font-semibold text-blue-700 transition hover:text-blue-800 hover:underline"
                 type="button"
                 onClick={() => navigate("/tasks")}
               >
@@ -888,7 +853,7 @@ export default function FocusFlowDashboard() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-primary-soft)] p-6 text-sm text-[var(--ff-text)] shadow-sm"
+                className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 shadow-sm"
               >
                 {errorMessage}
               </motion.div>

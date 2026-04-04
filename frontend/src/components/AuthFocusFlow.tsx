@@ -3,7 +3,7 @@ import axios from "axios";
 import { Clock3, Sparkles, Target, Timer, Eye, EyeOff } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import FeedbackMessage from "@/components/ui/FeedbackMessage";
+import { useToastStore } from "@/store/useToastStore";
 import { motion, AnimatePresence } from "framer-motion";
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -13,7 +13,7 @@ function cx(...classes: Array<string | false | null | undefined>) {
 type Mode = "login" | "register";
 
 type BackendErrorResponse = {
-  detail?: string;
+  detail?: string | string[];
   email?: string[];
   name?: string[];
   password?: string[];
@@ -51,6 +51,30 @@ function translateErrorMessage(message: string) {
   return message;
 }
 
+function getBackendErrorMessage(error: unknown) {
+  const fallback = "Não foi possível concluir a operação.";
+
+  if (!axios.isAxiosError<BackendErrorResponse>(error)) {
+    return fallback;
+  }
+
+  const data = error.response?.data;
+
+  if (!data) {
+    return fallback;
+  }
+
+  const rawMessage =
+    (Array.isArray(data.detail) ? data.detail[0] : data.detail) ||
+    data.email?.[0] ||
+    data.name?.[0] ||
+    data.password?.[0] ||
+    data.non_field_errors?.[0] ||
+    fallback;
+
+  return translateErrorMessage(String(rawMessage));
+}
+
 function TextField({
   id,
   label,
@@ -71,7 +95,7 @@ function TextField({
   isPassword?: boolean;
 }) {
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
 
   return (
@@ -89,14 +113,14 @@ function TextField({
           placeholder={placeholder}
           className={cx(
             "w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-4 text-sm text-slate-900 outline-none ring-blue-200 placeholder:text-slate-400 transition focus:border-blue-500 focus:bg-white focus:ring-4",
-            isPassword ? "pr-12" : "pr-4"
+            isPassword ? "pr-12" : "pr-4",
           )}
         />
         {isPassword && (
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-blue-600 focus:outline-none transition-colors"
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 transition-colors hover:text-blue-600 focus:outline-none"
             tabIndex={-1}
           >
             {showPassword ? (
@@ -139,15 +163,26 @@ export default function AuthFocusFlow() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, register } = useAuth();
+  const pushToast = useToastStore((state) => state.pushToast);
 
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+
+  function showToast(
+    variant: "success" | "error" | "info",
+    title: string,
+    description: string,
+  ) {
+    pushToast({
+      variant,
+      title,
+      description,
+      duration: 4200,
+    });
+  }
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -160,8 +195,6 @@ export default function AuthFocusFlow() {
       setMode("login");
     }
 
-    setErrorMessage("");
-    setSuccessMessage("");
     setPassword("");
   }, [location.pathname]);
 
@@ -183,9 +216,6 @@ export default function AuthFocusFlow() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    setErrorMessage("");
-    setSuccessMessage("");
     setLoading(true);
 
     const payloadName = name.trim();
@@ -193,25 +223,37 @@ export default function AuthFocusFlow() {
     const payloadPassword = password.trim();
 
     if (mode === "register" && !payloadName) {
-      setErrorMessage("Informe seu nome.");
+      showToast("error", "Erro no cadastro", "Informe seu nome.");
       setLoading(false);
       return;
     }
 
     if (!payloadEmail) {
-      setErrorMessage("Informe seu e-mail.");
+      showToast(
+        "error",
+        mode === "login" ? "Erro no login" : "Erro no cadastro",
+        "Informe seu e-mail.",
+      );
       setLoading(false);
       return;
     }
 
     if (!payloadEmail.includes("@") || !payloadEmail.includes(".")) {
-      setErrorMessage("Informe um e-mail válido.");
+      showToast(
+        "error",
+        mode === "login" ? "Erro no login" : "Erro no cadastro",
+        "Informe um e-mail válido.",
+      );
       setLoading(false);
       return;
     }
 
     if (!payloadPassword) {
-      setErrorMessage("Informe sua senha.");
+      showToast(
+        "error",
+        mode === "login" ? "Erro no login" : "Erro no cadastro",
+        "Informe sua senha.",
+      );
       setLoading(false);
       return;
     }
@@ -224,6 +266,11 @@ export default function AuthFocusFlow() {
           password: payloadPassword,
         });
 
+        showToast(
+          "success",
+          "Conta criada",
+          "Cadastro realizado com sucesso.",
+        );
         navigate("/dashboard", { replace: true });
         return;
       }
@@ -233,32 +280,22 @@ export default function AuthFocusFlow() {
         password: payloadPassword,
       });
 
+      showToast("success", "Login realizado", "Bem-vindo de volta!");
       navigate("/dashboard", { replace: true });
     } catch (error: unknown) {
-      let backendError = "Não foi possível concluir a operação.";
+      const backendError = getBackendErrorMessage(error);
 
-      if (axios.isAxiosError<BackendErrorResponse>(error)) {
-        const rawMessage =
-          error.response?.data?.detail ||
-          error.response?.data?.email?.[0] ||
-          error.response?.data?.name?.[0] ||
-          error.response?.data?.password?.[0] ||
-          error.response?.data?.non_field_errors?.[0] ||
-          backendError;
-
-        backendError = translateErrorMessage(rawMessage);
-      }
-
-      setErrorMessage(backendError);
+      showToast(
+        "error",
+        mode === "login" ? "Falha ao entrar" : "Falha ao cadastrar",
+        backendError,
+      );
     } finally {
       setLoading(false);
     }
   }
 
   function switchMode(nextMode: Mode) {
-    setErrorMessage("");
-    setSuccessMessage("");
-
     if (nextMode === "login") {
       navigate("/login");
     } else {
@@ -327,14 +364,12 @@ export default function AuthFocusFlow() {
                 <p className="text-lg font-semibold text-slate-900">
                   FocusFlow
                 </p>
-                <p className="text-xs text-slate-500">
-                  Produtividade & foco
-                </p>
+                <p className="text-xs text-slate-500">Produtividade & foco</p>
               </div>
             </div>
 
             <div className="text-center lg:text-left">
-              <motion.h2 
+              <motion.h2
                 key={title}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -343,7 +378,7 @@ export default function AuthFocusFlow() {
                 {title}
               </motion.h2>
 
-              <motion.p 
+              <motion.p
                 key={subtitle}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -369,10 +404,7 @@ export default function AuthFocusFlow() {
                       label="Nome de usuário"
                       placeholder="Seu nome de usuário"
                       value={name}
-                      onChange={(value) => {
-                        setName(value);
-                        if (errorMessage) setErrorMessage("");
-                      }}
+                      onChange={setName}
                       autoComplete="username"
                     />
                   </motion.div>
@@ -385,10 +417,7 @@ export default function AuthFocusFlow() {
                 type="email"
                 placeholder="seu@email.com"
                 value={email}
-                onChange={(value) => {
-                  setEmail(value);
-                  if (errorMessage) setErrorMessage("");
-                }}
+                onChange={setEmail}
                 autoComplete="email"
               />
 
@@ -401,10 +430,7 @@ export default function AuthFocusFlow() {
                   mode === "register" ? "Mínimo 8 caracteres" : "••••••••"
                 }
                 value={password}
-                onChange={(value) => {
-                  setPassword(value);
-                  if (errorMessage) setErrorMessage("");
-                }}
+                onChange={setPassword}
                 autoComplete={
                   mode === "login" ? "current-password" : "new-password"
                 }
@@ -412,7 +438,7 @@ export default function AuthFocusFlow() {
 
               <AnimatePresence>
                 {mode === "login" && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
@@ -421,7 +447,7 @@ export default function AuthFocusFlow() {
                     <button
                       type="button"
                       onClick={() => navigate("/forgot-password")}
-                      className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline mt-1"
+                      className="mt-1 cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
                     >
                       Esqueceu a senha?
                     </button>
@@ -429,16 +455,12 @@ export default function AuthFocusFlow() {
                 )}
               </AnimatePresence>
 
-              <FeedbackMessage message={errorMessage} variant="error" />
-              <FeedbackMessage message={successMessage} variant="success" />
-
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={loading}
                 className={cx(
-                  "cursor-pointer mt-2 inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition",
-                  "bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200",
+                  "mt-2 inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200",
                   loading && "cursor-not-allowed opacity-70",
                 )}
               >
@@ -453,7 +475,7 @@ export default function AuthFocusFlow() {
                   <button
                     type="button"
                     onClick={() => switchMode("register")}
-                    className="cursor-pointer font-semibold text-blue-700 hover:text-blue-800 transition-colors"
+                    className="cursor-pointer font-semibold text-blue-700 transition-colors hover:text-blue-800"
                   >
                     Criar conta
                   </button>
@@ -464,7 +486,7 @@ export default function AuthFocusFlow() {
                   <button
                     type="button"
                     onClick={() => switchMode("login")}
-                    className="cursor-pointer font-semibold text-blue-700 hover:text-blue-800 transition-colors"
+                    className="cursor-pointer font-semibold text-blue-700 transition-colors hover:text-blue-800"
                   >
                     Entrar
                   </button>

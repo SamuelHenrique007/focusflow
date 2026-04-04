@@ -7,8 +7,6 @@ import {
   RotateCcw,
   Clock3,
   Save,
-  CheckCircle2,
-  AlertCircle,
   Sparkles,
   UserCog,
   ShieldCheck,
@@ -19,6 +17,7 @@ import { useGameStore } from "@/store/useGameStore";
 import { useThemeStore } from "@/store/useThemeStore";
 import { useAvatarStore } from "@/store/useAvatarStore";
 import { useSoundStore, DEFAULT_SOUND_KEY } from "@/store/useSoundStore";
+import { useToastStore } from "@/store/useToastStore";
 import { gamificationService } from "@/services/gamificationService";
 import {
   getPomodoroSettings,
@@ -34,7 +33,7 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1, // Faz os elementos aparecerem em cascata
+      staggerChildren: 0.1,
     },
   },
 };
@@ -92,7 +91,7 @@ function PreferenceRow({
         <p
           className={cn(
             "text-sm",
-            muted ? "text-(--ff-text-muted)" : "text-(--ff-text-soft)"
+            muted ? "text-(--ff-text-muted)" : "text-(--ff-text-soft)",
           )}
         >
           {value}
@@ -103,15 +102,10 @@ function PreferenceRow({
   );
 }
 
-type FlashMessage = {
-  type: "success" | "error";
-  text: string;
-} | null;
-
 export default function SettingsPage() {
   const { user, updateProfile, changePassword } = useAuth();
+  const pushToast = useToastStore((state) => state.pushToast);
 
-  // Removido: const stats = useGameStore((state) => state.stats); -> Estava gerando warning de variável não utilizada
   const fetchStatus = useGameStore((state) => state.fetchStatus);
 
   const equippedThemeKey = useThemeStore((state) => state.equippedThemeKey);
@@ -153,11 +147,22 @@ export default function SettingsPage() {
     "theme" | "avatar" | "sound" | null
   >(null);
 
-  const [message, setMessage] = useState<FlashMessage>(null);
-
   const currentThemeLabel = useMemo(() => {
     return getThemeDefinition(equippedThemeKey).label;
   }, [equippedThemeKey]);
+
+  function showToast(
+    variant: "success" | "error" | "info",
+    title: string,
+    description: string,
+  ) {
+    pushToast({
+      variant,
+      title,
+      description,
+      duration: variant === "error" ? 5000 : 4200,
+    });
+  }
 
   useEffect(() => {
     fetchStatus();
@@ -187,10 +192,12 @@ export default function SettingsPage() {
       } catch (error) {
         console.error("Erro ao carregar configurações do pomodoro:", error);
         if (!active) return;
-        setMessage({
-          type: "error",
-          text: "Não foi possível carregar as configurações do pomodoro.",
-        });
+
+        showToast(
+          "error",
+          "Falha ao carregar pomodoro",
+          "Não foi possível carregar as configurações do pomodoro.",
+        );
       } finally {
         if (active) setIsLoadingPomodoro(false);
       }
@@ -202,12 +209,6 @@ export default function SettingsPage() {
       active = false;
     };
   }, []);
-
-  useEffect(() => {
-    if (!message) return;
-    const timer = window.setTimeout(() => setMessage(null), 3200);
-    return () => window.clearTimeout(timer);
-  }, [message]);
 
   function extractErrorMessage(error: unknown, fallback: string) {
     const err = error as {
@@ -233,7 +234,7 @@ export default function SettingsPage() {
 
   function updatePomodoroField<K extends keyof PomodoroSettings>(
     key: K,
-    value: PomodoroSettings[K]
+    value: PomodoroSettings[K],
   ) {
     setPomodoroSettings((prev) => ({ ...prev, [key]: value }));
   }
@@ -242,18 +243,16 @@ export default function SettingsPage() {
     event.preventDefault();
 
     if (!profileForm.name.trim()) {
-      setMessage({
-        type: "error",
-        text: "Informe o nome do usuário.",
-      });
+      showToast("error", "Erro ao salvar perfil", "Informe o nome do usuário.");
       return;
     }
 
     if (!profileForm.email.trim()) {
-      setMessage({
-        type: "error",
-        text: "Informe o e-mail do usuário.",
-      });
+      showToast(
+        "error",
+        "Erro ao salvar perfil",
+        "Informe o e-mail do usuário.",
+      );
       return;
     }
 
@@ -265,26 +264,28 @@ export default function SettingsPage() {
         email: profileForm.email.trim(),
       });
 
-      setMessage({
-        type: "success",
-        text: "Dados do usuário atualizados com sucesso.",
-      });
+      showToast(
+        "success",
+        "Perfil atualizado",
+        "Dados do usuário atualizados com sucesso.",
+      );
     } catch (error) {
       console.error("Erro ao atualizar dados do usuário:", error);
-      setMessage({
-        type: "error",
-        text: extractErrorMessage(
+      showToast(
+        "error",
+        "Falha ao atualizar perfil",
+        extractErrorMessage(
           error,
-          "Não foi possível atualizar os dados do usuário."
+          "Não foi possível atualizar os dados do usuário.",
         ),
-      });
+      );
     } finally {
       setIsSavingProfile(false);
     }
   }
 
   async function handleChangePassword(
-    event: React.FormEvent<HTMLFormElement>
+    event: React.FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
@@ -293,26 +294,29 @@ export default function SettingsPage() {
       !passwordForm.new_password ||
       !passwordForm.confirm_new_password
     ) {
-      setMessage({
-        type: "error",
-        text: "Preencha todos os campos da senha.",
-      });
+      showToast(
+        "error",
+        "Erro ao alterar senha",
+        "Preencha todos os campos da senha.",
+      );
       return;
     }
 
     if (passwordForm.new_password.length < 8) {
-      setMessage({
-        type: "error",
-        text: "A nova senha deve ter pelo menos 8 caracteres.",
-      });
+      showToast(
+        "error",
+        "Erro ao alterar senha",
+        "A nova senha deve ter pelo menos 8 caracteres.",
+      );
       return;
     }
 
     if (passwordForm.new_password !== passwordForm.confirm_new_password) {
-      setMessage({
-        type: "error",
-        text: "A confirmação da nova senha não confere.",
-      });
+      showToast(
+        "error",
+        "Erro ao alterar senha",
+        "A confirmação da nova senha não confere.",
+      );
       return;
     }
 
@@ -327,19 +331,14 @@ export default function SettingsPage() {
         confirm_new_password: "",
       });
 
-      setMessage({
-        type: "success",
-        text: "Senha alterada com sucesso.",
-      });
+      showToast("success", "Senha alterada", "Senha alterada com sucesso.");
     } catch (error) {
       console.error("Erro ao alterar senha:", error);
-      setMessage({
-        type: "error",
-        text: extractErrorMessage(
-          error,
-          "Não foi possível alterar a senha."
-        ),
-      });
+      showToast(
+        "error",
+        "Falha ao alterar senha",
+        extractErrorMessage(error, "Não foi possível alterar a senha."),
+      );
     } finally {
       setIsSavingPassword(false);
     }
@@ -350,16 +349,19 @@ export default function SettingsPage() {
       setIsSavingPomodoro(true);
       const data = await updatePomodoroSettings(pomodoroSettings);
       setPomodoroSettings(data);
-      setMessage({
-        type: "success",
-        text: "Configurações do pomodoro salvas com sucesso.",
-      });
+
+      showToast(
+        "success",
+        "Pomodoro salvo",
+        "Configurações do pomodoro salvas com sucesso.",
+      );
     } catch (error) {
       console.error("Erro ao salvar configurações do pomodoro:", error);
-      setMessage({
-        type: "error",
-        text: "Não foi possível salvar as configurações do pomodoro.",
-      });
+      showToast(
+        "error",
+        "Falha ao salvar pomodoro",
+        "Não foi possível salvar as configurações do pomodoro.",
+      );
     } finally {
       setIsSavingPomodoro(false);
     }
@@ -376,28 +378,33 @@ export default function SettingsPage() {
 
       await fetchStatus();
 
-      setMessage({
-        type: "success",
-        text:
-          data?.message ||
+      showToast(
+        "success",
+        category === "theme"
+          ? "Tema restaurado"
+          : category === "avatar"
+            ? "Avatar restaurado"
+            : "Som restaurado",
+        data?.message ||
           (category === "theme"
             ? "Tema restaurado para o padrão."
             : category === "avatar"
               ? "Avatar restaurado para o padrão."
               : "Som restaurado para o padrão."),
-      });
+      );
     } catch (error) {
       console.error(`Erro ao redefinir ${category}:`, error);
-      setMessage({
-        type: "error",
-        text: `Não foi possível redefinir ${
+      showToast(
+        "error",
+        "Falha ao restaurar item",
+        `Não foi possível redefinir ${
           category === "theme"
             ? "o tema"
             : category === "avatar"
               ? "o avatar"
               : "o som"
         }.`,
-      });
+      );
     } finally {
       setBusySection(null);
     }
@@ -420,7 +427,9 @@ export default function SettingsPage() {
               <Sparkles className="h-3.5 w-3.5" />
               Personalização
             </p>
-            <h1 className="text-2xl font-bold text-(--ff-text)">Configurações</h1>
+            <h1 className="text-2xl font-bold text-(--ff-text)">
+              Configurações
+            </h1>
             <p className="mt-1 text-sm text-(--ff-text-soft)">
               Aqui você pode gerenciar sua conta, restaurar itens equipados e
               ajustar o pomodoro.
@@ -428,27 +437,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </motion.div>
-
-      {message ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className={cn(
-            "flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm",
-            message.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-rose-200 bg-rose-50 text-rose-700"
-          )}
-        >
-          {message.type === "success" ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <AlertCircle className="h-4 w-4" />
-          )}
-          {message.text}
-        </motion.div>
-      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SectionCard
@@ -607,7 +595,9 @@ export default function SettingsPage() {
                   className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-(--ff-primary) px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <RotateCcw className="h-4 w-4" />
-                  {busySection === "theme" ? "Restaurando..." : "Voltar ao normal"}
+                  {busySection === "theme"
+                    ? "Restaurando..."
+                    : "Voltar ao normal"}
                 </button>
               }
             />
@@ -635,7 +625,9 @@ export default function SettingsPage() {
                   className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-(--ff-border) bg-(--ff-surface) px-4 py-2 text-sm font-semibold text-(--ff-text) transition hover:bg-(--ff-surface-soft) disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <RotateCcw className="h-4 w-4" />
-                  {busySection === "avatar" ? "Redefinindo..." : "Usar avatar padrão"}
+                  {busySection === "avatar"
+                    ? "Redefinindo..."
+                    : "Usar avatar padrão"}
                 </button>
               }
             />
@@ -651,7 +643,9 @@ export default function SettingsPage() {
                   className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-(--ff-border) bg-(--ff-surface) px-4 py-2 text-sm font-semibold text-(--ff-text) transition hover:bg-(--ff-surface-soft) disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Volume2 className="h-4 w-4" />
-                  {busySection === "sound" ? "Redefinindo..." : "Usar som padrão"}
+                  {busySection === "sound"
+                    ? "Redefinindo..."
+                    : "Usar som padrão"}
                 </button>
               }
             />

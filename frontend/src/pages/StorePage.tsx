@@ -12,8 +12,6 @@ import {
   Timer,
   Volume2,
   Lock,
-  AlertCircle,
-  CheckCircle2,
   BrushCleaning,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -26,6 +24,7 @@ import { useGameStore } from "@/store/useGameStore";
 import { useAvatarStore } from "@/store/useAvatarStore";
 import { useSoundStore } from "@/store/useSoundStore";
 import { useThemeStore } from "@/store/useThemeStore";
+import { useToastStore } from "@/store/useToastStore";
 
 type FilterType = "all" | "avatar" | "theme" | "sound";
 
@@ -177,6 +176,7 @@ function EquippedSummaryCard({
 
 export default function StorePage() {
   const { stats, fetchStatus, setStats } = useGameStore();
+  const pushToast = useToastStore((state) => state.pushToast);
 
   const equippedAvatar = useAvatarStore((state) => state.equippedAvatar);
   const equippedSoundKey = useSoundStore((state) => state.equippedSoundKey);
@@ -188,12 +188,8 @@ export default function StorePage() {
   const [equippingId, setEquippingId] = useState<number | null>(null);
   const [isClaiming, setIsClaiming] = useState(false);
   const [previewingSoundId, setPreviewingSoundId] = useState<number | null>(
-    null
+    null,
   );
-  const [message, setMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
 
   const [flyingCoins, setFlyingCoins] = useState<FlyingCoin[]>([]);
@@ -210,7 +206,7 @@ export default function StorePage() {
 
   const inventoryIds = useMemo(
     () => new Set(stats?.inventory || []),
-    [stats?.inventory]
+    [stats?.inventory],
   );
 
   const equippedItemIds = useMemo(
@@ -223,42 +219,8 @@ export default function StorePage() {
       stats?.equipped_avatar?.id,
       stats?.equipped_sound?.id,
       stats?.equipped_theme?.id,
-    ]
+    ],
   );
-
-  useEffect(() => {
-    setDisplayCoins(stats?.coins || 0);
-  }, [stats?.coins]);
-
-  async function loadStoreItems() {
-    try {
-      setIsLoading(true);
-      const response = await gamificationService.getStoreItems();
-      setItems(response.items || []);
-    } catch (error) {
-      console.error("Erro ao carregar loja:", error);
-      setMessage({
-        type: "error",
-        text: "Não foi possível carregar os itens da loja.",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  function syncEquippedState(nextStats: GameStatus) {
-    setStats(nextStats);
-  }
-
-  useEffect(() => {
-    loadStoreItems();
-  }, []);
-
-  useEffect(() => {
-    if (!message) return;
-    const timer = window.setTimeout(() => setMessage(null), 3000);
-    return () => window.clearTimeout(timer);
-  }, [message]);
 
   const tabs = useMemo(
     () => [
@@ -283,8 +245,72 @@ export default function StorePage() {
         icon: <Music4 className="h-4 w-4" />,
       },
     ],
-    []
+    [],
   );
+
+  function showToast(
+    variant: "success" | "error" | "info",
+    title: string,
+    description: string,
+  ) {
+    pushToast({
+      variant,
+      title,
+      description,
+      duration: variant === "error" ? 5000 : 4200,
+    });
+  }
+
+  function extractApiError(
+    error: unknown,
+    fallback: string,
+  ) {
+    const err = error as {
+      response?: {
+        data?: {
+          error?: string;
+          detail?: string;
+          message?: string;
+        };
+      };
+    };
+
+    return (
+      err?.response?.data?.error ||
+      err?.response?.data?.detail ||
+      err?.response?.data?.message ||
+      fallback
+    );
+  }
+
+  useEffect(() => {
+    setDisplayCoins(stats?.coins || 0);
+  }, [stats?.coins]);
+
+  async function loadStoreItems() {
+    try {
+      setIsLoading(true);
+      const response = await gamificationService.getStoreItems();
+      setItems(response.items || []);
+    } catch (error) {
+      console.error("Erro ao carregar loja:", error);
+      showToast(
+        "error",
+        "Falha ao carregar loja",
+        "Não foi possível carregar os itens da loja.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function syncEquippedState(nextStats: GameStatus) {
+    setStats(nextStats);
+  }
+
+  useEffect(() => {
+    loadStoreItems();
+  }, []);
 
   function animateCoinsToBalance(amount: number, onComplete?: () => void) {
     if (!claimButtonRef.current || !balanceCardRef.current) {
@@ -313,7 +339,7 @@ export default function StorePage() {
         scale: 0.9 + Math.random() * 0.35,
         duration: 0.8 + Math.random() * 0.25,
         delay: index * 0.035,
-      })
+      }),
     );
 
     setFlyingCoins(coins);
@@ -355,12 +381,13 @@ export default function StorePage() {
           await fetchStatus();
         }
       });
+      
     } catch (error) {
-      const err = error as { response?: { data?: { error?: string } } };
-      setMessage({
-        type: "error",
-        text: err.response?.data?.error || "Erro ao resgatar moedas.",
-      });
+      showToast(
+        "error",
+        "Falha ao resgatar moedas",
+        extractApiError(error, "Erro ao resgatar moedas."),
+      );
     } finally {
       setIsClaiming(false);
     }
@@ -368,15 +395,20 @@ export default function StorePage() {
 
   async function handlePurchase(item: StoreItem) {
     if (userLevel < item.required_level) {
-      setMessage({
-        type: "error",
-        text: `Você precisa do nível ${item.required_level}.`,
-      });
+      showToast(
+        "error",
+        "Nível insuficiente",
+        `Você precisa estar no nível ${item.required_level} para comprar este item.`,
+      );
       return;
     }
 
     if (userCoins < item.price) {
-      setMessage({ type: "error", text: "Moedas insuficientes." });
+      showToast(
+        "error",
+        "Moedas insuficientes",
+        "Você não possui moedas suficientes para comprar este item.",
+      );
       return;
     }
 
@@ -391,20 +423,23 @@ export default function StorePage() {
         await fetchStatus();
       }
 
-      await loadStoreItems();
+      setItems((prevItems) =>
+        prevItems.map((storeItem) =>
+          storeItem.id === item.id ? { ...storeItem, owned: true } : storeItem
+        )
+      );
 
-      setMessage({
-        type: "success",
-        text: data?.message || "Compra realizada com sucesso.",
-      });
+      showToast(
+        "success",
+        "Compra realizada",
+        data?.message || "Compra realizada com sucesso.",
+      );
     } catch (error) {
-      const err = error as { response?: { data?: { error?: string } } };
-      setMessage({
-        type: "error",
-        text:
-          err.response?.data?.error ||
-          "Ocorreu um erro ao realizar a compra.",
-      });
+      showToast(
+        "error",
+        "Falha na compra",
+        extractApiError(error, "Ocorreu um erro ao realizar a compra."),
+      );
     } finally {
       setPurchasingId(null);
     }
@@ -414,10 +449,11 @@ export default function StorePage() {
     const isOwned = item.owned || inventoryIds.has(item.id);
 
     if (!isOwned) {
-      setMessage({
-        type: "error",
-        text: "Compre este item antes de equipá-lo.",
-      });
+      showToast(
+        "error",
+        "Item não comprado",
+        "Compre este item antes de equipá-lo.",
+      );
       return;
     }
 
@@ -442,19 +478,20 @@ export default function StorePage() {
             ...storeItem,
             equipped: storeItem.id === item.id,
           };
-        })
+        }),
       );
 
-      setMessage({
-        type: "success",
-        text: data?.message || `Item "${item.name}" equipado com sucesso.`,
-      });
+      showToast(
+        "success",
+        "Item equipado",
+        data?.message || `Item "${item.name}" equipado com sucesso.`,
+      );
     } catch (error) {
-      const err = error as { response?: { data?: { error?: string } } };
-      setMessage({
-        type: "error",
-        text: err.response?.data?.error || "Erro ao equipar item.",
-      });
+      showToast(
+        "error",
+        "Falha ao equipar item",
+        extractApiError(error, "Erro ao equipar item."),
+      );
     } finally {
       setEquippingId(null);
     }
@@ -465,10 +502,11 @@ export default function StorePage() {
     const file = getSoundFileByKey(soundKey);
 
     if (!file) {
-      setMessage({
-        type: "error",
-        text: "Arquivo de prévia não encontrado para este som.",
-      });
+      showToast(
+        "error",
+        "Prévia indisponível",
+        "Arquivo de prévia não encontrado para este som.",
+      );
       return;
     }
 
@@ -479,20 +517,22 @@ export default function StorePage() {
       audio.currentTime = 0;
 
       audio.play().catch(() => {
-        setMessage({
-          type: "error",
-          text: "O navegador bloqueou a reprodução automática.",
-        });
+        showToast(
+          "error",
+          "Reprodução bloqueada",
+          "O navegador bloqueou a reprodução automática.",
+        );
         setPreviewingSoundId(null);
       });
 
       audio.onended = () => setPreviewingSoundId(null);
     } catch {
       setPreviewingSoundId(null);
-      setMessage({
-        type: "error",
-        text: "Não foi possível reproduzir a prévia.",
-      });
+      showToast(
+        "error",
+        "Erro na prévia",
+        "Não foi possível reproduzir a prévia.",
+      );
     }
   }
 
@@ -557,31 +597,6 @@ export default function StorePage() {
         ))}
       </AnimatePresence>
 
-      <AnimatePresence mode="wait">
-        {message && (
-          <motion.div
-            key={message.text}
-            initial={{ opacity: 0, y: -14, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.98 }}
-            transition={{ duration: 0.25 }}
-            className={cn(
-              "flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-sm",
-              message.type === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-rose-200 bg-rose-50 text-rose-700"
-            )}
-          >
-            {message.type === "success" ? (
-              <CheckCircle2 className="h-5 w-5" />
-            ) : (
-              <AlertCircle className="h-5 w-5" />
-            )}
-            {message.text}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <motion.div
         variants={fadeUp}
         className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
@@ -622,7 +637,7 @@ export default function StorePage() {
           whileHover={{ y: -2, scale: 1.01 }}
           className={cn(
             "relative flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 shadow-sm transition-all",
-            isBalanceHighlight && "shadow-md ring-4 ring-amber-200/50"
+            isBalanceHighlight && "shadow-md ring-4 ring-amber-200/50",
           )}
         >
           <motion.div
@@ -760,7 +775,7 @@ export default function StorePage() {
                 whileTap={!isClaiming ? { scale: 0.97 } : {}}
                 className={cn(
                   "group flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-blue-700 shadow-sm transition-all hover:bg-blue-50 hover:shadow sm:w-auto",
-                  isClaiming ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                  isClaiming ? "cursor-not-allowed opacity-50" : "cursor-pointer",
                 )}
               >
                 <motion.div
@@ -795,7 +810,7 @@ export default function StorePage() {
                 "relative flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition",
                 active
                   ? "bg-blue-600 text-white shadow-sm"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900",
               )}
             >
               {active && (
@@ -861,7 +876,7 @@ export default function StorePage() {
         <div className="space-y-10">
           {SECTIONS.map((section) => {
             const sectionItems = items.filter(
-              (item) => item.category === section.id
+              (item) => item.category === section.id,
             );
 
             if (filter !== "all" && filter !== section.id) return null;
@@ -937,7 +952,7 @@ export default function StorePage() {
                           isOwned
                             ? "border-violet-300 ring-2 ring-violet-50"
                             : "border-slate-200 hover:border-violet-200",
-                          isLocked ? "opacity-70 grayscale-[0.4]" : ""
+                          isLocked ? "opacity-70 grayscale-[0.4]" : "",
                         )}
                       >
                         {isEquipped && (
@@ -972,7 +987,7 @@ export default function StorePage() {
                               "flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-100 shadow-sm",
                               item.category === "avatar"
                                 ? "bg-slate-50"
-                                : "bg-violet-50 text-blue-600"
+                                : "bg-violet-50 text-blue-600",
                             )}
                           >
                             {renderItemIcon(item)}
@@ -983,7 +998,7 @@ export default function StorePage() {
                               whileHover={{ scale: 1.05 }}
                               className={cn(
                                 "rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider",
-                                rarityStyle
+                                rarityStyle,
                               )}
                             >
                               {raritySafe}
@@ -996,7 +1011,7 @@ export default function StorePage() {
                                   "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm",
                                   canAfford
                                     ? "border border-amber-200 bg-amber-50 text-amber-700"
-                                    : "border border-slate-200 bg-slate-50 text-slate-500"
+                                    : "border border-slate-200 bg-slate-50 text-slate-500",
                                 )}
                               >
                                 <Coins className="h-3.5 w-3.5" />
@@ -1044,7 +1059,7 @@ export default function StorePage() {
                                     : "cursor-pointer",
                                   isEquipped
                                     ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                                    : "bg-blue-600 text-white hover:bg-blue-700"
+                                    : "bg-blue-600 text-white hover:bg-blue-700",
                                 )}
                               >
                                 {isEquipped ? (
@@ -1074,7 +1089,7 @@ export default function StorePage() {
                                   : "cursor-pointer",
                                 isEquipped
                                   ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                                  : "bg-blue-600 text-white hover:bg-blue-700"
+                                  : "bg-blue-600 text-white hover:bg-blue-700",
                               )}
                             >
                               {isEquipped ? (
@@ -1103,7 +1118,7 @@ export default function StorePage() {
                                   : "cursor-pointer",
                                 isEquipped
                                   ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                                  : "bg-blue-600 text-white hover:bg-blue-700"
+                                  : "bg-blue-600 text-white hover:bg-blue-700",
                               )}
                             >
                               {isEquipped ? (
@@ -1151,7 +1166,7 @@ export default function StorePage() {
                               "flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold transition-all",
                               canAfford && !isPurchasing
                                 ? "cursor-pointer bg-blue-600 text-white shadow-sm hover:bg-blue-700"
-                                : "cursor-not-allowed bg-slate-100 text-slate-400"
+                                : "cursor-not-allowed bg-slate-100 text-slate-400",
                             )}
                           >
                             <ShoppingCart className="h-4 w-4" />

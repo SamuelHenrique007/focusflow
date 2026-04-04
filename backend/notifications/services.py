@@ -172,11 +172,14 @@ def sync_gamification_notifications(user):
     local_now = timezone.localtime(now)
     now_iso = now.isoformat()
     _, end = get_today_bounds()
+    
+    # Geramos a string da data de hoje para os eventos diários
+    today_str = local_now.date().isoformat()
 
     keys_that_should_exist = set()
 
     if profile.daily_goal_progress >= 100:
-        key = "daily-goal-completed"
+        key = f"daily-goal-completed-{today_str}"
         keys_that_should_exist.add(key)
 
         create_or_update_unique_notification(
@@ -191,7 +194,8 @@ def sync_gamification_notifications(user):
         )
 
     if profile.pending_focus_minutes > 0:
-        key = "focus-coins-ready"
+        # Usa a quantidade de minutos na chave para avisar caso o valor mude
+        key = f"focus-coins-{profile.pending_focus_minutes}"
         keys_that_should_exist.add(key)
 
         create_or_update_unique_notification(
@@ -217,7 +221,7 @@ def sync_gamification_notifications(user):
     for chest_key, chest_label in chests:
         ready_field = f"{chest_key}_chest_ready"
         if hasattr(profile, ready_field) and getattr(profile, ready_field):
-            key = f"chest-{chest_key}"
+            key = f"chest-{chest_key}-{today_str}"
             keys_that_should_exist.add(key)
 
             create_or_update_unique_notification(
@@ -232,7 +236,7 @@ def sync_gamification_notifications(user):
             )
 
     if profile.daily_goal_progress == 0 and local_now.hour >= 14:
-        key = "no-focus-today"
+        key = f"no-focus-today-{today_str}"
         keys_that_should_exist.add(key)
 
         create_or_update_unique_notification(
@@ -247,7 +251,7 @@ def sync_gamification_notifications(user):
         )
 
     if 50 <= profile.daily_goal_progress < 100:
-        key = "good-progress-today"
+        key = f"good-progress-today-{today_str}"
         keys_that_should_exist.add(key)
 
         create_or_update_unique_notification(
@@ -262,7 +266,7 @@ def sync_gamification_notifications(user):
         )
 
     if profile.streak > 0 and profile.daily_goal_progress == 0 and local_now.hour >= 18:
-        key = "streak-warning"
+        key = f"streak-warning-{today_str}"
         keys_that_should_exist.add(key)
 
         create_or_update_unique_notification(
@@ -280,7 +284,7 @@ def sync_gamification_notifications(user):
         )
 
     if profile.streak > 0 and profile.daily_goal_progress > 0:
-        key = "streak-congrats"
+        key = f"streak-congrats-{today_str}"
         keys_that_should_exist.add(key)
 
         create_or_update_unique_notification(
@@ -294,14 +298,15 @@ def sync_gamification_notifications(user):
             expires_at=end + timedelta(days=2),
         )
 
+    # Prefixos atualizados para refletir o novo padrão de chaves
     managed_prefixes = (
-        "daily-goal-completed",
-        "focus-coins-ready",
+        "daily-goal-completed-",
+        "focus-coins-",
         "chest-",
-        "no-focus-today",
-        "good-progress-today",
-        "streak-warning",
-        "streak-congrats",
+        "no-focus-today-",
+        "good-progress-today-",
+        "streak-warning-",
+        "streak-congrats-",
     )
 
     managed_notifications = active_notifications_queryset(user).filter(

@@ -10,7 +10,6 @@ import {
   Zap,
   Shield,
   CheckCircle2,
-  AlertCircle,
   Coins,
 } from "lucide-react";
 
@@ -22,6 +21,7 @@ import {
   type ChallengeStatus,
 } from "@/services/gamificationService";
 import { useGameStore } from "@/store/useGameStore";
+import { useToastStore } from "@/store/useToastStore";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 24 },
@@ -97,22 +97,45 @@ function chestRewardTone(chest: ChestStatus) {
 
 export default function ConquistasPage() {
   const { stats, fetchStatus } = useGameStore();
+  const pushToast = useToastStore((state) => state.pushToast);
 
   const [claimingChest, setClaimingChest] = useState<string | null>(null);
-  const [message, setMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+
+  function showToast(
+    variant: "success" | "error" | "info",
+    title: string,
+    description: string,
+  ) {
+    pushToast({
+      variant,
+      title,
+      description,
+      duration: variant === "error" ? 5000 : 4200,
+    });
+  }
+
+  function extractApiError(error: unknown, fallback: string) {
+    const err = error as {
+      response?: {
+        data?: {
+          error?: string;
+          detail?: string;
+          message?: string;
+        };
+      };
+    };
+
+    return (
+      err?.response?.data?.error ||
+      err?.response?.data?.detail ||
+      err?.response?.data?.message ||
+      fallback
+    );
+  }
 
   useEffect(() => {
     fetchStatus();
   }, [fetchStatus]);
-
-  useEffect(() => {
-    if (!message) return;
-    const timer = setTimeout(() => setMessage(null), 3500);
-    return () => clearTimeout(timer);
-  }, [message]);
 
   const progressPercentage = useMemo(() => {
     const current = Array.isArray(stats?.chests)
@@ -133,19 +156,19 @@ export default function ConquistasPage() {
       setClaimingChest(chestKey);
       const response = await gamificationService.claimChest(chestKey);
 
-      setMessage({
-        type: "success",
-        text: response.message || "Baú resgatado com sucesso.",
-      });
+      showToast(
+        "success",
+        "Baú resgatado",
+        response.message || "Baú resgatado com sucesso.",
+      );
 
       await fetchStatus();
     } catch (error) {
-      const err = error as { response?: { data?: { error?: string } } };
-
-      setMessage({
-        type: "error",
-        text: err.response?.data?.error || "Não foi possível resgatar o baú.",
-      });
+      showToast(
+        "error",
+        "Falha ao resgatar baú",
+        extractApiError(error, "Não foi possível resgatar o baú."),
+      );
     } finally {
       setClaimingChest(null);
     }
@@ -158,28 +181,6 @@ export default function ConquistasPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.35 }}
     >
-      {message && (
-        <motion.div
-          initial={{ opacity: 0, y: -12, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.25 }}
-          className={cn(
-            "flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-sm",
-            message.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-rose-200 bg-rose-50 text-rose-700"
-          )}
-        >
-          {message.type === "success" ? (
-            <CheckCircle2 className="h-5 w-5" />
-          ) : (
-            <AlertCircle className="h-5 w-5" />
-          )}
-          {message.text}
-        </motion.div>
-      )}
-
       <motion.div variants={fadeUp} initial="hidden" animate="show">
         <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
           <motion.div
@@ -218,7 +219,6 @@ export default function ConquistasPage() {
           </div>
         </div>
 
-        {/* Desktop / tablet */}
         <div className="hidden sm:block">
           <div className="relative px-6 pt-2">
             <div className="absolute left-6 right-6 top-7 h-1.5 rounded-full bg-slate-100" />
@@ -274,7 +274,7 @@ export default function ConquistasPage() {
                         whileHover={{ y: -4, scale: 1.06 }}
                         className={cn(
                           "z-10 grid h-12 w-12 place-items-center rounded-2xl border-4 border-white shadow-md transition-all duration-300",
-                          chestButtonClass(chest)
+                          chestButtonClass(chest),
                         )}
                       >
                         {isLocked ? (
@@ -312,7 +312,7 @@ export default function ConquistasPage() {
                           "mt-1 text-[11px] font-semibold uppercase leading-snug tracking-tight",
                           isReady && !isClaimed
                             ? chestRewardTone(chest)
-                            : "text-slate-400"
+                            : "text-slate-400",
                         )}
                       >
                         {chest.threshold_percent}% · {chest.reward_label}
@@ -325,7 +325,7 @@ export default function ConquistasPage() {
                             disabled={claimingChest === chest.key}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.94 }}
-                            className="cursor-pointer disabled:cursor-not-allowed whitespace-nowrap rounded-full bg-amber-500 px-4 py-2 text-[11px] font-black text-white shadow-lg shadow-amber-200 transition hover:bg-amber-600 disabled:opacity-50"
+                            className="cursor-pointer whitespace-nowrap rounded-full bg-amber-500 px-4 py-2 text-[11px] font-black text-white shadow-lg shadow-amber-200 transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {claimingChest === chest.key ? "RESGATANDO..." : "RESGATAR"}
                           </motion.button>
@@ -355,7 +355,6 @@ export default function ConquistasPage() {
           </div>
         </div>
 
-        {/* Mobile */}
         <div className="space-y-4 sm:hidden">
           <div>
             <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-400">
@@ -411,14 +410,10 @@ export default function ConquistasPage() {
                       }
                       className={cn(
                         "grid h-12 w-12 shrink-0 place-items-center rounded-2xl border-4 border-white shadow-md transition-all duration-300",
-                        chestButtonClass(chest)
+                        chestButtonClass(chest),
                       )}
                     >
-                      {isLocked ? (
-                        <Lock className="h-5 w-5" />
-                      ) : (
-                        <Gift className="h-6 w-6" />
-                      )}
+                      {isLocked ? <Lock className="h-5 w-5" /> : <Gift className="h-6 w-6" />}
                     </motion.div>
 
                     <div className="min-w-0 flex-1">
@@ -431,7 +426,7 @@ export default function ConquistasPage() {
                           "mt-1 text-[11px] font-semibold uppercase leading-snug",
                           isReady && !isClaimed
                             ? chestRewardTone(chest)
-                            : "text-slate-400"
+                            : "text-slate-400",
                         )}
                       >
                         {chest.threshold_percent}% · {chest.reward_label}
@@ -444,7 +439,7 @@ export default function ConquistasPage() {
                             disabled={claimingChest === chest.key}
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.96 }}
-                            className="cursor-pointer disabled:cursor-not-allowed whitespace-nowrap rounded-full bg-amber-500 px-4 py-2 text-[11px] font-black text-white shadow-lg shadow-amber-200 transition hover:bg-amber-600 disabled:opacity-50"
+                            className="cursor-pointer whitespace-nowrap rounded-full bg-amber-500 px-4 py-2 text-[11px] font-black text-white shadow-lg shadow-amber-200 transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {claimingChest === chest.key ? "RESGATANDO..." : "RESGATAR"}
                           </motion.button>
@@ -510,8 +505,8 @@ export default function ConquistasPage() {
                 challenge.claimed
                   ? "border-emerald-100 bg-emerald-50/60"
                   : challenge.completed
-                  ? "border-violet-200 bg-violet-50/60"
-                  : "border-slate-200 bg-white"
+                    ? "border-violet-200 bg-violet-50/60"
+                    : "border-slate-200 bg-white",
               )}
             >
               <div className="mb-4 flex items-start justify-between">
@@ -599,7 +594,7 @@ export default function ConquistasPage() {
                   "relative flex flex-col gap-4 rounded-3xl border p-6 transition-all hover:shadow-lg",
                   badge.unlocked
                     ? "border-slate-100 bg-white"
-                    : "border-slate-100 bg-slate-50/60 opacity-80 grayscale"
+                    : "border-slate-100 bg-slate-50/60 opacity-80 grayscale",
                 )}
               >
                 <div className="flex items-start justify-between">
@@ -608,7 +603,7 @@ export default function ConquistasPage() {
                     className={cn(
                       "grid h-12 w-12 place-items-center rounded-2xl shadow-sm",
                       color.bg,
-                      color.text
+                      color.text,
                     )}
                   >
                     {badgeIcon(badge.icon)}

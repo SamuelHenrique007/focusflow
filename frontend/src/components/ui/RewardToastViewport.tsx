@@ -1,12 +1,29 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Award, CheckCircle2, Coins, Sparkles, TrendingUp, X } from "lucide-react";
+import {
+  Award,
+  CheckCircle2,
+  Coins,
+  Sparkles,
+  TrendingUp,
+  X,
+} from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { useToastStore, type ToastItem } from "@/store/useToastStore";
 
-function ToastIcon({ title }: { title: string }) {
+function ToastIcon({
+  title,
+  variant,
+}: {
+  title: string;
+  variant: ToastItem["variant"];
+}) {
   const lowerTitle = title.toLowerCase();
+
+  if (variant === "error") {
+    return <X className="h-5 w-5" />;
+  }
 
   if (lowerTitle.includes("moeda")) {
     return <Coins className="h-5 w-5" />;
@@ -21,6 +38,10 @@ function ToastIcon({ title }: { title: string }) {
   }
 
   if (lowerTitle.includes("desafio")) {
+    return <CheckCircle2 className="h-5 w-5" />;
+  }
+
+  if (variant === "success") {
     return <CheckCircle2 className="h-5 w-5" />;
   }
 
@@ -74,20 +95,26 @@ function ToastCard({ toast }: { toast: ToastItem }) {
       )}
     >
       <div className="flex items-start gap-3 p-4 pr-12">
-        {/* Efeito de Pop no ícone */}
-        <motion.div 
+        <motion.div
           initial={{ scale: 0, rotate: -30 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: "spring", bounce: 0.5, delay: 0.1 }}
-          className={cn("mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl", styles.icon)}
+          className={cn(
+            "mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-2xl",
+            styles.icon,
+          )}
         >
-          <ToastIcon title={toast.title} />
+          <ToastIcon title={toast.title} variant={toast.variant} />
         </motion.div>
 
         <div className="min-w-0 flex-1">
-          <p className={cn("text-sm font-semibold", styles.title)}>{toast.title}</p>
+          <p className={cn("text-sm font-semibold", styles.title)}>
+            {toast.title}
+          </p>
           {toast.description ? (
-            <p className={cn("mt-1 text-sm", styles.description)}>{toast.description}</p>
+            <p className={cn("mt-1 text-sm", styles.description)}>
+              {toast.description}
+            </p>
           ) : null}
         </div>
       </div>
@@ -104,12 +131,11 @@ function ToastCard({ toast }: { toast: ToastItem }) {
         <X className="h-4 w-4" />
       </button>
 
-      {/* Barra de progresso animada baseada na duração do Toast */}
-      <motion.div 
+      <motion.div
         initial={{ width: "100%" }}
         animate={{ width: "0%" }}
         transition={{ duration: duration / 1000, ease: "linear" }}
-        className={cn("h-1 absolute bottom-0 left-0", styles.bar)} 
+        className={cn("absolute bottom-0 left-0 h-1", styles.bar)}
       />
     </div>
   );
@@ -124,7 +150,7 @@ export default function RewardToastViewport() {
         {toasts.map((toast) => (
           <motion.div
             key={toast.id}
-            layout // Faz com que os toasts remanescentes deslizem suavemente ao invés de pular
+            layout
             initial={{ opacity: 0, x: 50, scale: 0.9 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
