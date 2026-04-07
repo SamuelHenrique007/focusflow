@@ -17,6 +17,7 @@ from .services import (
     apply_level_up,
     chest_required_minutes,
     ensure_single_equipped_item,
+    finalize_gamification_notifications,
     get_profile,
     grant_focus_progress,
     refresh_daily_progress,
@@ -165,6 +166,7 @@ class PurchaseStoreItemView(APIView):
         )
 
         sync_profile_progress(profile)
+        finalize_gamification_notifications(profile)
 
         return Response(
             {
@@ -361,6 +363,7 @@ class AddProgressView(APIView):
         if completed_task:
             reward_completed_task(profile, save=False)
             profile.save()
+            finalize_gamification_notifications(profile)
 
         return Response(
             {
@@ -426,10 +429,11 @@ class ClaimChestView(APIView):
         profile.current_xp += chest["xp_reward"]
         setattr(profile, claimed_field, True)
 
-        apply_level_up(profile)
+        gained_levels = apply_level_up(profile)
         profile.save()
 
         sync_profile_progress(profile)
+        finalize_gamification_notifications(profile, gained_levels)
 
         reward_parts = []
         if chest["coins_reward"] > 0:

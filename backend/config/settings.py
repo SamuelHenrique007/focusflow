@@ -15,6 +15,7 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -24,6 +25,7 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'corsheaders',
+    'channels',
 
     'accounts',
     'tasks',
@@ -62,13 +64,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+ASGI_APPLICATION = 'config.asgi.application'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -120,9 +116,15 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = "accounts.User"
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    }
+}
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-FRONTEND_URL = "http://localhost:8080"
+FRONTEND_URL = " http://localhost:5173"
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
@@ -132,3 +134,15 @@ EMAIL_HOST_USER = "equipe.focusflow@gmail.com"
 EMAIL_HOST_PASSWORD = "cvqm slwu uztp kiit"
 DEFAULT_FROM_EMAIL = "FocusFlow <equipe.focusflow@gmail.com>"
 FRONTEND_URL = "http://localhost:5173"
+
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'focusflow_db',
+        'USER': 'focusflow_user',
+        'PASSWORD': '123456',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}

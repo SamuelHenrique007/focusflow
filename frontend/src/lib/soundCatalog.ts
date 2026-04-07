@@ -1,4 +1,5 @@
 export type AppSoundKey =
+  | "aurora_nebulosa"
   | "alerta_supremo"
   | "aurora_digital"
   | "despertar_curto"
@@ -23,6 +24,12 @@ export type SoundCatalogItem = {
 };
 
 export const SOUND_CATALOG: SoundCatalogItem[] = [
+  {
+    key: "aurora_nebulosa",
+    label: "Aurora Nebulosa",
+    file: "/sounds/aurora-nebulosa.mp3",
+    category: "sound",
+  },
   {
     key: "alerta_supremo",
     label: "Alerta Supremo",

@@ -19,12 +19,14 @@ import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import NotificationSocketManager from "@/components/NotificationSocketManager";
 
 export default function App() {
   return (
     <>
       <ScrollToTop />
       <RewardToastViewport />
+      <NotificationSocketManager />
 
       <Routes>
         <Route path="/" element={<LandingPage />} />

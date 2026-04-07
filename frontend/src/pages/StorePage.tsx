@@ -65,6 +65,7 @@ const SECTIONS: Array<{
 const SOUND_FILES: Record<string, string> = {
   alerta_supremo: "/sounds/alerta-supremo.mp3",
   aurora_digital: "/sounds/aurora-digital.mp3",
+  aurora_nebulosa: "/sounds/aurora-nebulosa.mp3",
   despertar_curto: "/sounds/despertar-curto.mp3",
   despertar_neon: "/sounds/despertar-neon.mp3",
   digital_basico: "/sounds/digital-basico.mp3",

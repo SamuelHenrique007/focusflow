@@ -165,11 +165,31 @@ def apply_level_up(profile):
     """
     Aplica evolução de nível em cascata, se o XP atual ultrapassar
     o XP necessário para o próximo nível.
+
+    Retorna a lista de níveis alcançados nesta atualização.
     """
+    gained_levels = []
+
     while profile.current_xp >= profile.xp_to_next_level and profile.xp_to_next_level > 0:
         profile.current_xp -= profile.xp_to_next_level
         profile.level += 1
         profile.xp_to_next_level = max(100, profile.xp_to_next_level + 50)
+        gained_levels.append(profile.level)
+
+    return gained_levels
+
+
+def finalize_gamification_notifications(profile, gained_levels=None):
+    """
+    Centraliza a sincronização das notificações de gamificação
+    e dispara aviso de subida de nível quando necessário.
+    """
+    from notifications.services import notify_level_up, sync_user_notifications
+
+    for level in gained_levels or []:
+        notify_level_up(profile.user, level)
+
+    sync_user_notifications(profile.user)
 
 
 def chest_required_minutes(goal_minutes, percent):
@@ -369,10 +389,11 @@ def grant_daily_challenge_rewards(profile, save=True):
         state["date"] = get_local_today().isoformat()
         state["claimed"] = sorted(claimed_keys)
         profile.daily_challenge_state = state
-        apply_level_up(profile)
+        gained_levels = apply_level_up(profile)
 
         if save:
             profile.save()
+            finalize_gamification_notifications(profile, gained_levels)
     elif save and profile.daily_challenge_state != state:
         profile.daily_challenge_state = state
         profile.save(update_fields=["daily_challenge_state"])
@@ -403,11 +424,12 @@ def grant_focus_progress(profile, focus_minutes, completed_pomodoro=False, save=
         extra_active_date=get_local_today() if focus_minutes > 0 else None,
     )
 
-    apply_level_up(profile)
+    gained_levels = apply_level_up(profile)
 
     if save:
         profile.save()
         grant_daily_challenge_rewards(profile)
+        finalize_gamification_notifications(profile, gained_levels)
 
     return xp_gained
 
@@ -421,11 +443,12 @@ def reward_completed_task(profile, xp_reward=15, coins_reward=10, save=True):
     profile.daily_goal_progress = calculate_daily_goal_progress(profile)
     profile.streak = calculate_focus_streak(profile.user)
 
-    apply_level_up(profile)
+    gained_levels = apply_level_up(profile)
 
     if save:
         profile.save()
         grant_daily_challenge_rewards(profile)
+        finalize_gamification_notifications(profile, gained_levels)
 
     return {
         "xp_reward": xp_reward,

@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { motion } from "framer-motion"; // <-- Importação adicionada
+import { motion } from "framer-motion";
 import {
   LayoutDashboard,
   CheckSquare,
@@ -30,13 +30,41 @@ export type NavKey =
   | "settings"
   | "logout";
 
-const MAIN_NAV: Array<{ key: NavKey; label: string; icon: React.ReactNode }> = [
-  { key: "dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
-  { key: "tasks", label: "Tarefas", icon: <CheckSquare className="h-4 w-4" /> },
-  { key: "pomodoro", label: "Pomodoro", icon: <Timer className="h-4 w-4" /> },
-  { key: "stats", label: "Estatísticas", icon: <BarChart3 className="h-4 w-4" /> },
-  { key: "achievements", label: "Desafios e conquistas", icon: <Trophy className="h-4 w-4" /> },
-  { key: "store", label: "Loja", icon: <Store className="h-4 w-4" /> },
+const MAIN_NAV: Array<{
+  key: NavKey;
+  label: string;
+  icon: React.ReactNode;
+}> = [
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    icon: <LayoutDashboard className="h-4 w-4" />,
+  },
+  {
+    key: "tasks",
+    label: "Tarefas",
+    icon: <CheckSquare className="h-4 w-4" />,
+  },
+  {
+    key: "pomodoro",
+    label: "Pomodoro",
+    icon: <Timer className="h-4 w-4" />,
+  },
+  {
+    key: "stats",
+    label: "Estatísticas",
+    icon: <BarChart3 className="h-4 w-4" />,
+  },
+  {
+    key: "achievements",
+    label: "Desafios e conquistas",
+    icon: <Trophy className="h-4 w-4" />,
+  },
+  {
+    key: "store",
+    label: "Loja",
+    icon: <Store className="h-4 w-4" />,
+  },
 ];
 
 const ROUTES: Record<Exclude<NavKey, "logout">, string> = {
@@ -50,22 +78,20 @@ const ROUTES: Record<Exclude<NavKey, "logout">, string> = {
   settings: "/settings",
 };
 
-// --- VARIÁVEIS DE ANIMAÇÃO ---
 const containerVariants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.05, // Atraso entre a entrada de cada item
+      staggerChildren: 0.05,
     },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, x: -20 }, // Começa invisível e levemente para a esquerda
-  show: { opacity: 1, x: 0 },     // Termina visível e na posição original
+  hidden: { opacity: 0, x: -20 },
+  show: { opacity: 1, x: 0 },
 };
-// ------------------------------
 
 function getFirstAndSecondName(name?: string) {
   if (!name?.trim()) return "Usuário";
@@ -117,7 +143,7 @@ function SidebarItem({
   );
 
   const classes = cn(
-    "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+    "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
     active
       ? "bg-blue-50 text-blue-700"
       : danger
@@ -128,8 +154,8 @@ function SidebarItem({
   return (
     <motion.div
       variants={itemVariants}
-      whileHover={{ scale: 1.02, x: 4 }} // Efeito de hover: cresce um pouco e move para direita
-      whileTap={{ scale: 0.98 }}         // Efeito de clique: "afunda" o botão
+      whileHover={{ scale: 1.02, x: 4 }}
+      whileTap={{ scale: 0.98 }}
       className="w-full"
     >
       {to ? (
@@ -183,15 +209,15 @@ function UserGamerCard() {
   const userName = getFirstAndSecondName(user?.name);
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4, duration: 0.4 }} // Entra logo após os itens do menu
-      className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-xs hover:shadow-sm transition-shadow cursor-pointer"
+      transition={{ delay: 0.4, duration: 0.4 }}
+      className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-xs transition-shadow hover:shadow-sm"
     >
       <UserAvatar size="sm" />
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-sm leading-tight font-semibold text-slate-900">
+        <span className="truncate text-sm font-semibold leading-tight text-slate-900">
           {userName}
         </span>
         <span className="text-[11px] font-medium text-blue-600">
@@ -212,37 +238,19 @@ export function SidebarNav({
   const hasUnreadNotifications = useNotificationsStore(
     (state) => state.hasUnreadNotifications
   );
+  const unreadCount = useNotificationsStore((state) => state.unreadCount);
+
   const fetchUnreadCount = useNotificationsStore(
     (state) => state.fetchUnreadCount
   );
 
   useEffect(() => {
     void fetchUnreadCount();
-
-    const handleWindowFocus = () => {
-      void fetchUnreadCount();
-    };
-
-    const interval = window.setInterval(() => {
-      void fetchUnreadCount();
-    }, 5000);
-
-    window.addEventListener("focus", handleWindowFocus);
-
-    return () => {
-      window.clearInterval(interval);
-      window.removeEventListener("focus", handleWindowFocus);
-    };
   }, [fetchUnreadCount]);
 
   return (
     <div className="flex h-full flex-col justify-between">
-      {/* Container Pai gerenciando a cascata de animações */}
-      <motion.div 
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-      >
+      <motion.div variants={containerVariants} initial="hidden" animate="show">
         <nav className="space-y-0.5">
           {MAIN_NAV.map((item) => (
             <SidebarItem
@@ -257,14 +265,21 @@ export function SidebarNav({
         </nav>
 
         <div className="mt-4 space-y-0.5 border-t border-slate-200 pt-3">
-          <SidebarItem
-            active={activeKey === "notifications"}
-            icon={<Bell className="h-4 w-4" />}
-            label="Notificações"
-            showIndicator={hasUnreadNotifications}
-            to={ROUTES.notifications}
-            onClick={onSelect ? () => onSelect("notifications") : undefined}
-          />
+          <div className="relative">
+            <SidebarItem
+              active={activeKey === "notifications"}
+              icon={<Bell className="h-4 w-4" />}
+              label="Notificações"
+              showIndicator={Boolean(hasUnreadNotifications)}
+              to={ROUTES.notifications}
+              onClick={onSelect ? () => onSelect("notifications") : undefined}
+            />
+            {unreadCount > 0 ? (
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            ) : null}
+          </div>
 
           <SidebarItem
             active={activeKey === "settings"}

@@ -19,11 +19,19 @@ import {
 
 import { notificationsService } from "@/services/notifications";
 import type { AppNotification, NotificationType } from "@/types/notification";
+import { useNotificationsStore } from "@/store/useNotificationsStore";
 
 type FilterKey = "all" | "unread" | "high";
+type NotificationEventSource = "local" | "socket";
 
-function emitNotificationsChanged() {
-  window.dispatchEvent(new Event("notifications:changed"));
+const NOTIFICATIONS_EVENT_NAME = "notifications:changed";
+
+function emitNotificationsChanged(source: NotificationEventSource = "local") {
+  window.dispatchEvent(
+    new CustomEvent(NOTIFICATIONS_EVENT_NAME, {
+      detail: { source },
+    })
+  );
 }
 
 function NotificationIcon({ type }: { type: NotificationType }) {
@@ -51,7 +59,7 @@ function NotificationIcon({ type }: { type: NotificationType }) {
     case "task_completed":
       return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
     default:
-      return <Bell className="h-5 w-5 text-(--ff-primary)" />;
+      return <Bell className="h-5 w-5 text-[var(--ff-primary)]" />;
   }
 }
 
@@ -123,16 +131,15 @@ function FilterButton({
   );
 }
 
-// Variantes de animação para os cards devidamente tipadas
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20, scale: 0.95 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
+  visible: {
+    opacity: 1,
+    y: 0,
     scale: 1,
-    transition: { type: "spring", stiffness: 300, damping: 24 }
+    transition: { type: "spring", stiffness: 300, damping: 24 },
   },
-  exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } }
+  exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } },
 };
 
 function NotificationCard({
@@ -155,12 +162,12 @@ function NotificationCard({
       exit="exit"
       className={`rounded-3xl border p-5 shadow-sm transition-colors duration-300 ${
         notification.isRead
-          ? "border-(--ff-border) bg-(--ff-surface) opacity-70"
-          : "border-(--ff-primary-soft) bg-(--ff-surface)"
+          ? "border-[var(--ff-border)] bg-[var(--ff-surface)] opacity-70"
+          : "border-[var(--ff-primary-soft)] bg-[var(--ff-surface)]"
       }`}
     >
       <div className="flex items-start gap-3">
-        <div className="relative grid h-11 w-11 place-items-center rounded-2xl bg-(--ff-surface-soft)">
+        <div className="relative grid h-11 w-11 place-items-center rounded-2xl bg-[var(--ff-surface-soft)]">
           <NotificationIcon type={notification.type} />
           <AnimatePresence>
             {!notification.isRead && (
@@ -177,11 +184,11 @@ function NotificationCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <h3 className="font-semibold text-(--ff-text)">
+              <h3 className="font-semibold text-[var(--ff-text)]">
                 {notification.title}
               </h3>
 
-              <p className="mt-1 text-sm text-(--ff-text-soft)">
+              <p className="mt-1 text-sm text-[var(--ff-text-soft)]">
                 {notification.description}
               </p>
             </div>
@@ -190,7 +197,7 @@ function NotificationCard({
           </div>
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-xs font-medium text-(--ff-text-soft)">
+            <span className="text-xs font-medium text-[var(--ff-text-soft)]">
               {formatNotificationDate(notification.createdAt)}
             </span>
 
@@ -201,7 +208,7 @@ function NotificationCard({
                   whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => onMarkAsRead(notification.id)}
-                  className="cursor-pointer inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
                 >
                   <MailOpen className="h-4 w-4" />
                   Marcar como lida
@@ -212,7 +219,7 @@ function NotificationCard({
                   whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => onMarkAsUnread(notification.id)}
-                  className="cursor-pointer inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100"
                 >
                   <Bell className="h-4 w-4" />
                   Marcar como não lida
@@ -224,7 +231,7 @@ function NotificationCard({
                 whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={() => onDelete(notification.id)}
-                className="cursor-pointer inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-100"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-100"
               >
                 <Trash2 className="h-4 w-4" />
                 Excluir
@@ -237,15 +244,14 @@ function NotificationCard({
   );
 }
 
-// Variantes para o contêiner da lista (faz o efeito cascata) tipadas
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08 // Tempo entre a animação de cada item
-    }
-  }
+      staggerChildren: 0.08,
+    },
+  },
 };
 
 export default function NotificationsPage() {
@@ -253,28 +259,56 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
 
-  async function loadNotifications() {
+  const setUnreadCount = useNotificationsStore((state) => state.setUnreadCount);
+  const fetchUnreadCount = useNotificationsStore(
+    (state) => state.fetchUnreadCount
+  );
+
+  async function loadNotifications(options?: { silent?: boolean }) {
+    const silent = options?.silent ?? false;
+
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
+
       const data = await notificationsService.list();
       setNotifications(data.items ?? []);
-      emitNotificationsChanged();
     } catch (error) {
       console.error("Erro ao carregar notificações", error);
       setNotifications([]);
-      emitNotificationsChanged();
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }
 
   useEffect(() => {
     void loadNotifications();
+
+    const handleSocketEvent = (event: Event) => {
+      const customEvent = event as CustomEvent<{ source?: NotificationEventSource }>;
+
+      if (customEvent.detail?.source === "socket") {
+        void loadNotifications({ silent: true });
+      }
+    };
+
+    window.addEventListener(NOTIFICATIONS_EVENT_NAME, handleSocketEvent);
+
+    return () => {
+      window.removeEventListener(NOTIFICATIONS_EVENT_NAME, handleSocketEvent);
+    };
   }, []);
 
   const unreadCount = useMemo(() => {
     return notifications.filter((item) => !item.isRead).length;
   }, [notifications]);
+
+  useEffect(() => {
+    setUnreadCount(unreadCount);
+  }, [unreadCount, setUnreadCount]);
 
   const visibleNotifications = useMemo(() => {
     if (activeFilter === "unread") {
@@ -289,6 +323,7 @@ export default function NotificationsPage() {
   }, [notifications, activeFilter]);
 
   async function handleMarkAsRead(id: string | number) {
+    const previousNotifications = notifications;
     const now = new Date().toISOString();
 
     setNotifications((prev) =>
@@ -296,44 +331,41 @@ export default function NotificationsPage() {
         item.id === id ? { ...item, isRead: true, readAt: now } : item
       )
     );
-    emitNotificationsChanged();
+    emitNotificationsChanged("local");
 
     if (typeof id !== "number") return;
 
     try {
       await notificationsService.markAsRead(id);
+      await fetchUnreadCount();
     } catch (error) {
       console.error("Erro ao marcar notificação como lida", error);
-      setNotifications((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, isRead: false, readAt: null } : item
-        )
-      );
-      emitNotificationsChanged();
+      setNotifications(previousNotifications);
+      emitNotificationsChanged("local");
+      await fetchUnreadCount();
     }
   }
 
   async function handleMarkAsUnread(id: string | number) {
+    const previousNotifications = notifications;
+
     setNotifications((prev) =>
       prev.map((item) =>
         item.id === id ? { ...item, isRead: false, readAt: null } : item
       )
     );
-    emitNotificationsChanged();
+    emitNotificationsChanged("local");
 
     if (typeof id !== "number") return;
 
     try {
       await notificationsService.markAsUnread(id);
+      await fetchUnreadCount();
     } catch (error) {
       console.error("Erro ao marcar notificação como não lida", error);
-      const now = new Date().toISOString();
-      setNotifications((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, isRead: true, readAt: now } : item
-        )
-      );
-      emitNotificationsChanged();
+      setNotifications(previousNotifications);
+      emitNotificationsChanged("local");
+      await fetchUnreadCount();
     }
   }
 
@@ -348,7 +380,7 @@ export default function NotificationsPage() {
         readAt: now,
       }))
     );
-    emitNotificationsChanged();
+    emitNotificationsChanged("local");
 
     const hasBackendNotifications = notifications.some(
       (item) => typeof item.id === "number"
@@ -358,10 +390,13 @@ export default function NotificationsPage() {
 
     try {
       await notificationsService.markAllAsRead();
+      await loadNotifications({ silent: true });
+      await fetchUnreadCount();
     } catch (error) {
       console.error("Erro ao marcar todas como lidas", error);
       setNotifications(previousNotifications);
-      emitNotificationsChanged();
+      emitNotificationsChanged("local");
+      await fetchUnreadCount();
     }
   }
 
@@ -369,16 +404,19 @@ export default function NotificationsPage() {
     const previousNotifications = notifications;
 
     setNotifications((prev) => prev.filter((item) => item.id !== id));
-    emitNotificationsChanged();
+    emitNotificationsChanged("local");
 
     if (typeof id !== "number") return;
 
     try {
       await notificationsService.remove(id);
+      await loadNotifications({ silent: true });
+      await fetchUnreadCount();
     } catch (error) {
       console.error("Erro ao excluir notificação", error);
       setNotifications(previousNotifications);
-      emitNotificationsChanged();
+      emitNotificationsChanged("local");
+      await fetchUnreadCount();
     }
   }
 
@@ -386,40 +424,41 @@ export default function NotificationsPage() {
     const previousNotifications = notifications;
 
     setNotifications((prev) => prev.filter((item) => !item.isRead));
-    emitNotificationsChanged();
+    emitNotificationsChanged("local");
 
     try {
       await notificationsService.clearRead();
+      await loadNotifications({ silent: true });
+      await fetchUnreadCount();
     } catch (error) {
       console.error("Erro ao limpar notificações lidas", error);
       setNotifications(previousNotifications);
-      emitNotificationsChanged();
+      emitNotificationsChanged("local");
+      await fetchUnreadCount();
     }
   }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-12">
-      {/* Header e Controles */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-3xl border border-(--ff-border) bg-(--ff-surface) p-6 shadow-sm"
+        className="rounded-3xl border border-[var(--ff-border)] bg-[var(--ff-surface)] p-6 shadow-sm"
       >
         <div className="flex flex-col gap-6">
-          {/* Topo do Header: Título separado das ações globais */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-(--ff-border) pb-6">
+          <div className="flex flex-col gap-4 border-b border-[var(--ff-border)] pb-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-(--ff-primary-soft) text-(--ff-primary)">
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--ff-primary-soft)] text-[var(--ff-primary)]">
                 <Bell className="h-5 w-5" />
               </div>
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-xl font-bold text-(--ff-text)">
+                  <h1 className="text-xl font-bold text-[var(--ff-text)]">
                     Notificações
                   </h1>
                   <AnimatePresence mode="popLayout">
                     {unreadCount > 0 && (
-                      <motion.span 
+                      <motion.span
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
@@ -430,13 +469,12 @@ export default function NotificationsPage() {
                     )}
                   </AnimatePresence>
                 </div>
-                <p className="mt-1 text-sm text-(--ff-text-soft)">
+                <p className="mt-1 text-sm text-[var(--ff-text-soft)]">
                   Acompanhe alertas importantes e seu progresso diário.
                 </p>
               </div>
             </div>
 
-            {/* Ações Globais agrupadas e alinhadas à direita em desktop */}
             <div className="flex flex-wrap items-center gap-2">
               <motion.button
                 whileHover={{ scale: 1.02 }}
@@ -444,7 +482,7 @@ export default function NotificationsPage() {
                 type="button"
                 onClick={handleMarkAllAsRead}
                 disabled={notifications.length === 0 || unreadCount === 0}
-                className="cursor-pointer inline-flex items-center gap-2 rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) px-4 py-2 text-sm font-semibold text-(--ff-text) transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-soft)] px-4 py-2 text-sm font-semibold text-[var(--ff-text)] transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <CheckCheck className="h-4 w-4" />
                 Marcar todas lidas
@@ -456,7 +494,7 @@ export default function NotificationsPage() {
                 type="button"
                 onClick={handleClearRead}
                 disabled={!notifications.some((item) => item.isRead)}
-                className="cursor-pointer inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
                 Limpar lidas
@@ -464,9 +502,8 @@ export default function NotificationsPage() {
             </div>
           </div>
 
-          {/* Filtros */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-(--ff-text-soft) mr-2">
+            <span className="mr-2 inline-flex items-center gap-2 text-sm font-semibold text-[var(--ff-text-soft)]">
               <Filter className="h-4 w-4" />
               Filtros:
             </span>
@@ -495,7 +532,6 @@ export default function NotificationsPage() {
         </div>
       </motion.div>
 
-      {/* Container de Notificações */}
       <AnimatePresence mode="wait">
         {loading ? (
           <motion.div
@@ -503,7 +539,7 @@ export default function NotificationsPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="rounded-3xl border border-(--ff-border) bg-(--ff-surface) p-8 text-center text-sm text-(--ff-text-soft) shadow-sm"
+            className="rounded-3xl border border-[var(--ff-border)] bg-[var(--ff-surface)] p-8 text-center text-sm text-[var(--ff-text-soft)] shadow-sm"
           >
             Carregando notificações...
           </motion.div>
@@ -513,17 +549,18 @@ export default function NotificationsPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="rounded-3xl border border-dashed border-(--ff-border) bg-(--ff-surface) p-10 text-center shadow-sm"
+            className="rounded-3xl border border-dashed border-[var(--ff-border)] bg-[var(--ff-surface)] p-10 text-center shadow-sm"
           >
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-(--ff-surface-soft) text-(--ff-text-soft)">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[var(--ff-surface-soft)] text-[var(--ff-text-soft)]">
               <Bell className="h-6 w-6" />
             </div>
 
-            <h2 className="mt-4 text-lg font-semibold text-(--ff-text)">
+            <h2 className="mt-4 text-lg font-semibold text-[var(--ff-text)]">
               Nenhuma notificação no momento
             </h2>
-            <p className="mt-2 text-sm text-(--ff-text-soft)">
-              Quando houver alertas, progresso relevante ou recompensas disponíveis, eles aparecerão aqui.
+            <p className="mt-2 text-sm text-[var(--ff-text-soft)]">
+              Quando houver alertas, progresso relevante ou recompensas
+              disponíveis, eles aparecerão aqui.
             </p>
           </motion.div>
         ) : visibleNotifications.length === 0 ? (
@@ -532,22 +569,22 @@ export default function NotificationsPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="rounded-3xl border border-dashed border-(--ff-border) bg-(--ff-surface) p-10 text-center shadow-sm"
+            className="rounded-3xl border border-dashed border-[var(--ff-border)] bg-[var(--ff-surface)] p-10 text-center shadow-sm"
           >
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-(--ff-surface-soft) text-(--ff-text-soft)">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[var(--ff-surface-soft)] text-[var(--ff-text-soft)]">
               <Filter className="h-6 w-6" />
             </div>
 
-            <h2 className="mt-4 text-lg font-semibold text-(--ff-text)">
+            <h2 className="mt-4 text-lg font-semibold text-[var(--ff-text)]">
               Nenhuma notificação nesse filtro
             </h2>
-            <p className="mt-2 text-sm text-(--ff-text-soft)">
+            <p className="mt-2 text-sm text-[var(--ff-text-soft)]">
               Tente visualizar todas ou outro filtro disponível.
             </p>
           </motion.div>
         ) : (
-          <motion.div 
-            key="list" 
+          <motion.div
+            key="list"
             variants={containerVariants}
             initial="hidden"
             animate="visible"

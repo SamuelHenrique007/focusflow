@@ -4,8 +4,9 @@ from django.db.models import Q
 from django.utils import timezone
 
 from tasks.models import Task
-from gamification.services import get_profile
+from gamification.services import get_profile, chest_required_minutes
 from .models import Notification
+from .realtime import broadcast_notifications_state
 
 
 def get_today_bounds():
@@ -34,8 +35,9 @@ def create_notification(
     unique_key=None,
     metadata=None,
     expires_at=None,
+    broadcast=True,
 ):
-    return Notification.objects.create(
+    notification = Notification.objects.create(
         user=user,
         type=type,
         title=title,
@@ -45,6 +47,15 @@ def create_notification(
         metadata=metadata or {},
         expires_at=expires_at,
     )
+
+    if broadcast:
+        broadcast_notifications_state(
+            user,
+            event_type="notifications.created",
+            notification_id=notification.id,
+        )
+
+    return notification
 
 
 def create_or_update_unique_notification(
@@ -57,59 +68,73 @@ def create_or_update_unique_notification(
     unique_key,
     metadata=None,
     expires_at=None,
+    broadcast=True,
 ):
     notification = Notification.objects.filter(
         user=user,
         unique_key=unique_key,
     ).first()
 
-    if notification:
-        # Se o usuário apagou manualmente, não recria
-        if notification.is_deleted:
-            return notification
+    changed = False
+    next_metadata = metadata or {}
 
-        notification.type = type
-        notification.title = title
-        notification.description = description
-        notification.priority = priority
-        notification.metadata = metadata or {}
-        notification.expires_at = expires_at
-        notification.save(
-            update_fields=[
-                "type",
-                "title",
-                "description",
-                "priority",
-                "metadata",
-                "expires_at",
-                "updated_at",
+    if notification:
+        # Se foi apagada manualmente, não recria,
+        # exceto para notificações que devem reaparecer quando a key mudar.
+        if notification.is_deleted:
+            return notification, False
+
+        fields_changed = any(
+            [
+                notification.type != type,
+                notification.title != title,
+                notification.description != description,
+                notification.priority != priority,
+                notification.metadata != next_metadata,
+                notification.expires_at != expires_at,
             ]
         )
-        return notification
 
-    return Notification.objects.create(
-        user=user,
-        type=type,
-        title=title,
-        description=description,
-        priority=priority,
-        unique_key=unique_key,
-        metadata=metadata or {},
-        expires_at=expires_at,
-    )
+        if fields_changed:
+            notification.type = type
+            notification.title = title
+            notification.description = description
+            notification.priority = priority
+            notification.metadata = next_metadata
+            notification.expires_at = expires_at
+            notification.save(
+                update_fields=[
+                    "type",
+                    "title",
+                    "description",
+                    "priority",
+                    "metadata",
+                    "expires_at",
+                    "updated_at",
+                ]
+            )
+            changed = True
+    else:
+        notification = Notification.objects.create(
+            user=user,
+            type=type,
+            title=title,
+            description=description,
+            priority=priority,
+            unique_key=unique_key,
+            metadata=next_metadata,
+            expires_at=expires_at,
+        )
+        changed = True
 
+    if broadcast and changed:
+        broadcast_notifications_state(
+            user,
+            event_type="notifications.updated",
+            notification_id=notification.id,
+        )
 
-def delete_notification_by_key(user, unique_key):
-    now = timezone.now()
-    Notification.objects.filter(
-        user=user,
-        unique_key=unique_key,
-        is_deleted=False,
-    ).update(
-        is_deleted=True,
-        deleted_at=now,
-        updated_at=now,
-    )
+    return notification, changed
 
 
 def sync_task_notifications(user):
@@ -117,6 +142,7 @@ def sync_task_notifications(user):
 
     tasks = Task.objects.filter(user=user, completed_at__isnull=True)
     active_keys = set()
+    changed = False
 
     for task in tasks:
         if not task.due_date:
@@ -128,7 +154,7 @@ def sync_task_notifications(user):
             key = f"task-overdue-{task.id}"
             active_keys.add(key)
 
-            create_or_update_unique_notification(
+            _, notification_changed = create_or_update_unique_notification(
                 user=user,
                 type="task_overdue",
                 title="Tarefa atrasada",
@@ -137,13 +163,15 @@ def sync_task_notifications(user):
                 unique_key=key,
                 metadata={"task_id": task.id},
                 expires_at=None,
+                broadcast=False,
             )
+            changed = changed or notification_changed
 
         elif start <= local_due_date <= end:
             key = f"task-due-today-{task.id}"
             active_keys.add(key)
 
-            create_or_update_unique_notification(
+            _, notification_changed = create_or_update_unique_notification(
                 user=user,
                 type="task_due_today",
                 title="Tarefa vence hoje",
@@ -152,53 +180,55 @@ def sync_task_notifications(user):
                 unique_key=key,
                 metadata={"task_id": task.id},
                 expires_at=end + timedelta(hours=6),
+                broadcast=False,
             )
+            changed = changed or notification_changed
 
     stale_prefixes = ("task-overdue-", "task-due-today-")
 
-    stale_notifications = active_notifications_queryset(user).filter(
-        unique_key__isnull=False
-    )
+    stale_notifications = active_notifications_queryset(user).filter(unique_key__isnull=False)
 
     for notification in stale_notifications:
         key = notification.unique_key or ""
         if key.startswith(stale_prefixes) and key not in active_keys:
             notification.soft_delete()
+            changed = True
+
+    return changed
 
 
 def sync_gamification_notifications(user):
     profile = get_profile(user)
     now = timezone.now()
     local_now = timezone.localtime(now)
-    now_iso = now.isoformat()
     _, end = get_today_bounds()
-    
-    # Geramos a string da data de hoje para os eventos diários
-    today_str = local_now.date().isoformat()
 
+    today_str = local_now.date().isoformat()
     keys_that_should_exist = set()
+    changed = False
 
     if profile.daily_goal_progress >= 100:
         key = f"daily-goal-completed-{today_str}"
         keys_that_should_exist.add(key)
 
-        create_or_update_unique_notification(
+        _, notification_changed = create_or_update_unique_notification(
             user=user,
             type="daily_goal_completed",
             title="Meta diária concluída",
             description="Parabéns. Você concluiu sua meta diária de foco.",
             priority="low",
             unique_key=key,
-            metadata={"generated_at": now_iso},
+            metadata={"date": today_str},
             expires_at=end + timedelta(days=3),
+            broadcast=False,
         )
+        changed = changed or notification_changed
 
     if profile.pending_focus_minutes > 0:
-        # Usa a quantidade de minutos na chave para avisar caso o valor mude
         key = f"focus-coins-{profile.pending_focus_minutes}"
         keys_that_should_exist.add(key)
 
-        create_or_update_unique_notification(
+        _, notification_changed = create_or_update_unique_notification(
             user=user,
             type="focus_coins_ready",
             title="Minutos prontos para conversão",
@@ -208,68 +238,87 @@ def sync_gamification_notifications(user):
             ),
             priority="medium",
             unique_key=key,
-            metadata={"generated_at": now_iso},
+            metadata={"pending_focus_minutes": profile.pending_focus_minutes},
             expires_at=None,
+            broadcast=False,
         )
+        changed = changed or notification_changed
 
     chests = [
-        ("wood", "Baú de madeira"),
-        ("silver", "Baú de prata"),
-        ("gold", "Baú dourado"),
+        ("wood", "Baú de madeira", 30, "wood_chest_claimed"),
+        ("silver", "Baú de prata", 60, "silver_chest_claimed"),
+        ("gold", "Baú dourado", 100, "gold_chest_claimed"),
     ]
 
-    for chest_key, chest_label in chests:
-        ready_field = f"{chest_key}_chest_ready"
-        if hasattr(profile, ready_field) and getattr(profile, ready_field):
+    goal_minutes = max(profile.daily_goal_minutes, 1)
+    current_minutes = max(profile.today_focus_minutes, 0)
+
+    for chest_key, chest_label, threshold_percent, claimed_field in chests:
+        required_minutes = chest_required_minutes(goal_minutes, threshold_percent)
+        claimed = getattr(profile, claimed_field, False)
+        ready_to_claim = current_minutes >= required_minutes and not claimed
+
+        if ready_to_claim:
             key = f"chest-{chest_key}-{today_str}"
             keys_that_should_exist.add(key)
 
-            create_or_update_unique_notification(
+            _, notification_changed = create_or_update_unique_notification(
                 user=user,
                 type="chest_ready",
                 title="Baú disponível",
                 description=f"O {chest_label} está disponível para coleta.",
                 priority="medium",
                 unique_key=key,
-                metadata={"chest_key": chest_key, "generated_at": now_iso},
+                metadata={
+                    "chest_key": chest_key,
+                    "date": today_str,
+                    "required_minutes": required_minutes,
+                    "current_minutes": current_minutes,
+                },
                 expires_at=None,
+                broadcast=False,
             )
+            changed = changed or notification_changed
 
     if profile.daily_goal_progress == 0 and local_now.hour >= 14:
         key = f"no-focus-today-{today_str}"
         keys_that_should_exist.add(key)
 
-        create_or_update_unique_notification(
+        _, notification_changed = create_or_update_unique_notification(
             user=user,
             type="no_focus_today",
             title="Nenhuma sessão de foco hoje",
             description="Inicie uma sessão de foco para começar seu progresso diário.",
             priority="medium",
             unique_key=key,
-            metadata={"generated_at": now_iso},
+            metadata={"date": today_str},
             expires_at=end + timedelta(hours=6),
+            broadcast=False,
         )
+        changed = changed or notification_changed
 
     if 50 <= profile.daily_goal_progress < 100:
         key = f"good-progress-today-{today_str}"
         keys_that_should_exist.add(key)
 
-        create_or_update_unique_notification(
+        _, notification_changed = create_or_update_unique_notification(
             user=user,
             type="good_progress_today",
             title="Bom progresso diário",
             description=f"Você já concluiu {round(profile.daily_goal_progress)}% da meta diária.",
             priority="low",
             unique_key=key,
-            metadata={"generated_at": now_iso},
+            metadata={"date": today_str, "progress": round(profile.daily_goal_progress)},
             expires_at=end + timedelta(days=1),
+            broadcast=False,
         )
+        changed = changed or notification_changed
 
     if profile.streak > 0 and profile.daily_goal_progress == 0 and local_now.hour >= 18:
         key = f"streak-warning-{today_str}"
         keys_that_should_exist.add(key)
 
-        create_or_update_unique_notification(
+        _, notification_changed = create_or_update_unique_notification(
             user=user,
             type="streak_warning",
             title="Sequência em risco",
@@ -279,26 +328,29 @@ def sync_gamification_notifications(user):
             ),
             priority="high",
             unique_key=key,
-            metadata={"generated_at": now_iso},
+            metadata={"date": today_str, "streak": profile.streak},
             expires_at=end + timedelta(hours=6),
+            broadcast=False,
         )
+        changed = changed or notification_changed
 
     if profile.streak > 0 and profile.daily_goal_progress > 0:
         key = f"streak-congrats-{today_str}"
         keys_that_should_exist.add(key)
 
-        create_or_update_unique_notification(
+        _, notification_changed = create_or_update_unique_notification(
             user=user,
             type="streak_congrats",
             title="Sequência mantida",
             description=f"Você mantém uma sequência de {profile.streak} dia(s). Continue assim.",
             priority="low",
             unique_key=key,
-            metadata={"generated_at": now_iso},
+            metadata={"date": today_str, "streak": profile.streak},
             expires_at=end + timedelta(days=2),
+            broadcast=False,
         )
+        changed = changed or notification_changed
 
-    # Prefixos atualizados para refletir o novo padrão de chaves
     managed_prefixes = (
         "daily-goal-completed-",
         "focus-coins-",
@@ -309,19 +361,30 @@ def sync_gamification_notifications(user):
         "streak-congrats-",
     )
 
-    managed_notifications = active_notifications_queryset(user).filter(
-        unique_key__isnull=False
-    )
+    managed_notifications = active_notifications_queryset(user).filter(unique_key__isnull=False)
 
     for notification in managed_notifications:
         key = notification.unique_key or ""
         if key.startswith(managed_prefixes) and key not in keys_that_should_exist:
             notification.soft_delete()
+            changed = True
+
+    return changed
 
 
 def sync_user_notifications(user):
-    sync_task_notifications(user)
-    sync_gamification_notifications(user)
+    task_changed = sync_task_notifications(user)
+    gamification_changed = sync_gamification_notifications(user)
+
+    changed = task_changed or gamification_changed
+
+    if changed:
+        broadcast_notifications_state(
+            user,
+            event_type="notifications.sync",
+        )
+
+    return changed
 
 
 def notify_task_completed(task):
@@ -338,13 +401,21 @@ def notify_task_completed(task):
 
 
 def notify_level_up(user, new_level):
-    create_or_update_unique_notification(
+    notification, changed = create_or_update_unique_notification(
         user=user,
         type="level_up",
         title="Você subiu de nível!",
         description=f"Parabéns! Você alcançou o nível {new_level}.",
         priority="medium",
         unique_key=f"level-up-{new_level}",
-        metadata={"level": new_level, "generated_at": timezone.now().isoformat()},
+        metadata={"level": new_level},
         expires_at=timezone.now() + timedelta(days=7),
+        broadcast=False,
     )
+
+    if changed:
+        broadcast_notifications_state(
+            user,
+            event_type="level_up",
+            notification_id=notification.id,
+        )

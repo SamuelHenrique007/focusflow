@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Notification
+from .realtime import broadcast_notifications_state
 from .serializers import NotificationSerializer
 from .services import active_notifications_queryset, sync_user_notifications
 
@@ -14,7 +15,6 @@ class NotificationListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-    
         sync_user_notifications(request.user)
 
         notifications = active_notifications_queryset(request.user)
@@ -27,7 +27,6 @@ class NotificationListView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-
 
 class UnreadNotificationCountView(APIView):
     permission_classes = [IsAuthenticated]
@@ -45,7 +44,6 @@ class UnreadNotificationCountView(APIView):
             status=status.HTTP_200_OK,
         )
 
-
 class MarkNotificationReadView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -57,6 +55,11 @@ class MarkNotificationReadView(APIView):
             is_deleted=False,
         )
         notification.mark_as_read()
+        broadcast_notifications_state(
+            request.user,
+            event_type="notifications.read",
+            notification_id=notification.id,
+        )
 
         return Response(
             {
@@ -78,6 +81,11 @@ class MarkNotificationUnreadView(APIView):
             is_deleted=False,
         )
         notification.mark_as_unread()
+        broadcast_notifications_state(
+            request.user,
+            event_type="notifications.unread",
+            notification_id=notification.id,
+        )
 
         return Response(
             {
@@ -94,13 +102,12 @@ class MarkAllNotificationsReadView(APIView):
     def patch(self, request):
         now = timezone.now()
 
-        active_notifications_queryset(request.user).filter(
-            is_read=False
-        ).update(
+        active_notifications_queryset(request.user).filter(is_read=False).update(
             is_read=True,
             read_at=now,
             updated_at=now,
         )
+        broadcast_notifications_state(request.user, event_type="notifications.read_all")
 
         return Response(
             {
@@ -122,6 +129,11 @@ class DeleteNotificationView(APIView):
             is_deleted=False,
         )
         notification.soft_delete()
+        broadcast_notifications_state(
+            request.user,
+            event_type="notifications.deleted",
+            notification_id=notification.id,
+        )
 
         return Response(
             {
@@ -138,13 +150,12 @@ class ClearReadNotificationsView(APIView):
     def delete(self, request):
         now = timezone.now()
 
-        active_notifications_queryset(request.user).filter(
-            is_read=True
-        ).update(
+        active_notifications_queryset(request.user).filter(is_read=True).update(
             is_deleted=True,
             deleted_at=now,
             updated_at=now,
         )
+        broadcast_notifications_state(request.user, event_type="notifications.cleared_read")
 
         return Response(
             {
