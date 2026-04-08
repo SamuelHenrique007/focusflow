@@ -930,16 +930,35 @@ export default function TasksPage() {
 
   return (
     <>
-      <div className="mb-4 lg:hidden">
-        <div className="flex items-start justify-between gap-3">
+      <div data-tour="tasks-main"></div>
+        <div className="mb-4 lg:hidden">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-[var(--ff-text)]">
+                As Minhas Tarefas
+              </h1>
+            </div>
+
+            <button
+              className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-[var(--ff-primary)] px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:scale-105 hover:opacity-90 active:scale-95"
+              type="button"
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Nova Tarefa
+            </button>
+          </div>
+        </div>
+
+        <div className="hidden items-start justify-between gap-4 lg:flex">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[var(--ff-text)]">
+            <h1 className="text-3xl font-semibold tracking-tight text-[var(--ff-text)]">
               As Minhas Tarefas
             </h1>
           </div>
 
           <button
-            className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-[var(--ff-primary)] px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:scale-105 hover:opacity-90 active:scale-95"
+            className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-2xl bg-[var(--ff-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:scale-105 hover:opacity-90 active:scale-95"
             type="button"
             onClick={() => setCreateOpen(true)}
           >
@@ -947,167 +966,149 @@ export default function TasksPage() {
             Nova Tarefa
           </button>
         </div>
-      </div>
 
-      <div className="hidden items-start justify-between gap-4 lg:flex">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-[var(--ff-text)]">
-            As Minhas Tarefas
-          </h1>
+        <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="group relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--ff-text-muted)] transition group-focus-within:text-[var(--ff-primary)]" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Pesquisar tarefas..."
+              className="w-full rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface)] px-10 py-3 text-sm text-[var(--ff-text)] outline-none transition focus:border-[var(--ff-primary)] focus:ring-4 focus:ring-[var(--ff-primary-soft)]"
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <SelectPro
+              value={filterCategory}
+              onChange={(v) => setFilterCategory(v)}
+              options={categoryFilterOptions}
+              leftIcon={<Filter className="h-4 w-4" />}
+              placeholder="Categoria"
+              widthClassName="w-full sm:w-44"
+            />
+
+            <SelectPro
+              value={filterPriority}
+              onChange={(v) => setFilterPriority(v)}
+              options={priorityFilterOptions}
+              leftIcon={<SlidersHorizontal className="h-4 w-4" />}
+              placeholder="Prioridade"
+              widthClassName="w-full sm:w-44"
+            />
+          </div>
         </div>
 
-        <button
-          className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-2xl bg-[var(--ff-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:scale-105 hover:opacity-90 active:scale-95"
-          type="button"
-          onClick={() => setCreateOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          Nova Tarefa
-        </button>
-      </div>
-
-      <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="group relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--ff-text-muted)] transition group-focus-within:text-[var(--ff-primary)]" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Pesquisar tarefas..."
-            className="w-full rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface)] px-10 py-3 text-sm text-[var(--ff-text)] outline-none transition focus:border-[var(--ff-primary)] focus:ring-4 focus:ring-[var(--ff-primary-soft)]"
-          />
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {[
+            { id: "todas", label: "Todas" },
+            { id: "em_andamento", label: "Em Andamento" },
+            { id: "pendentes", label: "Pendentes" },
+            { id: "concluidas", label: "Concluídas" },
+          ].map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() =>
+                setTab(
+                  t.id as "todas" | "pendentes" | "em_andamento" | "concluidas",
+                )
+              }
+              className={cn(
+                "cursor-pointer rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200",
+                tab === t.id
+                  ? "scale-105 bg-[var(--ff-surface)] text-[var(--ff-text)] shadow-sm ring-1 ring-[var(--ff-border)]"
+                  : "text-[var(--ff-text-soft)] hover:bg-[var(--ff-surface)] hover:ring-1 hover:ring-[var(--ff-border)]",
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
 
-        <div className="flex gap-3">
-          <SelectPro
-            value={filterCategory}
-            onChange={(v) => setFilterCategory(v)}
-            options={categoryFilterOptions}
-            leftIcon={<Filter className="h-4 w-4" />}
-            placeholder="Categoria"
-            widthClassName="w-full sm:w-44"
-          />
-
-          <SelectPro
-            value={filterPriority}
-            onChange={(v) => setFilterPriority(v)}
-            options={priorityFilterOptions}
-            leftIcon={<SlidersHorizontal className="h-4 w-4" />}
-            placeholder="Prioridade"
-            widthClassName="w-full sm:w-44"
-          />
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        {[
-          { id: "todas", label: "Todas" },
-          { id: "em_andamento", label: "Em Andamento" },
-          { id: "pendentes", label: "Pendentes" },
-          { id: "concluidas", label: "Concluídas" },
-        ].map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() =>
-              setTab(
-                t.id as "todas" | "pendentes" | "em_andamento" | "concluidas",
-              )
-            }
-            className={cn(
-              "cursor-pointer rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200",
-              tab === t.id
-                ? "scale-105 bg-[var(--ff-surface)] text-[var(--ff-text)] shadow-sm ring-1 ring-[var(--ff-border)]"
-                : "text-[var(--ff-text-soft)] hover:bg-[var(--ff-surface)] hover:ring-1 hover:ring-[var(--ff-border)]",
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-5 pb-10">
-        {loading ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-3"
-          >
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="h-[120px] w-full animate-pulse rounded-2xl bg-[var(--ff-surface-soft)] ring-1 ring-[var(--ff-border)]"
-              />
-            ))}
-          </motion.div>
-        ) : errorMessage ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-primary-soft)] p-6 text-sm text-[var(--ff-text)] shadow-sm"
-          >
-            {errorMessage}
-          </motion.div>
-        ) : filtered.length === 0 ? (
-          <EmptyTasksState
-            hasFilters={hasActiveFilters || tasks.length > 0}
-            onCreateTask={() => setCreateOpen(true)}
-            onClearFilters={handleClearFilters}
-          />
-        ) : (
-          <motion.div layout className="space-y-3">
-            <AnimatePresence mode="popLayout">
-              {filtered.map((t) => (
-                <motion.div
-                  key={t.id}
-                  layout
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                  transition={{ duration: 0.3, type: "spring", bounce: 0.3 }}
-                >
-                  <TaskRow
-                    task={t}
-                    onEdit={() => {
-                      setOpenMenuTaskId(null);
-                      handleOpenEdit(t);
-                    }}
-                    onDelete={() => {
-                      setOpenMenuTaskId(null);
-                      handleDeleteTask(t.id);
-                    }}
-                    onToggleComplete={() => handleToggleComplete(t)}
-                    menuOpen={openMenuTaskId === t.id}
-                    onOpenMenu={() => setOpenMenuTaskId(t.id)}
-                    onCloseMenu={() =>
-                      setOpenMenuTaskId((prev) => (prev === t.id ? null : prev))
-                    }
-                  />
-                </motion.div>
+        <div className="mt-5 pb-10">
+          {loading ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-3"
+            >
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-[120px] w-full animate-pulse rounded-2xl bg-[var(--ff-surface-soft)] ring-1 ring-[var(--ff-border)]"
+                />
               ))}
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </div>
+            </motion.div>
+          ) : errorMessage ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-primary-soft)] p-6 text-sm text-[var(--ff-text)] shadow-sm"
+            >
+              {errorMessage}
+            </motion.div>
+          ) : filtered.length === 0 ? (
+            <EmptyTasksState
+              hasFilters={hasActiveFilters || tasks.length > 0}
+              onCreateTask={() => setCreateOpen(true)}
+              onClearFilters={handleClearFilters}
+            />
+          ) : (
+            <motion.div layout className="space-y-3">
+              <AnimatePresence mode="popLayout">
+                {filtered.map((t) => (
+                  <motion.div
+                    key={t.id}
+                    layout
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                    transition={{ duration: 0.3, type: "spring", bounce: 0.3 }}
+                  >
+                    <TaskRow
+                      task={t}
+                      onEdit={() => {
+                        setOpenMenuTaskId(null);
+                        handleOpenEdit(t);
+                      }}
+                      onDelete={() => {
+                        setOpenMenuTaskId(null);
+                        handleDeleteTask(t.id);
+                      }}
+                      onToggleComplete={() => handleToggleComplete(t)}
+                      menuOpen={openMenuTaskId === t.id}
+                      onOpenMenu={() => setOpenMenuTaskId(t.id)}
+                      onCloseMenu={() =>
+                        setOpenMenuTaskId((prev) => (prev === t.id ? null : prev))
+                      }
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </div>
 
-      <CreateTaskModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onSubmit={handleCreateTask}
-        mode="create"
-        isSubmitting={isSubmitting}
-      />
+        <CreateTaskModal
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          onSubmit={handleCreateTask}
+          mode="create"
+          isSubmitting={isSubmitting}
+        />
 
-      <CreateTaskModal
-        open={editOpen}
-        onClose={() => {
-          setEditOpen(false);
-          setSelectedTask(null);
-        }}
-        onSubmit={handleEditTask}
-        mode="edit"
-        initialData={selectedTask}
-        isSubmitting={isSubmitting}
-      />
-    </>
+        <CreateTaskModal
+          open={editOpen}
+          onClose={() => {
+            setEditOpen(false);
+            setSelectedTask(null);
+          }}
+          onSubmit={handleEditTask}
+          mode="edit"
+          initialData={selectedTask}
+          isSubmitting={isSubmitting}
+        />
+      </>
   );
 }

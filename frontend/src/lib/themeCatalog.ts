@@ -139,6 +139,39 @@ export const THEME_CATALOG: Record<string, ThemeDefinition> = {
       "--ff-ring": "rgba(168, 85, 247, 0.24)",
     },
   },
+    paper_ink: {
+    label: "Paper Ink",
+    vars: {
+      "--ff-primary": "#6b7280",
+      "--ff-primary-strong": "#4b5563",
+      "--ff-primary-soft": "#e5e7eb",
+      "--ff-surface": "#fffdf7",
+      "--ff-surface-soft": "#f7f3e8",
+      "--ff-surface-muted": "#e7dfcf",
+      "--ff-border": "#d6cdbb",
+      "--ff-text": "#2f2a24",
+      "--ff-text-soft": "#4b443c",
+      "--ff-text-muted": "#6b6257",
+      "--ff-ring": "rgba(107, 114, 128, 0.22)",
+    },
+  },
+
+  graphite_pulse: {
+    label: "Graphite Pulse",
+    vars: {
+      "--ff-primary": "#94a3b8",
+      "--ff-primary-strong": "#64748b",
+      "--ff-primary-soft": "#1e293b",
+      "--ff-surface": "#111318",
+      "--ff-surface-soft": "#1a1d24",
+      "--ff-surface-muted": "#2a2f3a",
+      "--ff-border": "#3b4252",
+      "--ff-text": "#f5f7fa",
+      "--ff-text-soft": "#dbe2ea",
+      "--ff-text-muted": "#9aa4b2",
+      "--ff-ring": "rgba(148, 163, 184, 0.24)",
+    },
+  },
 };
 
 export const DEFAULT_THEME_KEY = "focusflow_default";
@@ -185,6 +218,16 @@ const THEME_ALIASES: Record<string, keyof typeof THEME_CATALOG> = {
   lavender: "lavender_mist",
   lavender_mist: "lavender_mist",
   roxo: "lavender_mist",
+
+  paper_ink: "paper_ink",
+  paper: "paper_ink",
+  ink: "paper_ink",
+  "tema paper ink": "paper_ink",
+
+  graphite_pulse: "graphite_pulse",
+  graphite: "graphite_pulse",
+  pulse: "graphite_pulse",
+  "tema graphite pulse": "graphite_pulse",
 };
 
 export function normalizeThemeKey(
