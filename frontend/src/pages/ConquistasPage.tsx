@@ -61,37 +61,52 @@ function badgeIcon(icon: BadgeStatus["icon"] | ChallengeStatus["icon"]) {
   }
 }
 
-function badgeColor(color: BadgeStatus["color"]) {
+function badgeTone(color: BadgeStatus["color"]) {
   return {
-    blue: { text: "text-blue-600", bg: "bg-blue-100" },
-    amber: { text: "text-amber-600", bg: "bg-amber-100" },
-    orange: { text: "text-orange-600", bg: "bg-orange-100" },
-    purple: { text: "text-purple-600", bg: "bg-purple-100" },
-    emerald: { text: "text-emerald-600", bg: "bg-emerald-100" },
+    blue: {
+      text: "text-[var(--ff-primary)]",
+      bg: "bg-[color-mix(in_srgb,var(--ff-primary)_14%,var(--ff-surface))]",
+    },
+    amber: {
+      text: "text-amber-600",
+      bg: "bg-[color-mix(in_srgb,#f59e0b_16%,var(--ff-surface))]",
+    },
+    orange: {
+      text: "text-orange-600",
+      bg: "bg-[color-mix(in_srgb,#f97316_16%,var(--ff-surface))]",
+    },
+    purple: {
+      text: "text-violet-600",
+      bg: "bg-[color-mix(in_srgb,#8b5cf6_16%,var(--ff-surface))]",
+    },
+    emerald: {
+      text: "text-emerald-600",
+      bg: "bg-[color-mix(in_srgb,#10b981_16%,var(--ff-surface))]",
+    },
   }[color];
 }
 
 function chestButtonClass(chest: ChestStatus) {
   if (chest.claimed) {
-    return "bg-slate-200 text-slate-400";
+    return "bg-[var(--ff-surface-muted)] text-[var(--ff-text-muted)]";
   }
 
   if (chest.ready_to_claim) {
     if (chest.key === "wood") {
-      return "bg-amber-500 text-white ring-4 ring-amber-100";
+      return "bg-amber-500 text-white ring-4 ring-amber-100/80";
     }
     if (chest.key === "silver") {
-      return "bg-slate-400 text-white ring-4 ring-slate-100";
+      return "bg-slate-400 text-white ring-4 ring-slate-200/70";
     }
-    return "bg-yellow-400 text-white ring-4 ring-yellow-100";
+    return "bg-yellow-400 text-white ring-4 ring-yellow-100/80";
   }
 
-  return "bg-slate-50 text-slate-300";
+  return "bg-[var(--ff-surface-soft)] text-[var(--ff-text-muted)]";
 }
 
 function chestRewardTone(chest: ChestStatus) {
   if (chest.key === "wood") return "text-amber-600";
-  if (chest.key === "silver") return "text-slate-600";
+  if (chest.key === "silver") return "text-slate-500";
   return "text-yellow-600";
 }
 
@@ -182,7 +197,7 @@ export default function ConquistasPage() {
       transition={{ duration: 0.35 }}
     >
       <motion.div variants={fadeUp} initial="hidden" animate="show">
-        <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+        <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight text-[var(--ff-text)] sm:text-3xl">
           <motion.div
             initial={{ rotate: -8, scale: 0.9 }}
             animate={{ rotate: 0, scale: 1 }}
@@ -192,7 +207,8 @@ export default function ConquistasPage() {
           </motion.div>
           Desafios & Conquistas
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
+
+        <p className="mt-2 text-sm text-[var(--ff-text-soft)]">
           Acompanhe seu progresso diário, abra baús e desbloqueie medalhas.
         </p>
       </motion.div>
@@ -201,30 +217,35 @@ export default function ConquistasPage() {
         variants={fadeUp}
         initial="hidden"
         animate="show"
-        className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+        className="rounded-3xl border border-[var(--ff-border)] bg-[var(--ff-surface)] p-6 shadow-sm sm:p-8"
       >
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Trilha de Foco</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className="text-lg font-semibold text-[var(--ff-text)]">
+              Trilha de Foco
+            </h2>
+            <p className="text-sm text-[var(--ff-text-soft)]">
               Complete a meta diária para liberar os baús.
             </p>
           </div>
 
           <div className="text-right">
-            <span className="text-2xl font-semibold text-violet-600">
+            <span className="text-2xl font-semibold text-[var(--ff-primary)]">
               {progressPercentage.toFixed(0)}%
             </span>
-            <span className="text-sm font-semibold text-slate-300"> / 100%</span>
+            <span className="text-sm font-semibold text-[var(--ff-text-muted)]">
+              {" "}
+              / 100%
+            </span>
           </div>
         </div>
 
         <div className="hidden sm:block">
           <div className="relative px-6 pt-2">
-            <div className="absolute left-6 right-6 top-7 h-1.5 rounded-full bg-slate-100" />
+            <div className="absolute left-6 right-6 top-7 h-1.5 rounded-full bg-[var(--ff-surface-muted)]" />
 
             <motion.div
-              className="absolute left-6 top-7 h-1.5 rounded-full bg-violet-500"
+              className="absolute left-6 top-7 h-1.5 rounded-full bg-[var(--ff-primary)]"
               initial={{ width: 0 }}
               animate={{ width: `calc((100% - 3rem) * ${progressPercentage / 100})` }}
               transition={{ duration: 0.9, ease: [0.25, 0.1, 0.25, 1] }}
@@ -273,7 +294,7 @@ export default function ConquistasPage() {
                         }
                         whileHover={{ y: -4, scale: 1.06 }}
                         className={cn(
-                          "z-10 grid h-12 w-12 place-items-center rounded-2xl border-4 border-white shadow-md transition-all duration-300",
+                          "z-10 grid h-12 w-12 place-items-center rounded-2xl border-4 border-[var(--ff-surface)] shadow-md transition-all duration-300",
                           chestButtonClass(chest),
                         )}
                       >
@@ -302,8 +323,8 @@ export default function ConquistasPage() {
                       </motion.div>
                     </div>
 
-                    <div className="mt-4 flex min-h-[148px] w-full flex-col items-center rounded-2xl bg-slate-50 px-3 py-4 text-center">
-                      <p className="text-sm font-semibold text-slate-900">
+                    <div className="mt-4 flex min-h-[148px] w-full flex-col items-center rounded-2xl bg-[var(--ff-surface-soft)] px-3 py-4 text-center">
+                      <p className="text-sm font-semibold text-[var(--ff-text)]">
                         {chest.type_label}
                       </p>
 
@@ -312,7 +333,7 @@ export default function ConquistasPage() {
                           "mt-1 text-[11px] font-semibold uppercase leading-snug tracking-tight",
                           isReady && !isClaimed
                             ? chestRewardTone(chest)
-                            : "text-slate-400",
+                            : "text-[var(--ff-text-muted)]",
                         )}
                       >
                         {chest.threshold_percent}% · {chest.reward_label}
@@ -325,7 +346,7 @@ export default function ConquistasPage() {
                             disabled={claimingChest === chest.key}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.94 }}
-                            className="cursor-pointer whitespace-nowrap rounded-full bg-amber-500 px-4 py-2 text-[11px] font-black text-white shadow-lg shadow-amber-200 transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="cursor-pointer whitespace-nowrap rounded-full bg-[var(--ff-primary)] px-4 py-2 text-[11px] font-black text-white shadow-lg transition hover:bg-[var(--ff-primary-strong)] disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {claimingChest === chest.key ? "RESGATANDO..." : "RESGATAR"}
                           </motion.button>
@@ -335,14 +356,14 @@ export default function ConquistasPage() {
                           <motion.span
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="inline-flex rounded-full bg-emerald-100 px-3 py-1.5 text-[11px] font-black text-emerald-700"
+                            className="inline-flex rounded-full bg-[color-mix(in_srgb,#10b981_18%,var(--ff-surface))] px-3 py-1.5 text-[11px] font-black text-emerald-700"
                           >
                             RESGATADO
                           </motion.span>
                         )}
 
                         {!isReady && !isClaimed && (
-                          <span className="inline-flex rounded-full bg-slate-200 px-3 py-1.5 text-[11px] font-bold text-slate-500">
+                          <span className="inline-flex rounded-full bg-[var(--ff-surface-muted)] px-3 py-1.5 text-[11px] font-bold text-[var(--ff-text-soft)]">
                             {isLocked ? "BLOQUEADO" : "EM PROGRESSO"}
                           </span>
                         )}
@@ -357,14 +378,14 @@ export default function ConquistasPage() {
 
         <div className="space-y-4 sm:hidden">
           <div>
-            <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-400">
+            <div className="mb-2 flex items-center justify-between text-xs font-semibold text-[var(--ff-text-muted)]">
               <span>Progresso diário</span>
               <span>{progressPercentage.toFixed(0)}%</span>
             </div>
 
-            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--ff-surface-muted)]">
               <motion.div
-                className="h-full rounded-full bg-violet-500"
+                className="h-full rounded-full bg-[var(--ff-primary)]"
                 initial={{ width: 0 }}
                 animate={{ width: `${progressPercentage}%` }}
                 transition={{ duration: 0.9, ease: [0.25, 0.1, 0.25, 1] }}
@@ -387,7 +408,7 @@ export default function ConquistasPage() {
                     duration: 0.35,
                     delay: 0.15 + index * 0.08,
                   }}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                  className="rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-soft)] p-4"
                 >
                   <div className="flex items-start gap-4">
                     <motion.div
@@ -409,7 +430,7 @@ export default function ConquistasPage() {
                           : { duration: 0.2 }
                       }
                       className={cn(
-                        "grid h-12 w-12 shrink-0 place-items-center rounded-2xl border-4 border-white shadow-md transition-all duration-300",
+                        "grid h-12 w-12 shrink-0 place-items-center rounded-2xl border-4 border-[var(--ff-surface)] shadow-md transition-all duration-300",
                         chestButtonClass(chest),
                       )}
                     >
@@ -417,7 +438,7 @@ export default function ConquistasPage() {
                     </motion.div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className="text-sm font-semibold text-[var(--ff-text)]">
                         {chest.type_label}
                       </p>
 
@@ -426,7 +447,7 @@ export default function ConquistasPage() {
                           "mt-1 text-[11px] font-semibold uppercase leading-snug",
                           isReady && !isClaimed
                             ? chestRewardTone(chest)
-                            : "text-slate-400",
+                            : "text-[var(--ff-text-muted)]",
                         )}
                       >
                         {chest.threshold_percent}% · {chest.reward_label}
@@ -439,20 +460,20 @@ export default function ConquistasPage() {
                             disabled={claimingChest === chest.key}
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.96 }}
-                            className="cursor-pointer whitespace-nowrap rounded-full bg-amber-500 px-4 py-2 text-[11px] font-black text-white shadow-lg shadow-amber-200 transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="cursor-pointer whitespace-nowrap rounded-full bg-[var(--ff-primary)] px-4 py-2 text-[11px] font-black text-white shadow-lg transition hover:bg-[var(--ff-primary-strong)] disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {claimingChest === chest.key ? "RESGATANDO..." : "RESGATAR"}
                           </motion.button>
                         )}
 
                         {isClaimed && (
-                          <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1.5 text-[11px] font-black text-emerald-700">
+                          <span className="inline-flex rounded-full bg-[color-mix(in_srgb,#10b981_18%,var(--ff-surface))] px-3 py-1.5 text-[11px] font-black text-emerald-700">
                             RESGATADO
                           </span>
                         )}
 
                         {!isReady && !isClaimed && (
-                          <span className="inline-flex rounded-full bg-slate-200 px-3 py-1.5 text-[11px] font-bold text-slate-500">
+                          <span className="inline-flex rounded-full bg-[var(--ff-surface-muted)] px-3 py-1.5 text-[11px] font-bold text-[var(--ff-text-soft)]">
                             {isLocked ? "BLOQUEADO" : "EM PROGRESSO"}
                           </span>
                         )}
@@ -470,20 +491,23 @@ export default function ConquistasPage() {
         variants={fadeUp}
         initial="hidden"
         animate="show"
-        className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+        className="rounded-3xl border border-[var(--ff-border)] bg-[var(--ff-surface)] p-6 shadow-sm sm:p-8"
       >
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-slate-800">Desafios do Dia</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className="text-xl font-semibold text-[var(--ff-text)]">
+              Desafios do Dia
+            </h2>
+            <p className="text-sm text-[var(--ff-text-soft)]">
               Complete os objetivos diários para receber recompensas automáticas.
             </p>
           </div>
-          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+
+          <div className="rounded-2xl bg-[var(--ff-surface-soft)] px-4 py-3 text-right">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ff-text-muted)]">
               Hoje
             </p>
-            <p className="text-sm font-semibold text-slate-700">
+            <p className="text-sm font-semibold text-[var(--ff-text-soft)]">
               Recompensa automática
             </p>
           </div>
@@ -503,49 +527,51 @@ export default function ConquistasPage() {
               className={cn(
                 "rounded-3xl border p-5 shadow-sm transition-all",
                 challenge.claimed
-                  ? "border-emerald-100 bg-emerald-50/60"
+                  ? "border-emerald-200 bg-[color-mix(in_srgb,#10b981_10%,var(--ff-surface))]"
                   : challenge.completed
-                    ? "border-violet-200 bg-violet-50/60"
-                    : "border-slate-200 bg-white",
+                    ? "border-[color-mix(in_srgb,var(--ff-primary)_30%,var(--ff-border))] bg-[color-mix(in_srgb,var(--ff-primary)_8%,var(--ff-surface))]"
+                    : "border-[var(--ff-border)] bg-[var(--ff-surface)]",
               )}
             >
               <div className="mb-4 flex items-start justify-between">
                 <motion.div
                   whileHover={{ scale: 1.06, rotate: 4 }}
-                  className="grid h-12 w-12 place-items-center rounded-2xl bg-slate-100 text-slate-700"
+                  className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--ff-surface-soft)] text-[var(--ff-text-soft)]"
                 >
                   {badgeIcon(challenge.icon)}
                 </motion.div>
 
                 {challenge.claimed ? (
-                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700">
+                  <span className="rounded-full bg-[color-mix(in_srgb,#10b981_18%,var(--ff-surface))] px-3 py-1 text-[10px] font-black text-emerald-700">
                     CONCLUÍDO
                   </span>
                 ) : challenge.completed ? (
-                  <span className="rounded-full bg-violet-100 px-3 py-1 text-[10px] font-black text-violet-700">
+                  <span className="rounded-full bg-[color-mix(in_srgb,var(--ff-primary)_16%,var(--ff-surface))] px-3 py-1 text-[10px] font-black text-[var(--ff-primary)]">
                     RECOMPENSA LIBERADA
                   </span>
                 ) : (
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-500">
+                  <span className="rounded-full bg-[var(--ff-surface-soft)] px-3 py-1 text-[10px] font-black text-[var(--ff-text-soft)]">
                     EM PROGRESSO
                   </span>
                 )}
               </div>
 
-              <h3 className="font-semibold text-slate-800">{challenge.title}</h3>
-              <p className="mt-1 text-sm text-slate-500">{challenge.description}</p>
+              <h3 className="font-semibold text-[var(--ff-text)]">{challenge.title}</h3>
+              <p className="mt-1 text-sm text-[var(--ff-text-soft)]">
+                {challenge.description}
+              </p>
 
               <div className="mt-4">
-                <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase text-slate-400">
+                <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase text-[var(--ff-text-muted)]">
                   <span>Progresso</span>
                   <span>
                     {challenge.current} / {challenge.target}
                   </span>
                 </div>
 
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--ff-surface-muted)]">
                   <motion.div
-                    className="h-full rounded-full bg-violet-500"
+                    className="h-full rounded-full bg-[var(--ff-primary)]"
                     initial={{ width: 0 }}
                     animate={{ width: `${challenge.progress_percent}%` }}
                     transition={{ duration: 0.8, delay: 0.1 }}
@@ -553,11 +579,11 @@ export default function ConquistasPage() {
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center gap-3 text-sm font-semibold text-slate-600">
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-amber-700">
+              <div className="mt-4 flex items-center gap-3 text-sm font-semibold text-[var(--ff-text-soft)]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,#f59e0b_14%,var(--ff-surface))] px-3 py-1 text-amber-700">
                   <Coins className="h-4 w-4" /> +{challenge.reward_coins}
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-3 py-1 text-violet-700">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--ff-primary)_14%,var(--ff-surface))] px-3 py-1 text-[var(--ff-primary)]">
                   <Zap className="h-4 w-4" /> +{challenge.reward_xp} XP
                 </span>
               </div>
@@ -572,7 +598,7 @@ export default function ConquistasPage() {
         animate="show"
         className="pt-4"
       >
-        <h2 className="mb-6 text-xl font-semibold text-slate-800">
+        <h2 className="mb-6 text-xl font-semibold text-[var(--ff-text)]">
           Medalhas de Honra
         </h2>
 
@@ -583,7 +609,7 @@ export default function ConquistasPage() {
           className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
           {badges.map((badge) => {
-            const color = badgeColor(badge.color);
+            const color = badgeTone(badge.color);
 
             return (
               <motion.div
@@ -593,8 +619,8 @@ export default function ConquistasPage() {
                 className={cn(
                   "relative flex flex-col gap-4 rounded-3xl border p-6 transition-all hover:shadow-lg",
                   badge.unlocked
-                    ? "border-slate-100 bg-white"
-                    : "border-slate-100 bg-slate-50/60 opacity-80 grayscale",
+                    ? "border-[var(--ff-border)] bg-[var(--ff-surface)]"
+                    : "border-[var(--ff-border)] bg-[var(--ff-surface-soft)] opacity-80 grayscale",
                 )}
               >
                 <div className="flex items-start justify-between">
@@ -613,7 +639,7 @@ export default function ConquistasPage() {
                     <motion.div
                       initial={{ opacity: 0, scale: 0.7 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="rounded-full bg-emerald-100 p-1"
+                      className="rounded-full bg-[color-mix(in_srgb,#10b981_18%,var(--ff-surface))] p-1"
                     >
                       <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                     </motion.div>
@@ -621,24 +647,24 @@ export default function ConquistasPage() {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-slate-800">{badge.title}</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  <h3 className="font-semibold text-[var(--ff-text)]">{badge.title}</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-[var(--ff-text-soft)]">
                     {badge.description}
                   </p>
                 </div>
 
                 {!badge.unlocked && (
                   <div className="mt-auto pt-2">
-                    <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase text-slate-400">
+                    <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase text-[var(--ff-text-muted)]">
                       <span>Progresso</span>
                       <span>
                         {badge.current} / {badge.target}
                       </span>
                     </div>
 
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--ff-surface-muted)]">
                       <motion.div
-                        className="h-full rounded-full bg-violet-400"
+                        className="h-full rounded-full bg-[var(--ff-primary)]"
                         initial={{ width: 0 }}
                         animate={{ width: `${badge.progress_percent}%` }}
                         transition={{ duration: 0.7 }}

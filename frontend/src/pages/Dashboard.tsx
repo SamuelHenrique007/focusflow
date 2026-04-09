@@ -8,7 +8,6 @@ import {
   Target,
   Clock,
   CheckCircle2,
-  Circle,
   BookOpen,
   Briefcase,
   User,
@@ -29,12 +28,32 @@ import { api } from "@/services/api";
 import {
   listTasks,
   createTask,
-  updateTask,
   type Task,
   type CreateTaskRequest,
   type UpdateTaskRequest,
 } from "@/services/tasks";
 import { useGameStore } from "@/store/useGameStore";
+
+/* =========================
+   Cores Estáticas (Imunes ao Tema)
+========================= */
+const PRIORITY_COLORS: Record<string, string> = {
+  alta: "bg-red-500",
+  media: "bg-amber-500",
+  baixa: "bg-slate-400",
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  trabalho: "text-blue-500",
+  pessoal: "text-emerald-500",
+  estudo: "text-purple-500",
+};
+
+const CATEGORY_BG_COLORS: Record<string, string> = {
+  trabalho: "bg-blue-500",
+  pessoal: "bg-emerald-500",
+  estudo: "bg-purple-500",
+};
 
 type PomodoroSession = {
   id: number;
@@ -77,9 +96,11 @@ function getFirstAndSecondName(name?: string) {
 }
 
 function CategoryIcon({ category }: { category: Task["category"] }) {
-  if (category === "trabalho") return <Briefcase className="h-4 w-4" />;
-  if (category === "pessoal") return <User className="h-4 w-4" />;
-  return <BookOpen className="h-4 w-4" />;
+  const colorClass = CATEGORY_COLORS[category as string] || "text-slate-500";
+
+  if (category === "trabalho") return <Briefcase className={cn("h-4 w-4", colorClass)} />;
+  if (category === "pessoal") return <User className={cn("h-4 w-4", colorClass)} />;
+  return <BookOpen className={cn("h-4 w-4", colorClass)} />;
 }
 
 function isToday(dateString?: string | null) {
@@ -106,13 +127,7 @@ function shouldShowOnDashboard(task: Task) {
   return taskIsToday || isOverdue;
 }
 
-function TaskRow({
-  task,
-  onToggleComplete,
-}: {
-  task: Task;
-  onToggleComplete: () => void;
-}) {
+function TaskRow({ task }: { task: Task }) {
   const priorityTone =
     task.priority === "alta"
       ? "danger"
@@ -135,7 +150,8 @@ function TaskRow({
     <div
       className={cn(
         "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all hover:shadow-md",
-        isOverdue ? "border-rose-200 bg-rose-50/40" : "border-slate-200 bg-white",
+        // Fundo com tom avermelhado estático para atrasadas/pendentes
+        isOverdue ? "border-red-500/30 bg-red-500/10" : "border-slate-200 bg-white",
       )}
     >
       {!isDone ? (
@@ -143,54 +159,15 @@ function TaskRow({
           layoutId={`indicator-${task.id}`}
           className={cn(
             "absolute left-0 top-0 h-full w-1.5",
-            isOverdue ? "bg-rose-500" : "bg-blue-500",
+            // Cor vermelha se atrasada, senão usa a cor estática da categoria
+            isOverdue 
+              ? "bg-red-500" 
+              : CATEGORY_BG_COLORS[task.category as string] || "bg-blue-500",
           )}
         />
       ) : null}
 
-      <div className={cn("flex items-start gap-3", !isDone ? "pl-2" : "")}>
-        <button
-          type="button"
-          onClick={onToggleComplete}
-          className="mt-0.5 grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-200 transition-all hover:bg-white hover:scale-105 active:scale-95"
-          aria-label={
-            isDone
-              ? "Desmarcar tarefa concluída"
-              : "Marcar tarefa como concluída"
-          }
-          title={isDone ? "Desmarcar concluída" : "Marcar concluída"}
-        >
-          <AnimatePresence mode="wait">
-            {isDone ? (
-              <motion.div
-                key="done"
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                exit={{ scale: 0, rotate: 180 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              >
-                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="pending"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0 }}
-              >
-                <Circle
-                  className={cn(
-                    "h-6 w-6 transition-colors",
-                    isOverdue
-                      ? "text-rose-500"
-                      : "text-slate-300 group-hover:text-blue-500",
-                  )}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </button>
-
+      <div className="flex items-start gap-3 pl-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -199,7 +176,7 @@ function TaskRow({
               </p>
               {isOverdue && (
                 <span title="Atrasada" className="flex shrink-0 items-center">
-                  <AlertCircle className="h-4 w-4 text-rose-500" />
+                  <AlertCircle className="h-4 w-4 text-red-500" />
                 </span>
               )}
             </div>
@@ -214,7 +191,13 @@ function TaskRow({
 
               <Badge tone={priorityTone}>
                 <span className="inline-flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                  {/* Ponto de prioridade com cor estática */}
+                  <span 
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      PRIORITY_COLORS[task.priority as string] || "bg-current opacity-70"
+                    )} 
+                  />
                   {task.priority}
                 </span>
               </Badge>
@@ -526,20 +509,6 @@ export default function FocusFlowDashboard() {
     };
   }, [overdueTasks.length, inProgressTodayTasks.length, todayTasks.length]);
 
-  async function refreshDashboardData() {
-    try {
-      const [tasksData, pomodoroResponse] = await Promise.all([
-        listTasks(),
-        api.get<PomodoroStats>("/pomodoro/stats/"),
-      ]);
-
-      setTasks(tasksData);
-      setPomodoroStats(pomodoroResponse.data);
-    } catch {
-      setErrorMessage("Não foi possível atualizar os dados do dashboard.");
-    }
-  }
-
   async function handleCreateTask(
     payload: CreateTaskRequest | UpdateTaskRequest,
   ) {
@@ -552,24 +521,6 @@ export default function FocusFlowDashboard() {
       alert("Não foi possível criar a tarefa.");
     } finally {
       setIsSubmitting(false);
-    }
-  }
-
-  async function handleToggleComplete(task: Task) {
-    try {
-      const isCurrentlyDone = task.status === "concluida";
-
-      const updated = await updateTask(task.id, {
-        completedAt: isCurrentlyDone ? null : new Date().toISOString(),
-      });
-
-      setTasks((prev) =>
-        prev.map((item) => (item.id === updated.id ? updated : item)),
-      );
-
-      await refreshDashboardData();
-    } catch {
-      alert("Não foi possível atualizar a conclusão da tarefa.");
     }
   }
 
@@ -874,10 +825,7 @@ export default function FocusFlowDashboard() {
                       exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
                       transition={{ duration: 0.3, type: "spring", bounce: 0.3 }}
                     >
-                      <TaskRow
-                        task={task}
-                        onToggleComplete={() => handleToggleComplete(task)}
-                      />
+                      <TaskRow task={task} />
                     </motion.div>
                   ))}
                 </AnimatePresence>

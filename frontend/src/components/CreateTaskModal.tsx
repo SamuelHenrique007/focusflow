@@ -207,6 +207,46 @@ function createFormStateFromTask(task?: Task | null): FormState {
 }
 
 /* =========================
+   Theme helpers
+========================= */
+const tone = {
+  surface: "bg-[var(--ff-surface)]",
+  surfaceSoft: "bg-[var(--ff-surface-soft)]",
+  surfaceMuted: "bg-[var(--ff-surface-muted)]",
+  border: "border-[var(--ff-border)]",
+  text: "text-[var(--ff-text)]",
+  textSoft: "text-[var(--ff-text-soft)]",
+  textMuted: "text-[var(--ff-text-muted)]",
+  primaryBg: "bg-[var(--ff-primary)]",
+  primaryHover: "hover:bg-[var(--ff-primary-strong)]",
+  primaryText: "text-[var(--ff-primary)]",
+  primaryRing: "focus:ring-[var(--ff-ring)]",
+  primaryBorder: "focus:border-[var(--ff-primary)]",
+};
+
+function inputBaseClass() {
+  return cx(
+    "mt-2 w-full rounded-2xl border px-4 py-3 text-sm shadow-sm outline-none transition",
+    tone.border,
+    tone.surface,
+    tone.text,
+    "placeholder:text-[var(--ff-text-muted)]",
+    "ring-[var(--ff-ring)]",
+    tone.primaryBorder,
+    "focus:ring-4",
+  );
+}
+
+function subtleButtonClass() {
+  return cx(
+    "cursor-pointer transition active:scale-95",
+    tone.surfaceSoft,
+    tone.textSoft,
+    "hover:bg-[var(--ff-surface-muted)]",
+  );
+}
+
+/* =========================
    Portal Helpers
 ========================= */
 function useBodyScrollLock(locked: boolean) {
@@ -262,16 +302,19 @@ function ModalPortal({
           className="fixed inset-0 z-[9999]"
         >
           <div
-            className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
+            className="absolute inset-0 cursor-pointer bg-black/45 backdrop-blur-[2px]"
             onClick={onClose}
           />
-          <div className="relative flex h-full w-full items-start justify-center p-4 sm:items-center pointer-events-none">
+          <div className="pointer-events-none relative flex h-full w-full items-start justify-center p-4 sm:items-center">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
-              className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl pointer-events-auto flex flex-col max-h-full"
+              className={cx(
+                "pointer-events-auto flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-3xl shadow-2xl",
+                tone.surface,
+              )}
               role="dialog"
               aria-modal="true"
               aria-label={title}
@@ -286,12 +329,20 @@ function ModalPortal({
                 }
               `}</style>
 
-              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-                <p className="text-lg font-semibold text-slate-900">{title}</p>
+              <div
+                className={cx(
+                  "flex items-center justify-between border-b px-6 py-4",
+                  tone.border,
+                )}
+              >
+                <p className={cx("text-lg font-semibold", tone.text)}>{title}</p>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="cursor-pointer grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-700 transition hover:bg-slate-200 hover:scale-105 active:scale-95"
+                  className={cx(
+                    "grid h-10 w-10 cursor-pointer place-items-center rounded-xl transition hover:scale-105 active:scale-95",
+                    subtleButtonClass(),
+                  )}
                   aria-label="Fechar"
                 >
                   <X className="h-5 w-5" />
@@ -324,11 +375,11 @@ function FieldLabel({
 }) {
   return (
     <div className="flex items-start justify-between gap-3">
-      <label className="text-sm font-semibold text-slate-900">
+      <label className={cx("text-sm font-semibold", tone.text)}>
         {children} {required ? <span className="text-rose-600">*</span> : null}
       </label>
       {hint ? (
-        <span className="text-xs font-medium text-slate-500">{hint}</span>
+        <span className={cx("text-xs font-medium", tone.textMuted)}>{hint}</span>
       ) : null}
     </div>
   );
@@ -348,7 +399,7 @@ function Input({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition ring-blue-200 focus:border-blue-500 focus:ring-4"
+      className={inputBaseClass()}
     />
   );
 }
@@ -368,7 +419,7 @@ function Textarea({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={3}
-      className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm outline-none transition ring-blue-200 focus:border-blue-500 focus:ring-4"
+      className={cx(inputBaseClass(), "resize-none font-medium")}
     />
   );
 }
@@ -385,8 +436,8 @@ function Toggle({
       type="button"
       onClick={() => onChange(!checked)}
       className={cx(
-        "cursor-pointer relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-        checked ? "bg-blue-600" : "bg-slate-300",
+        "relative inline-flex h-7 w-12 cursor-pointer items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--ff-primary)] focus:ring-offset-2 focus:ring-offset-[var(--ff-surface)]",
+        checked ? "bg-[var(--ff-primary)]" : "bg-[var(--ff-surface-muted)]",
       )}
       aria-label="Alternar"
       aria-pressed={checked}
@@ -440,19 +491,24 @@ function SelectPro<T extends string>({
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cx(
-          "cursor-pointer flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition hover:border-slate-300",
-          "ring-blue-200 focus:border-blue-500 focus:ring-4",
+          "flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-sm outline-none transition",
+          tone.border,
+          tone.surface,
+          tone.text,
+          "hover:border-[var(--ff-primary)]/40",
+          "ring-[var(--ff-ring)] focus:border-[var(--ff-primary)] focus:ring-4",
         )}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
         <span className="inline-flex min-w-0 items-center gap-2">
-          {leftIcon ? <span className="text-slate-500">{leftIcon}</span> : null}
+          {/* Renderiza o ícone com a cor nativa dele sem forçar text-muted */}
+          {leftIcon ? <span className="flex items-center justify-center text-[var(--ff-text-muted)] [&>svg]:!text-current">{leftIcon}</span> : null}
           <span className="min-w-0 truncate">
             {selected ? (
               selected.label
             ) : (
-              <span className="font-semibold text-slate-500">
+              <span className={cx("font-semibold", tone.textMuted)}>
                 {placeholder}
               </span>
             )}
@@ -461,7 +517,8 @@ function SelectPro<T extends string>({
 
         <ChevronDown
           className={cx(
-            "h-5 w-5 text-slate-400 transition-transform duration-300",
+            "h-5 w-5 transition-transform duration-300",
+            tone.textMuted,
             open ? "rotate-180" : "",
           )}
         />
@@ -474,7 +531,11 @@ function SelectPro<T extends string>({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 right-0 top-[calc(100%+8px)] z-[10000] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className={cx(
+              "absolute left-0 right-0 top-[calc(100%+8px)] z-[10000] overflow-hidden rounded-2xl border shadow-2xl",
+              tone.border,
+              tone.surface,
+            )}
           >
             <div
               className={cx(
@@ -494,10 +555,11 @@ function SelectPro<T extends string>({
                       setOpen(false);
                     }}
                     className={cx(
-                      "cursor-pointer flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
+                      "flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
                       isActive
-                        ? "bg-blue-50 text-blue-800"
-                        : "text-slate-800 hover:bg-slate-50",
+                        ? "bg-[color-mix(in_srgb,var(--ff-primary)_12%,var(--ff-surface))] text-[var(--ff-primary)]"
+                        : "hover:bg-[var(--ff-surface-soft)]",
+                      !isActive && tone.text,
                     )}
                     role="option"
                     aria-selected={isActive}
@@ -508,8 +570,8 @@ function SelectPro<T extends string>({
                           className={cx(
                             "grid h-9 w-9 place-items-center rounded-xl ring-1 transition-colors",
                             isActive
-                              ? "bg-white ring-blue-100 text-blue-700"
-                              : "bg-slate-50 ring-slate-200 text-slate-600",
+                              ? "bg-[var(--ff-surface)] text-[var(--ff-primary)] ring-[color-mix(in_srgb,var(--ff-primary)_20%,var(--ff-border))]"
+                              : "bg-[var(--ff-surface-soft)] text-[var(--ff-text-soft)] ring-[var(--ff-border)]",
                           )}
                         >
                           {o.icon}
@@ -521,7 +583,7 @@ function SelectPro<T extends string>({
                           {o.label}
                         </span>
                         {o.meta ? (
-                          <span className="block truncate text-xs font-medium text-slate-500">
+                          <span className={cx("block truncate text-xs font-medium", tone.textMuted)}>
                             {o.meta}
                           </span>
                         ) : null}
@@ -529,12 +591,12 @@ function SelectPro<T extends string>({
                     </span>
 
                     {isActive && (
-                      <motion.span 
+                      <motion.span
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="grid h-8 w-8 place-items-center rounded-xl bg-white ring-1 ring-blue-100"
+                        className="grid h-8 w-8 place-items-center rounded-xl bg-[var(--ff-surface)] ring-1 ring-[color-mix(in_srgb,var(--ff-primary)_20%,var(--ff-border))]"
                       >
-                        <Check className="h-4 w-4 text-blue-700" />
+                        <Check className="h-4 w-4 text-[var(--ff-primary)]" />
                       </motion.span>
                     )}
                   </button>
@@ -575,14 +637,17 @@ function DateTimePicker({
         type="button"
         onClick={() => setOpen(true)}
         className={cx(
-          "cursor-pointer mt-2 flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold shadow-sm outline-none transition hover:border-slate-300",
-          "ring-blue-200 focus:border-blue-500 focus:ring-4",
+          "mt-2 flex w-full cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-sm outline-none transition",
+          tone.border,
+          tone.surface,
+          "hover:border-[var(--ff-primary)]/40",
+          "ring-[var(--ff-ring)] focus:border-[var(--ff-primary)] focus:ring-4",
         )}
         aria-haspopup="dialog"
         aria-expanded={open}
       >
-        <span className="inline-flex items-center gap-2 text-slate-900">
-          <Calendar className="h-4 w-4 text-slate-500" />
+        <span className={cx("inline-flex items-center gap-2", tone.text)}>
+          <Calendar className={cx("h-4 w-4", tone.textMuted)} />
           {value ? (
             <span className="capitalize">
               {timeValue
@@ -590,11 +655,11 @@ function DateTimePicker({
                 : formatPtBR(value)}
             </span>
           ) : (
-            <span className="text-slate-500">{placeholder}</span>
+            <span className={tone.textMuted}>{placeholder}</span>
           )}
         </span>
 
-        <ChevronDown className="h-5 w-5 text-slate-400" />
+        <ChevronDown className={cx("h-5 w-5", tone.textMuted)} />
       </button>
 
       {typeof document !== "undefined" &&
@@ -633,7 +698,6 @@ function DateTimePickerContent({
   const [tempDate, setTempDate] = useState<Date | null>(initialDate);
   const [tempTime, setTempTime] = useState<string>(initialTime);
 
-  // Reinicia o estado sempre que o modal abre
   React.useEffect(() => {
     if (open) {
       setView(initialDate ?? new Date());
@@ -661,7 +725,7 @@ function DateTimePickerContent({
           className="fixed inset-0 z-[10001] flex items-center justify-center p-4"
         >
           <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            className="absolute inset-0 cursor-pointer bg-black/30 backdrop-blur-sm"
             onClick={onClose}
           />
 
@@ -670,16 +734,23 @@ function DateTimePickerContent({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 15 }}
             transition={{ type: "spring", bounce: 0.4 }}
-            className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl"
+            className={cx(
+              "relative z-10 w-full max-w-md overflow-hidden rounded-3xl border shadow-2xl",
+              tone.border,
+              tone.surface,
+            )}
           >
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-              <p className="text-sm font-semibold text-slate-900">
+            <div className={cx("flex items-center justify-between border-b px-5 py-4", tone.border)}>
+              <p className={cx("text-sm font-semibold", tone.text)}>
                 Data e horário
               </p>
               <button
                 type="button"
                 onClick={onClose}
-                className="cursor-pointer grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-700 transition hover:bg-slate-200 hover:scale-105 active:scale-95"
+                className={cx(
+                  "grid h-9 w-9 cursor-pointer place-items-center rounded-xl transition hover:scale-105 active:scale-95",
+                  subtleButtonClass(),
+                )}
                 aria-label="Fechar"
               >
                 <X className="h-4 w-4" />
@@ -695,7 +766,7 @@ function DateTimePickerContent({
                     setTempDate(d);
                     setTempTime("");
                   }}
-                  className="cursor-pointer rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 hover:scale-105 active:scale-95"
+                  className="cursor-pointer rounded-full bg-[color-mix(in_srgb,var(--ff-primary)_12%,var(--ff-surface))] px-3 py-1.5 text-xs font-semibold text-[var(--ff-primary)] transition hover:bg-[color-mix(in_srgb,var(--ff-primary)_18%,var(--ff-surface))] hover:scale-105 active:scale-95"
                 >
                   Hoje
                 </button>
@@ -707,7 +778,10 @@ function DateTimePickerContent({
                     d.setDate(d.getDate() + 1);
                     setTempDate(d);
                   }}
-                  className="cursor-pointer rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 hover:scale-105 active:scale-95"
+                  className={cx(
+                    "cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold hover:scale-105 active:scale-95",
+                    subtleButtonClass(),
+                  )}
                 >
                   Amanhã
                 </button>
@@ -718,7 +792,7 @@ function DateTimePickerContent({
                     setTempDate(null);
                     setTempTime("");
                   }}
-                  className="cursor-pointer ml-auto rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 hover:scale-105 active:scale-95"
+                  className="ml-auto cursor-pointer rounded-full bg-[color-mix(in_srgb,#ef4444_10%,var(--ff-surface))] px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-[color-mix(in_srgb,#ef4444_16%,var(--ff-surface))] hover:scale-105 active:scale-95"
                 >
                   Limpar
                 </button>
@@ -728,19 +802,25 @@ function DateTimePickerContent({
                 <button
                   type="button"
                   onClick={() => setView((v) => addMonths(v, -1))}
-                  className="cursor-pointer rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 hover:scale-105 active:scale-95"
+                  className={cx(
+                    "cursor-pointer rounded-xl px-3 py-2 text-xs font-semibold hover:scale-105 active:scale-95",
+                    subtleButtonClass(),
+                  )}
                 >
                   ←
                 </button>
 
-                <div className="text-sm font-semibold capitalize text-slate-900">
+                <div className={cx("text-sm font-semibold capitalize", tone.text)}>
                   {monthLabel}
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setView((v) => addMonths(v, 1))}
-                  className="cursor-pointer rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 hover:scale-105 active:scale-95"
+                  className={cx(
+                    "cursor-pointer rounded-xl px-3 py-2 text-xs font-semibold hover:scale-105 active:scale-95",
+                    subtleButtonClass(),
+                  )}
                 >
                   →
                 </button>
@@ -750,7 +830,7 @@ function DateTimePickerContent({
                 {dow.map((d) => (
                   <div
                     key={d}
-                    className="pb-1 text-center text-[10px] font-semibold text-slate-500"
+                    className={cx("pb-1 text-center text-[10px] font-semibold", tone.textMuted)}
                   >
                     {d}
                   </div>
@@ -767,13 +847,15 @@ function DateTimePickerContent({
                       type="button"
                       onClick={() => setTempDate(d)}
                       className={cx(
-                        "cursor-pointer h-9 rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95",
+                        "h-9 cursor-pointer rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95",
                         muted
-                          ? "text-slate-400 hover:bg-slate-50"
-                          : "text-slate-800 hover:bg-slate-100",
-                        isToday && !selected ? "bg-blue-100 text-blue-700" : "",
+                          ? "text-[var(--ff-text-muted)] hover:bg-[var(--ff-surface-soft)]"
+                          : "text-[var(--ff-text)] hover:bg-[var(--ff-surface-soft)]",
+                        isToday && !selected
+                          ? "bg-[color-mix(in_srgb,var(--ff-primary)_12%,var(--ff-surface))] text-[var(--ff-primary)]"
+                          : "",
                         selected
-                          ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+                          ? "bg-[var(--ff-primary)] text-white shadow-md hover:bg-[var(--ff-primary-strong)]"
                           : "",
                       )}
                     >
@@ -784,8 +866,8 @@ function DateTimePickerContent({
               </div>
 
               <div>
-                <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
-                  <Clock3 className="h-4 w-4 text-slate-500" />
+                <label className={cx("mb-2 flex items-center gap-2 text-sm font-semibold", tone.text)}>
+                  <Clock3 className={cx("h-4 w-4", tone.textMuted)} />
                   Horário
                 </label>
 
@@ -793,15 +875,26 @@ function DateTimePickerContent({
                   type="time"
                   value={tempTime}
                   onChange={(e) => setTempTime(e.target.value)}
-                  className="cursor-pointer w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition ring-blue-200 focus:border-blue-500 focus:ring-4"
+                  className={cx(
+                    "w-full cursor-pointer rounded-2xl border px-4 py-3 text-sm font-semibold outline-none transition",
+                    tone.border,
+                    tone.surface,
+                    tone.text,
+                    "ring-[var(--ff-ring)] focus:border-[var(--ff-primary)] focus:ring-4",
+                  )}
                 />
               </div>
 
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-2">
+              <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="cursor-pointer rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:scale-105 active:scale-95"
+                  className={cx(
+                    "cursor-pointer rounded-xl px-5 py-2.5 text-sm font-semibold ring-1 transition hover:scale-105 active:scale-95",
+                    tone.surface,
+                    tone.textSoft,
+                    "ring-[var(--ff-border)] hover:bg-[var(--ff-surface-soft)]",
+                  )}
                 >
                   Cancelar
                 </button>
@@ -809,7 +902,7 @@ function DateTimePickerContent({
                 <button
                   type="button"
                   onClick={() => onApply(tempDate, tempTime)}
-                  className="cursor-pointer rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-105 active:scale-95"
+                  className="cursor-pointer rounded-xl bg-[var(--ff-primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--ff-primary-strong)] hover:scale-105 active:scale-95"
                 >
                   Aplicar
                 </button>
@@ -889,44 +982,46 @@ function CreateTaskModalForm({
     onClose();
   }
 
+  // Cores estáticas da Categoria aplicadas diretamente via Tailwind
   const categoryOptions: Array<SelectOption<TaskCategory>> = [
     {
       label: "Estudo",
       value: "estudo",
-      icon: <BookOpen className="h-4 w-4" />,
+      icon: <BookOpen className="h-4 w-4 text-purple-500" />,
       meta: "Aprendizado, leitura, exercícios",
     },
     {
       label: "Trabalho",
       value: "trabalho",
-      icon: <Briefcase className="h-4 w-4" />,
+      icon: <Briefcase className="h-4 w-4 text-blue-500" />,
       meta: "Projetos, entregas, reuniões",
     },
     {
       label: "Pessoal",
       value: "pessoal",
-      icon: <User className="h-4 w-4" />,
+      icon: <User className="h-4 w-4 text-emerald-500" />,
       meta: "Rotina, saúde, organização",
     },
   ];
 
+  // Cores estáticas da Prioridade aplicadas diretamente via Tailwind
   const priorityOptions: Array<SelectOption<TaskPriority>> = [
     {
       label: "Baixa",
       value: "baixa",
-      icon: <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />,
+      icon: <span className="h-2.5 w-2.5 rounded-full bg-slate-400" />,
       meta: "Pode esperar",
     },
     {
       label: "Média",
       value: "media",
-      icon: <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />,
+      icon: <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />,
       meta: "Importante",
     },
     {
       label: "Alta",
       value: "alta",
-      icon: <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />,
+      icon: <span className="h-2.5 w-2.5 rounded-full bg-red-500" />,
       meta: "Prioridade máxima",
     },
   ];
@@ -988,9 +1083,9 @@ function CreateTaskModalForm({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="text-xs font-medium text-rose-600 overflow-hidden"
+              className="overflow-hidden text-xs font-medium text-rose-600"
             >
-              <span className="block mt-2">
+              <span className="mt-2 block">
                 Informe o nome da tarefa para continuar.
               </span>
             </motion.p>
@@ -1024,7 +1119,8 @@ function CreateTaskModalForm({
               }))
             }
             options={categoryOptions}
-            leftIcon={<BookOpen className="h-4 w-4" />}
+            // Exibe a cor correspondente no Select Fechado dinamicamente
+            leftIcon={categoryOptions.find(o => o.value === form.category)?.icon || <BookOpen className="h-4 w-4" />}
             placeholder="Selecione a categoria"
           />
         </div>
@@ -1040,7 +1136,8 @@ function CreateTaskModalForm({
               }))
             }
             options={priorityOptions}
-            leftIcon={<span className="h-3 w-3 rounded-full bg-amber-400" />}
+            // Exibe a cor correspondente no Select Fechado dinamicamente
+            leftIcon={priorityOptions.find(o => o.value === form.priority)?.icon || <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />}
             placeholder="Selecione a prioridade"
           />
         </div>
@@ -1084,11 +1181,17 @@ function CreateTaskModalForm({
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+      <div
+        className={cx(
+          "rounded-3xl border p-5",
+          tone.border,
+          tone.surfaceSoft,
+        )}
+      >
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-slate-900">Subtarefas</p>
-            <p className="mt-1 text-xs font-medium text-slate-500">
+            <p className={cx("text-sm font-semibold", tone.text)}>Subtarefas</p>
+            <p className={cx("mt-1 text-xs font-medium", tone.textMuted)}>
               Adicione etapas para facilitar a execução
             </p>
           </div>
@@ -1120,7 +1223,7 @@ function CreateTaskModalForm({
                 <AnimatePresence mode="popLayout">
                   {form.subtasks.map((subtask, idx) => {
                     const uniqueKey = subtask.id ?? `temp-${idx}`;
-                    
+
                     return (
                       <motion.div
                         layout
@@ -1150,7 +1253,14 @@ function CreateTaskModalForm({
                               });
                             }}
                             placeholder={`Subtarefa ${idx + 1}`}
-                            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm outline-none transition ring-blue-200 focus:border-blue-500 focus:ring-4"
+                            className={cx(
+                              "w-full rounded-2xl border px-4 py-3 text-sm font-semibold shadow-sm outline-none transition",
+                              tone.border,
+                              tone.surface,
+                              tone.text,
+                              "placeholder:text-[var(--ff-text-muted)]",
+                              "ring-[var(--ff-ring)] focus:border-[var(--ff-primary)] focus:ring-4",
+                            )}
                           />
                         </div>
 
@@ -1168,7 +1278,12 @@ function CreateTaskModalForm({
                               };
                             })
                           }
-                          className="cursor-pointer grid h-12 w-12 place-items-center rounded-2xl bg-white text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-rose-600 hover:ring-rose-200 hover:scale-105 active:scale-95"
+                          className={cx(
+                            "grid h-12 w-12 cursor-pointer place-items-center rounded-2xl ring-1 transition hover:scale-105 active:scale-95",
+                            tone.surface,
+                            tone.textSoft,
+                            "ring-[var(--ff-border)] hover:bg-[var(--ff-surface-soft)] hover:text-rose-600 hover:ring-rose-200",
+                          )}
                           aria-label="Remover subtarefa"
                           title="Remover"
                         >
@@ -1180,7 +1295,7 @@ function CreateTaskModalForm({
                 </AnimatePresence>
 
                 <div className="flex items-center justify-between gap-3 pt-2">
-                  <p className="text-xs font-medium text-slate-500">
+                  <p className={cx("text-xs font-medium", tone.textMuted)}>
                     Dica: use frases curtas e objetivas.
                   </p>
 
@@ -1195,7 +1310,7 @@ function CreateTaskModalForm({
                         ],
                       }))
                     }
-                    className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-105 active:scale-95"
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[var(--ff-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--ff-primary-strong)] hover:scale-105 active:scale-95"
                   >
                     <Plus className="h-4 w-4" />
                     Adicionar
@@ -1207,12 +1322,17 @@ function CreateTaskModalForm({
         </AnimatePresence>
       </div>
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end pt-4">
+      <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
         <button
           type="button"
           onClick={onClose}
           disabled={isSubmitting}
-          className="cursor-pointer rounded-2xl bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+          className={cx(
+            "cursor-pointer rounded-2xl px-6 py-3.5 text-sm font-semibold ring-1 transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100",
+            tone.surface,
+            tone.textSoft,
+            "ring-[var(--ff-border)] hover:bg-[var(--ff-surface-soft)]",
+          )}
         >
           Cancelar
         </button>
@@ -1222,10 +1342,10 @@ function CreateTaskModalForm({
           disabled={!canSubmit || isSubmitting}
           onClick={handleSubmit}
           className={cx(
-            "cursor-pointer inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-all",
+            "inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-all",
             canSubmit && !isSubmitting
-              ? "bg-blue-600 hover:bg-blue-700 hover:scale-105 active:scale-95"
-              : "cursor-not-allowed bg-slate-300",
+              ? "cursor-pointer bg-[var(--ff-primary)] hover:bg-[var(--ff-primary-strong)] hover:scale-105 active:scale-95"
+              : "cursor-not-allowed bg-[var(--ff-surface-muted)] text-[var(--ff-text-muted)] shadow-none",
           )}
         >
           {isSubmitting ? (

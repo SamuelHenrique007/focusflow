@@ -143,7 +143,7 @@ function SidebarItem({
   );
 
   const classes = cn(
-    "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+    "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
     active
       ? "bg-blue-50 text-blue-700"
       : danger
@@ -235,18 +235,18 @@ export function SidebarNav({
   activeKey: NavKey;
   onSelect?: (key: NavKey) => void;
 }) {
-  const hasUnreadNotifications = useNotificationsStore(
-    (state) => state.hasUnreadNotifications
-  );
   const unreadCount = useNotificationsStore((state) => state.unreadCount);
 
   const fetchUnreadCount = useNotificationsStore(
     (state) => state.fetchUnreadCount
   );
 
+  const { isAuthenticated } = useAuth();
+
   useEffect(() => {
+    if (!isAuthenticated) return;
     void fetchUnreadCount();
-  }, [fetchUnreadCount]);
+  }, [isAuthenticated, fetchUnreadCount]);
 
   return (
     <div className="flex h-full flex-col justify-between">
@@ -270,7 +270,6 @@ export function SidebarNav({
               active={activeKey === "notifications"}
               icon={<Bell className="h-4 w-4" />}
               label="Notificações"
-              showIndicator={Boolean(hasUnreadNotifications)}
               to={ROUTES.notifications}
               onClick={onSelect ? () => onSelect("notifications") : undefined}
             />

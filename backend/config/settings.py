@@ -133,7 +133,6 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = "equipe.focusflow@gmail.com"
 EMAIL_HOST_PASSWORD = "cvqm slwu uztp kiit"
 DEFAULT_FROM_EMAIL = "FocusFlow <equipe.focusflow@gmail.com>"
-FRONTEND_URL = "http://localhost:5173"
 
 
 DATABASES = {

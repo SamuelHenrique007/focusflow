@@ -39,6 +39,27 @@ import {
 import { useGameStore } from "@/store/useGameStore";
 
 /* =========================
+   Cores Estáticas (Imunes ao Tema)
+========================= */
+const PRIORITY_COLORS: Record<string, string> = {
+  alta: "bg-red-500",
+  media: "bg-amber-500",
+  baixa: "bg-slate-400",
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  trabalho: "text-blue-500",
+  pessoal: "text-emerald-500",
+  estudo: "text-purple-500",
+};
+
+const CATEGORY_BG_COLORS: Record<string, string> = {
+  trabalho: "bg-blue-500",
+  pessoal: "bg-emerald-500",
+  estudo: "bg-purple-500",
+};
+
+/* =========================
    Small hook: click outside
 ========================= */
 function useClickOutside<T extends HTMLElement>(
@@ -401,9 +422,11 @@ function RowMenu({
 }
 
 function CategoryIcon({ category }: { category: Task["category"] }) {
-  if (category === "trabalho") return <Briefcase className="h-4 w-4" />;
-  if (category === "pessoal") return <User className="h-4 w-4" />;
-  return <BookOpen className="h-4 w-4" />;
+  const colorClass = CATEGORY_COLORS[category as string] || "text-[var(--ff-text-soft)]";
+
+  if (category === "trabalho") return <Briefcase className={cn("h-4 w-4", colorClass)} />;
+  if (category === "pessoal") return <User className={cn("h-4 w-4", colorClass)} />;
+  return <BookOpen className={cn("h-4 w-4", colorClass)} />;
 }
 
 /* =========================
@@ -451,7 +474,7 @@ function TaskRow({
       className={cn(
         "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all hover:shadow-md",
         isPending
-          ? "border-[var(--ff-border)] bg-[var(--ff-primary-soft)]/30"
+          ? "border-red-500/30 bg-red-500/10" // Fundo com tom avermelhado estático para atrasadas/pendentes
           : "border-[var(--ff-border)] bg-[var(--ff-surface)]",
         isDone && "opacity-60 grayscale-[0.3]",
       )}
@@ -461,7 +484,10 @@ function TaskRow({
           layoutId={`indicator-${task.id}`}
           className={cn(
             "absolute left-0 top-0 h-full w-1.5",
-            "bg-[var(--ff-primary)]",
+            // Se estiver pendente, usa vermelho. Se ativo, usa a cor estática da categoria.
+            isPending 
+              ? "bg-red-500" 
+              : CATEGORY_BG_COLORS[task.category as string] || "bg-[var(--ff-primary)]",
           )}
         />
       ) : null}
@@ -506,7 +532,7 @@ function TaskRow({
                     className={cn(
                       "h-6 w-6 transition-colors",
                       isPending
-                        ? "text-[var(--ff-primary)]"
+                        ? "text-red-500" // Cor fixa vermelha para status pendente
                         : "text-[var(--ff-text-muted)] group-hover:text-[var(--ff-primary)]",
                     )}
                   />
@@ -527,7 +553,7 @@ function TaskRow({
               </p>
               {isPending && (
                 <span title="Atrasada" className="flex shrink-0 items-center">
-                  <AlertCircle className="h-4 w-4 text-[var(--ff-primary)]" />
+                  <AlertCircle className="h-4 w-4 text-red-500" />
                 </span>
               )}
             </div>
@@ -548,7 +574,13 @@ function TaskRow({
 
               <Badge tone={priorityTone}>
                 <span className="inline-flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                  {/* Cor estática para o ícone de prioridade */}
+                  <span 
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      PRIORITY_COLORS[task.priority as string] || "bg-current opacity-70"
+                    )} 
+                  />
                   {task.priority}
                 </span>
               </Badge>
@@ -793,19 +825,19 @@ export default function TasksPage() {
       {
         label: "Estudo",
         value: "estudo",
-        icon: <BookOpen className="h-4 w-4" />,
+        icon: <BookOpen className={cn("h-4 w-4", CATEGORY_COLORS.estudo)} />,
         meta: "",
       },
       {
         label: "Trabalho",
         value: "trabalho",
-        icon: <Briefcase className="h-4 w-4" />,
+        icon: <Briefcase className={cn("h-4 w-4", CATEGORY_COLORS.trabalho)} />,
         meta: "",
       },
       {
         label: "Pessoal",
         value: "pessoal",
-        icon: <User className="h-4 w-4" />,
+        icon: <User className={cn("h-4 w-4", CATEGORY_COLORS.pessoal)} />,
         meta: "",
       },
     ];
@@ -821,19 +853,19 @@ export default function TasksPage() {
       {
         label: "Alta",
         value: "alta",
-        icon: <span className="h-2.5 w-2.5 rounded-full bg-[var(--ff-primary)]" />,
+        icon: <span className={cn("h-2.5 w-2.5 rounded-full", PRIORITY_COLORS.alta)} />,
         meta: "",
       },
       {
         label: "Média",
         value: "media",
-        icon: <span className="h-2.5 w-2.5 rounded-full bg-[var(--ff-primary)] opacity-70" />,
+        icon: <span className={cn("h-2.5 w-2.5 rounded-full", PRIORITY_COLORS.media)} />,
         meta: "",
       },
       {
         label: "Baixa",
         value: "baixa",
-        icon: <span className="h-2.5 w-2.5 rounded-full bg-[var(--ff-text-muted)]" />,
+        icon: <span className={cn("h-2.5 w-2.5 rounded-full", PRIORITY_COLORS.baixa)} />,
         meta: "",
       },
     ];
@@ -1109,6 +1141,6 @@ export default function TasksPage() {
           initialData={selectedTask}
           isSubmitting={isSubmitting}
         />
-      </>
+    </>
   );
 }

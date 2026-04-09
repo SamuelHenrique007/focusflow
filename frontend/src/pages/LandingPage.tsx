@@ -7,8 +7,13 @@ import {
   Clock3,
   LayoutDashboard,
   ListTodo,
-  Sparkles,
   Timer,
+  BarChart3,
+  Trophy,
+  Bell,
+  Settings,
+  ShoppingBag,
+  ShieldCheck,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -59,6 +64,7 @@ function FeatureCard({
         whileHover={{ scale: 1.15, opacity: 1 }}
         transition={{ duration: 0.3 }}
       />
+
       <div className="flex items-start gap-4">
         <motion.div
           whileHover={{ rotate: 6, scale: 1.08 }}
@@ -78,6 +84,66 @@ function FeatureCard({
     </motion.div>
   );
 }
+
+const features = [
+  {
+    icon: <ListTodo className="h-6 w-6" />,
+    title: "Gestão de tarefas",
+    description:
+      "Crie, organize, edite e acompanhe tarefas com categorias, prioridades, prazos e progresso de execução.",
+  },
+  {
+    icon: <Clock3 className="h-6 w-6" />,
+    title: "Pomodoro integrado",
+    description:
+      "Use ciclos de foco e pausa com temporizador configurável para manter a concentração durante os estudos ou trabalho.",
+  },
+  {
+    icon: <LayoutDashboard className="h-6 w-6" />,
+    title: "Dashboard inteligente",
+    description:
+      "Visualize rapidamente as tarefas do dia, pendências, progresso diário e insights para impulsionar sua produtividade.",
+  },
+  {
+    icon: <BarChart3 className="h-6 w-6" />,
+    title: "Estatísticas de produtividade",
+    description:
+      "Acompanhe métricas de desempenho, sessões realizadas, distribuição das tarefas e evolução do foco ao longo do tempo.",
+  },
+  {
+    icon: <Trophy className="h-6 w-6" />,
+    title: "Conquistas e gamificação",
+    description:
+      "Desbloqueie medalhas, desafios e recompensas para tornar a rotina mais motivadora e manter constância no uso.",
+  },
+  {
+    icon: <ShoppingBag className="h-6 w-6" />,
+    title: "Loja e recompensas",
+    description:
+      "Utilize moedas e recompensas do sistema para personalizar sua experiência e valorizar o progresso alcançado.",
+  },
+  {
+    icon: <Bell className="h-6 w-6" />,
+    title: "Notificações",
+    description:
+      "Receba avisos e lembretes importantes sobre tarefas, foco, progresso e ações relevantes dentro da plataforma.",
+  },
+  {
+    icon: <Settings className="h-6 w-6" />,
+    title: "Configurações personalizadas",
+    description:
+      "Ajuste preferências do perfil, aparência, sons e parâmetros do Pomodoro para adaptar o sistema ao seu ritmo.",
+  },
+];
+
+const highlights = [
+  "Tarefas com prioridade e prazo",
+  "Sessões Pomodoro configuráveis",
+  "Dashboard com visão geral",
+  "Estatísticas de produtividade",
+  "Sistema de conquistas",
+  "Notificações e preferências",
+];
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -111,7 +177,7 @@ export default function LandingPage() {
                 FocusFlow
               </p>
               <p className="truncate text-xs text-slate-500">
-                Produtividade & foco
+                Produtividade, foco e constância
               </p>
             </div>
           </div>
@@ -172,23 +238,25 @@ export default function LandingPage() {
                 transition={{ duration: 1.8, repeat: Infinity }}
                 className="inline-block h-2 w-2 rounded-full bg-emerald-300"
               />
-              Um sistema para transformar foco em hábito
+              Organize seu tempo e acompanhe sua evolução
             </motion.div>
 
             <motion.h1
               variants={fadeUp}
               className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl"
             >
-              Pare de adiar e comece a{" "}
-              <span className="text-amber-300">concluir</span>
+              Transforme sua rotina em <span className="text-amber-300">foco</span>{" "}
+              e produtividade
             </motion.h1>
 
             <motion.p
               variants={fadeUp}
               className="mt-3 max-w-2xl text-sm leading-relaxed text-white/85 sm:text-base"
             >
-              O FocusFlow te ajuda a combater a procrastinação com tarefas
-              organizadas, ciclos de Pomodoro e acompanhamento do seu progresso.
+              O FocusFlow é uma plataforma que ajuda você a organizar tarefas,
+              manter ciclos de concentração com Pomodoro, acompanhar
+              estatísticas, receber notificações e evoluir com recursos de
+              gamificação.
             </motion.p>
 
             <motion.div
@@ -232,9 +300,9 @@ export default function LandingPage() {
               className="mt-6 flex flex-wrap gap-4 text-xs text-white/85"
             >
               {[
-                "Pomodoro integrado",
-                "Metas e prioridades",
-                "Progresso e estatísticas",
+                "Tarefas e prioridades",
+                "Pomodoro configurável",
+                "Estatísticas e progresso",
               ].map((item) => (
                 <motion.div
                   key={item}
@@ -264,39 +332,23 @@ export default function LandingPage() {
               Tudo que você precisa para manter constância
             </h2>
             <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-600">
-              Uma experiência simples e organizada que utiliza tarefas, ciclos
-              de foco e elementos de gamificação para tornar o progresso visível
-              e motivador.
+              O FocusFlow reúne organização, foco, acompanhamento de desempenho
+              e recursos motivacionais em uma experiência simples e prática.
             </p>
           </motion.div>
 
           <motion.div
             variants={staggerContainer}
-            className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
           >
-            <FeatureCard
-              icon={<ListTodo className="h-6 w-6" />}
-              title="Gestão de tarefas"
-              description="Crie, organize e acompanhe suas atividades para manter controle do que precisa ser feito."
-            />
-
-            <FeatureCard
-              icon={<Clock3 className="h-6 w-6" />}
-              title="Pomodoro"
-              description="Utilize ciclos de foco e pausa para melhorar a concentração e produtividade."
-            />
-
-            <FeatureCard
-              icon={<LayoutDashboard className="h-6 w-6" />}
-              title="Dashboard"
-              description="Visualize rapidamente suas tarefas pendentes, concluídas e seu progresso."
-            />
-
-            <FeatureCard
-              icon={<Sparkles className="h-6 w-6" />}
-              title="Gamificação"
-              description="Elementos motivacionais como progresso e recompensas para incentivar a conclusão de tarefas."
-            />
+            {features.map((feature) => (
+              <FeatureCard
+                key={feature.title}
+                icon={feature.icon}
+                title={feature.title}
+                description={feature.description}
+              />
+            ))}
           </motion.div>
         </motion.section>
 
@@ -307,71 +359,125 @@ export default function LandingPage() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="mt-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
         >
-          <div className="mx-auto max-w-3xl text-center">
-            <p className="inline-flex rounded-full bg-slate-900/5 px-3 py-1 text-xs font-semibold text-slate-700">
-              SOBRE O PROJETO
-            </p>
-            <h3 className="mt-3 text-2xl font-bold text-slate-900">
-              Um apoio prático para reduzir a procrastinação
-            </h3>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600">
-              O FocusFlow foi pensado para facilitar o início das tarefas e
-              reduzir o adiamento, combinando organização, gestão de tempo e
-              feedbacks de progresso. O objetivo é apoiar a criação de hábitos
-              produtivos de forma gradual e sustentável.
-            </p>
+          <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+            <div>
+              <p className="inline-flex rounded-full bg-slate-900/5 px-3 py-1 text-xs font-semibold text-slate-700">
+                SOBRE O SISTEMA
+              </p>
+
+              <h3 className="mt-3 text-2xl font-bold text-slate-900">
+                Um apoio prático para estudar, trabalhar e manter o foco
+              </h3>
+
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                O FocusFlow foi desenvolvido para ajudar usuários a reduzir a
+                procrastinação e melhorar a gestão do tempo. A plataforma reúne
+                tarefas, sessões Pomodoro, dashboard, estatísticas,
+                notificações, conquistas e personalização, oferecendo uma
+                experiência completa para construção de hábitos produtivos.
+              </p>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {highlights.map((item) => (
+                  <div
+                    key={item}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700"
+                  >
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <motion.div
               variants={staggerContainer}
               initial="hidden"
               whileInView="show"
               viewport={{ once: true, amount: 0.2 }}
-              className="mt-6 grid gap-3 sm:grid-cols-3"
+              className="grid gap-3"
             >
               {[
                 {
-                  title: "Missão",
-                  text: "Ajudar usuários a concluir tarefas com mais foco e constância.",
+                  title: "Produtividade",
+                  text: "Organize tarefas e acompanhe sua execução com mais clareza.",
+                  icon: <LayoutDashboard className="h-5 w-5" />,
                 },
                 {
-                  title: "Visão",
-                  text: "Tornar a produtividade mais simples e acessível no dia a dia.",
+                  title: "Foco",
+                  text: "Use sessões Pomodoro para manter atenção em blocos de trabalho.",
+                  icon: <Timer className="h-5 w-5" />,
                 },
                 {
-                  title: "Compromisso",
-                  text: "Interface clara, feedback rápido e experiência consistente.",
+                  title: "Segurança e controle",
+                  text: "Gerencie perfil, preferências e recursos do sistema em um só lugar.",
+                  icon: <ShieldCheck className="h-5 w-5" />,
                 },
               ].map((item) => (
                 <motion.div
                   key={item.title}
                   variants={fadeUp}
                   whileHover={{ y: -4 }}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-5"
                 >
-                  <p className="text-sm font-semibold text-slate-900">
-                    {item.title}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-600">{item.text}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600/10 text-blue-600">
+                      {item.icon}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {item.title}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">{item.text}</p>
+                    </div>
+                  </div>
                 </motion.div>
               ))}
             </motion.div>
+          </div>
+        </motion.section>
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-              className="mt-8"
-            >
+        <motion.section
+          initial={{ opacity: 0, y: 35 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="relative mt-10 overflow-hidden rounded-2xl border border-slate-200/50 bg-linear-to-r from-blue-600 to-indigo-600 p-6 text-white shadow-sm sm:p-8"
+        >
+          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/90 ring-1 ring-white/15">
+                PRONTO PARA COMEÇAR?
+              </p>
+              <h3 className="mt-3 text-2xl font-bold">
+                Organize suas tarefas e evolua com mais constância
+              </h3>
+              <p className="mt-2 max-w-2xl text-sm text-white/85">
+                Crie sua conta para acessar tarefas, Pomodoro, estatísticas,
+                conquistas, notificações e personalizações em um único lugar.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
                 <Button
-                  className="cursor-pointer rounded-2xl bg-blue-600 font-semibold text-white hover:bg-blue-700"
+                  className="cursor-pointer rounded-2xl bg-white text-slate-900 hover:bg-white/90"
                   onClick={() => navigate("/register")}
                 >
                   Criar minha conta
                 </Button>
               </motion.div>
-            </motion.div>
+
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
+                <Button
+                  variant="outline"
+                  className="cursor-pointer rounded-2xl border-white/25 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+                  onClick={() => navigate("/login")}
+                >
+                  Acessar sistema
+                </Button>
+              </motion.div>
+            </div>
           </div>
         </motion.section>
 
@@ -382,7 +488,7 @@ export default function LandingPage() {
           transition={{ duration: 0.5 }}
           className="mt-10 border-t border-slate-200 pt-6 text-sm text-slate-500"
         >
-          © {new Date().getFullYear()} FocusFlow — Projeto acadêmico (TCC).
+          © {new Date().getFullYear()} FocusFlow — Projeto acadêmico.
         </motion.footer>
       </main>
     </motion.div>
