@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import {
   Play,
@@ -150,7 +150,6 @@ function TaskRow({ task }: { task: Task }) {
     <div
       className={cn(
         "group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all hover:shadow-md",
-        // Fundo com tom avermelhado estático para atrasadas/pendentes
         isOverdue ? "border-red-500/30 bg-red-500/10" : "border-slate-200 bg-white",
       )}
     >
@@ -159,7 +158,6 @@ function TaskRow({ task }: { task: Task }) {
           layoutId={`indicator-${task.id}`}
           className={cn(
             "absolute left-0 top-0 h-full w-1.5",
-            // Cor vermelha se atrasada, senão usa a cor estática da categoria
             isOverdue 
               ? "bg-red-500" 
               : CATEGORY_BG_COLORS[task.category as string] || "bg-blue-500",
@@ -191,7 +189,6 @@ function TaskRow({ task }: { task: Task }) {
 
               <Badge tone={priorityTone}>
                 <span className="inline-flex items-center gap-1">
-                  {/* Ponto de prioridade com cor estática */}
                   <span 
                     className={cn(
                       "h-1.5 w-1.5 rounded-full",
@@ -340,32 +337,59 @@ export default function FocusFlowDashboard() {
   const [loadingPomodoro, setLoadingPomodoro] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {
-    fetchStatus();
-
-    async function loadDashboardData() {
-      try {
+  // Usamos o useCallback para estabilizar a referência da função e usá-la no useEffect
+  const loadDashboardData = useCallback(async (isBackground = false) => {
+    try {
+      if (!isBackground) {
         setLoadingTasks(true);
         setLoadingPomodoro(true);
-        setErrorMessage("");
+      }
+      setErrorMessage("");
 
-        const [tasksData, pomodoroResponse] = await Promise.all([
-          listTasks(),
-          api.get<PomodoroStats>("/pomodoro/stats/"),
-        ]);
+      const [tasksData, pomodoroResponse] = await Promise.all([
+        listTasks(),
+        api.get<PomodoroStats>("/pomodoro/stats/"),
+      ]);
 
-        setTasks(tasksData);
-        setPomodoroStats(pomodoroResponse.data);
-      } catch {
+      setTasks(tasksData);
+      setPomodoroStats(pomodoroResponse.data);
+    } catch {
+      if (!isBackground) {
         setErrorMessage("Não foi possível carregar os dados do dashboard.");
-      } finally {
+      }
+    } finally {
+      if (!isBackground) {
         setLoadingTasks(false);
         setLoadingPomodoro(false);
       }
     }
+  }, []);
 
-    loadDashboardData();
-  }, [fetchStatus]);
+  useEffect(() => {
+    fetchStatus();
+    loadDashboardData(); // Carregamento inicial
+
+    // 1. Polling Automático a cada 30 segundos
+    const intervalId = setInterval(() => {
+      loadDashboardData(true); // true = isBackground (não pisca a tela)
+    }, 30000);
+
+    // 2. Listener para atualizar quando o usuário voltar para a aba
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchStatus();
+        loadDashboardData(true);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Limpeza dos eventos quando o componente for desmontado
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [fetchStatus, loadDashboardData]);
 
   function getGreeting() {
     const hour = new Date().getHours();

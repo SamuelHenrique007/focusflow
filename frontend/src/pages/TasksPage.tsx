@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -760,22 +760,50 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {
-    async function loadTasks() {
-      try {
+  // Estabilizando a referência da função com useCallback
+  const loadTasks = useCallback(async (isBackground = false) => {
+    try {
+      if (!isBackground) {
         setLoading(true);
-        setErrorMessage("");
-        const data = await listTasks();
-        setTasks(data);
-      } catch {
+      }
+      setErrorMessage("");
+      const data = await listTasks();
+      setTasks(data);
+    } catch {
+      if (!isBackground) {
         setErrorMessage("Não foi possível carregar as tarefas.");
-      } finally {
+      }
+    } finally {
+      if (!isBackground) {
         setLoading(false);
       }
     }
-
-    loadTasks();
   }, []);
+
+  useEffect(() => {
+    loadTasks(); // Carregamento inicial
+
+    // 1. Polling Automático a cada 30 segundos
+    const intervalId = setInterval(() => {
+      loadTasks(true); // O true impede que a tela dê "piscadas" de loading
+    }, 30000);
+
+    // 2. Refetch imediato ao retornar para a aba do navegador
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        loadTasks(true);
+        // Atualiza os status do sistema de gamificação, já que o usuário importou o useGameStore
+        useGameStore.getState().fetchStatus();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [loadTasks]);
 
   const filtered = useMemo(() => {
     let list = [...tasks];

@@ -4,9 +4,13 @@ import { api } from "@/services/api";
 type NotificationSocketMessage = {
   type?: string;
   unreadCount?: number;
+  unread_count?: number;
   totalCount?: number;
+  total_count?: number;
   hasUnreadNotifications?: boolean;
+  has_unread_notifications?: boolean;
   notificationId?: number | null;
+  notification_id?: number | null;
 };
 
 type NotificationEventSource = "local" | "socket";
@@ -116,15 +120,29 @@ export const useNotificationsStore = create<NotificationState>((set, get) => {
       try {
         const data = JSON.parse(event.data) as NotificationSocketMessage;
 
-        if (typeof data.unreadCount === "number") {
+        const unreadCount =
+          typeof data.unreadCount === "number"
+            ? data.unreadCount
+            : typeof data.unread_count === "number"
+            ? data.unread_count
+            : null;
+
+        const hasUnreadNotifications =
+          typeof data.hasUnreadNotifications === "boolean"
+            ? data.hasUnreadNotifications
+            : typeof data.has_unread_notifications === "boolean"
+            ? data.has_unread_notifications
+            : null;
+
+        if (unreadCount !== null) {
           set({
-            unreadCount: data.unreadCount,
-            hasUnreadNotifications: data.unreadCount > 0,
+            unreadCount,
+            hasUnreadNotifications: unreadCount > 0,
           });
-        } else if (typeof data.hasUnreadNotifications === "boolean") {
+        } else if (hasUnreadNotifications !== null) {
           set((state) => ({
             ...state,
-            hasUnreadNotifications: data.hasUnreadNotifications ?? false,
+            hasUnreadNotifications,
           }));
 
           void fetchUnreadCount();

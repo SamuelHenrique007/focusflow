@@ -138,6 +138,7 @@ def create_or_update_unique_notification(
 
 
 def sync_task_notifications(user):
+    now = timezone.localtime()
     start, end = get_today_bounds()
 
     tasks = Task.objects.filter(user=user, completed_at__isnull=True)
@@ -150,7 +151,7 @@ def sync_task_notifications(user):
 
         local_due_date = timezone.localtime(task.due_date)
 
-        if local_due_date < start:
+        if local_due_date < now:
             key = f"task-overdue-{task.id}"
             active_keys.add(key)
 
