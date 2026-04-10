@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
+from notifications.services import sync_user_notifications
 from .models import StoreItem, UserInventory
 from .serializers import (
     StoreItemSerializer,
@@ -313,6 +314,7 @@ class ConvertFocusMinutesView(APIView):
         profile.save(update_fields=["coins", "pending_focus_minutes"])
 
         sync_profile_progress(profile)
+        sync_user_notifications(request.user)
 
         return Response(
             {
@@ -323,7 +325,6 @@ class ConvertFocusMinutesView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-
 
 class AddProgressView(APIView):
     permission_classes = [IsAuthenticated]
