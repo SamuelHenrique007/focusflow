@@ -10,6 +10,8 @@ import {
   Sparkles,
   UserCog,
   ShieldCheck,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -130,6 +132,11 @@ export default function SettingsPage() {
     new_password: "",
     confirm_new_password: "",
   });
+
+  // Estados para controlar a visibilidade das senhas
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
@@ -446,7 +453,7 @@ export default function SettingsPage() {
         >
           <form className="space-y-4" onSubmit={handleSaveProfile}>
             <div className="grid gap-4">
-              <label className="space-y-2 cursor-pointer">
+              <label className="space-y-2 cursor-pointer block">
                 <span className="block text-sm font-semibold text-(--ff-text)">
                   Nome
                 </span>
@@ -465,7 +472,7 @@ export default function SettingsPage() {
                 />
               </label>
 
-              <label className="space-y-2 cursor-pointer">
+              <label className="space-y-2 cursor-pointer block">
                 <span className="block text-sm font-semibold text-(--ff-text)">
                   E-mail
                 </span>
@@ -505,61 +512,112 @@ export default function SettingsPage() {
         >
           <form className="space-y-4" onSubmit={handleChangePassword}>
             <div className="grid gap-4">
-              <label className="space-y-2 cursor-pointer">
+              <label className="space-y-2 cursor-pointer block">
                 <span className="block text-sm font-semibold text-(--ff-text)">
                   Senha atual
                 </span>
-                <input
-                  type="password"
-                  value={passwordForm.current_password}
-                  onChange={(event) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      current_password: event.target.value,
-                    }))
-                  }
-                  placeholder="Digite sua senha atual"
-                  disabled={isSavingPassword}
-                  className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) px-3 py-2 text-sm text-(--ff-text) outline-none transition focus:border-(--ff-primary)"
-                />
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={passwordForm.current_password}
+                    onChange={(event) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        current_password: event.target.value,
+                      }))
+                    }
+                    placeholder="Digite sua senha atual"
+                    disabled={isSavingPassword}
+                    className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) py-2 pl-3 pr-10 text-sm text-(--ff-text) outline-none transition focus:border-(--ff-primary)"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowCurrentPassword(!showCurrentPassword);
+                    }}
+                    disabled={isSavingPassword}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-(--ff-text-soft) transition hover:text-(--ff-text) disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </label>
 
-              <label className="space-y-2 cursor-pointer">
+              <label className="space-y-2 cursor-pointer block">
                 <span className="block text-sm font-semibold text-(--ff-text)">
                   Nova senha
                 </span>
-                <input
-                  type="password"
-                  value={passwordForm.new_password}
-                  onChange={(event) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      new_password: event.target.value,
-                    }))
-                  }
-                  placeholder="Digite a nova senha"
-                  disabled={isSavingPassword}
-                  className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) px-3 py-2 text-sm text-(--ff-text) outline-none transition focus:border-(--ff-primary)"
-                />
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    value={passwordForm.new_password}
+                    onChange={(event) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        new_password: event.target.value,
+                      }))
+                    }
+                    placeholder="Digite a nova senha"
+                    disabled={isSavingPassword}
+                    className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) py-2 pl-3 pr-10 text-sm text-(--ff-text) outline-none transition focus:border-(--ff-primary)"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowNewPassword(!showNewPassword);
+                    }}
+                    disabled={isSavingPassword}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-(--ff-text-soft) transition hover:text-(--ff-text) disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {showNewPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </label>
 
-              <label className="space-y-2 cursor-pointer">
+              <label className="space-y-2 cursor-pointer block">
                 <span className="block text-sm font-semibold text-(--ff-text)">
                   Confirmar nova senha
                 </span>
-                <input
-                  type="password"
-                  value={passwordForm.confirm_new_password}
-                  onChange={(event) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      confirm_new_password: event.target.value,
-                    }))
-                  }
-                  placeholder="Confirme a nova senha"
-                  disabled={isSavingPassword}
-                  className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) px-3 py-2 text-sm text-(--ff-text) outline-none transition focus:border-(--ff-primary)"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmNewPassword ? "text" : "password"}
+                    value={passwordForm.confirm_new_password}
+                    onChange={(event) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        confirm_new_password: event.target.value,
+                      }))
+                    }
+                    placeholder="Confirme a nova senha"
+                    disabled={isSavingPassword}
+                    className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) py-2 pl-3 pr-10 text-sm text-(--ff-text) outline-none transition focus:border-(--ff-primary)"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowConfirmNewPassword(!showConfirmNewPassword);
+                    }}
+                    disabled={isSavingPassword}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-(--ff-text-soft) transition hover:text-(--ff-text) disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {showConfirmNewPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </label>
             </div>
 
@@ -687,7 +745,7 @@ export default function SettingsPage() {
           ].map((field) => (
             <label
               key={field.key}
-              className="rounded-2xl cursor-pointer border border-(--ff-border) bg-(--ff-surface-soft) p-4"
+              className="rounded-2xl cursor-pointer border border-(--ff-border) bg-(--ff-surface-soft) p-4 block"
             >
               <span className="mb-2 block text-sm font-semibold text-(--ff-text)">
                 {field.label}

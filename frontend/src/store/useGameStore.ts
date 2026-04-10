@@ -94,32 +94,50 @@ function notifyRewardChanges(previousStats: GameStatus | null, nextStats: GameSt
     toBadgeArray(previousStats.badges).map((badge) => [badge.key, badge]),
   );
 
-  for (const badge of toBadgeArray(nextStats.badges)) {
+  const unlockedBadges = toBadgeArray(nextStats.badges).filter((badge) => {
     const previousBadge = previousBadges.get(badge.key);
+    return badge.unlocked && !previousBadge?.unlocked;
+  });
 
-    if (badge.unlocked && !previousBadge?.unlocked) {
-      pushToast({
-        variant: "success",
-        title: `Conquista desbloqueada: ${badge.title}`,
-        description: badge.description,
-      });
-    }
+  if (unlockedBadges.length === 1) {
+    const badge = unlockedBadges[0];
+
+    pushToast({
+      variant: "success",
+      title: `Conquista desbloqueada: ${badge.title}`,
+      description: badge.description,
+    });
+  } else if (unlockedBadges.length > 1) {
+    pushToast({
+      variant: "success",
+      title: `${unlockedBadges.length} conquistas desbloqueadas!`,
+      description: unlockedBadges.map((badge) => badge.title).join(", "),
+    });
   }
 
   const previousChallenges = new Map(
     toChallengeArray(previousStats.challenges).map((challenge) => [challenge.key, challenge]),
   );
 
-  for (const challenge of toChallengeArray(nextStats.challenges)) {
+  const completedChallenges = toChallengeArray(nextStats.challenges).filter((challenge) => {
     const previousChallenge = previousChallenges.get(challenge.key);
+    return challenge.completed && !previousChallenge?.completed;
+  });
 
-    if (challenge.completed && !previousChallenge?.completed) {
-      pushToast({
-        variant: "success",
-        title: `Desafio diário concluído: ${challenge.title}`,
-        description: `Recompensa: ${challenge.reward_xp} XP e ${challenge.reward_coins} moedas.`,
-      });
-    }
+  if (completedChallenges.length === 1) {
+    const challenge = completedChallenges[0];
+
+    pushToast({
+      variant: "success",
+      title: `Desafio diário concluído: ${challenge.title}`,
+      description: `Recompensa: ${challenge.reward_xp} XP e ${challenge.reward_coins} moedas.`,
+    });
+  } else if (completedChallenges.length > 1) {
+    pushToast({
+      variant: "success",
+      title: `${completedChallenges.length} desafios concluídos!`,
+      description: completedChallenges.map((challenge) => challenge.title).join(", "),
+    });
   }
 }
 

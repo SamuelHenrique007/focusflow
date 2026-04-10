@@ -56,7 +56,7 @@ function TextField({
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-blue-600 focus:outline-none transition-colors"
+            className="absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3 text-slate-400 hover:text-blue-600 focus:outline-none transition-colors"
             tabIndex={-1}
           >
             {showPassword ? (
