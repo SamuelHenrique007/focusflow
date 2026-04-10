@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.db.models import Q
 from django.utils import timezone
 
@@ -23,6 +25,18 @@ def active_notifications_queryset(user):
         .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
         .order_by("-created_at")
     )
+
+
+def build_notifications_snapshot(user):
+    notifications = active_notifications_queryset(user)
+    unread_count = notifications.filter(is_read=False).count()
+    total_count = notifications.count()
+
+    return {
+        "unreadCount": unread_count,
+        "totalCount": total_count,
+        "hasUnreadNotifications": unread_count > 0,
+    }
 
 
 def create_notification(
@@ -186,7 +200,6 @@ def sync_task_notifications(user):
             changed = changed or notification_changed
 
     stale_prefixes = ("task-overdue-", "task-due-today-")
-
     stale_notifications = active_notifications_queryset(user).filter(unique_key__isnull=False)
 
     for notification in stale_notifications:
@@ -374,15 +387,27 @@ def sync_gamification_notifications(user):
 
 
 def sync_user_notifications(user):
-    task_changed = sync_task_notifications(user)
-    gamification_changed = sync_gamification_notifications(user)
+    changed = False
 
-    changed = task_changed or gamification_changed
+    if sync_task_notifications(user):
+        changed = True
+
+    if sync_gamification_notifications(user):
+        changed = True
 
     if changed:
-        broadcast_notifications_state(
-            user,
-            event_type="notifications.sync",
+        channel_layer = get_channel_layer()
+        snapshot = build_notifications_snapshot(user)
+
+        async_to_sync(channel_layer.group_send)(
+            f"notifications_{user.id}",
+            {
+                "type": "notifications.broadcast",
+                "payload": {
+                    "type": "notifications.updated",
+                    **snapshot,
+                },
+            },
         )
 
     return changed

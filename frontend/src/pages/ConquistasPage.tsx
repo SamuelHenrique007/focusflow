@@ -519,76 +519,82 @@ export default function ConquistasPage() {
           animate="show"
           className="grid grid-cols-1 gap-4 lg:grid-cols-3"
         >
-          {challenges.map((challenge) => (
-            <motion.div
-              key={challenge.key}
-              variants={fadeUp}
-              whileHover={{ y: -4 }}
-              className={cn(
-                "rounded-3xl border p-5 shadow-sm transition-all",
-                challenge.claimed
-                  ? "border-emerald-200 bg-[color-mix(in_srgb,#10b981_10%,var(--ff-surface))]"
-                  : challenge.completed
-                    ? "border-[color-mix(in_srgb,var(--ff-primary)_30%,var(--ff-border))] bg-[color-mix(in_srgb,var(--ff-primary)_8%,var(--ff-surface))]"
-                    : "border-[var(--ff-border)] bg-[var(--ff-surface)]",
-              )}
-            >
-              <div className="mb-4 flex items-start justify-between">
-                <motion.div
-                  whileHover={{ scale: 1.06, rotate: 4 }}
-                  className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--ff-surface-soft)] text-[var(--ff-text-soft)]"
-                >
-                  {badgeIcon(challenge.icon)}
-                </motion.div>
+          {challenges.map((challenge) => {
+            // TRAVA APLICADA AQUI PARA OS DESAFIOS
+            const cappedCurrent = Math.min(challenge.current, challenge.target);
+            const cappedPercent = Math.min(100, challenge.progress_percent);
 
-                {challenge.claimed ? (
-                  <span className="rounded-full bg-[color-mix(in_srgb,#10b981_18%,var(--ff-surface))] px-3 py-1 text-[10px] font-black text-emerald-700">
-                    CONCLUÍDO
-                  </span>
-                ) : challenge.completed ? (
-                  <span className="rounded-full bg-[color-mix(in_srgb,var(--ff-primary)_16%,var(--ff-surface))] px-3 py-1 text-[10px] font-black text-[var(--ff-primary)]">
-                    RECOMPENSA LIBERADA
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-[var(--ff-surface-soft)] px-3 py-1 text-[10px] font-black text-[var(--ff-text-soft)]">
-                    EM PROGRESSO
-                  </span>
+            return (
+              <motion.div
+                key={challenge.key}
+                variants={fadeUp}
+                whileHover={{ y: -4 }}
+                className={cn(
+                  "rounded-3xl border p-5 shadow-sm transition-all",
+                  challenge.claimed
+                    ? "border-emerald-200 bg-[color-mix(in_srgb,#10b981_10%,var(--ff-surface))]"
+                    : challenge.completed
+                      ? "border-[color-mix(in_srgb,var(--ff-primary)_30%,var(--ff-border))] bg-[color-mix(in_srgb,var(--ff-primary)_8%,var(--ff-surface))]"
+                      : "border-[var(--ff-border)] bg-[var(--ff-surface)]",
                 )}
-              </div>
+              >
+                <div className="mb-4 flex items-start justify-between">
+                  <motion.div
+                    whileHover={{ scale: 1.06, rotate: 4 }}
+                    className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--ff-surface-soft)] text-[var(--ff-text-soft)]"
+                  >
+                    {badgeIcon(challenge.icon)}
+                  </motion.div>
 
-              <h3 className="font-semibold text-[var(--ff-text)]">{challenge.title}</h3>
-              <p className="mt-1 text-sm text-[var(--ff-text-soft)]">
-                {challenge.description}
-              </p>
+                  {challenge.claimed ? (
+                    <span className="rounded-full bg-[color-mix(in_srgb,#10b981_18%,var(--ff-surface))] px-3 py-1 text-[10px] font-black text-emerald-700">
+                      CONCLUÍDO
+                    </span>
+                  ) : challenge.completed ? (
+                    <span className="rounded-full bg-[color-mix(in_srgb,var(--ff-primary)_16%,var(--ff-surface))] px-3 py-1 text-[10px] font-black text-[var(--ff-primary)]">
+                      RECOMPENSA LIBERADA
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-[var(--ff-surface-soft)] px-3 py-1 text-[10px] font-black text-[var(--ff-text-soft)]">
+                      EM PROGRESSO
+                    </span>
+                  )}
+                </div>
 
-              <div className="mt-4">
-                <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase text-[var(--ff-text-muted)]">
-                  <span>Progresso</span>
-                  <span>
-                    {challenge.current} / {challenge.target}
+                <h3 className="font-semibold text-[var(--ff-text)]">{challenge.title}</h3>
+                <p className="mt-1 text-sm text-[var(--ff-text-soft)]">
+                  {challenge.description}
+                </p>
+
+                <div className="mt-4">
+                  <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase text-[var(--ff-text-muted)]">
+                    <span>Progresso</span>
+                    <span>
+                      {cappedCurrent} / {challenge.target}
+                    </span>
+                  </div>
+
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--ff-surface-muted)]">
+                    <motion.div
+                      className="h-full rounded-full bg-[var(--ff-primary)]"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${cappedPercent}%` }}
+                      transition={{ duration: 0.8, delay: 0.1 }}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-center gap-3 text-sm font-semibold text-[var(--ff-text-soft)]">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,#f59e0b_14%,var(--ff-surface))] px-3 py-1 text-amber-700">
+                    <Coins className="h-4 w-4" /> +{challenge.reward_coins}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--ff-primary)_14%,var(--ff-surface))] px-3 py-1 text-[var(--ff-primary)]">
+                    <Zap className="h-4 w-4" /> +{challenge.reward_xp} XP
                   </span>
                 </div>
-
-                <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--ff-surface-muted)]">
-                  <motion.div
-                    className="h-full rounded-full bg-[var(--ff-primary)]"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${challenge.progress_percent}%` }}
-                    transition={{ duration: 0.8, delay: 0.1 }}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center gap-3 text-sm font-semibold text-[var(--ff-text-soft)]">
-                <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,#f59e0b_14%,var(--ff-surface))] px-3 py-1 text-amber-700">
-                  <Coins className="h-4 w-4" /> +{challenge.reward_coins}
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--ff-primary)_14%,var(--ff-surface))] px-3 py-1 text-[var(--ff-primary)]">
-                  <Zap className="h-4 w-4" /> +{challenge.reward_xp} XP
-                </span>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </motion.div>
       </motion.section>
 
@@ -610,6 +616,10 @@ export default function ConquistasPage() {
         >
           {badges.map((badge) => {
             const color = badgeTone(badge.color);
+            
+            // TRAVA APLICADA AQUI PARA AS MEDALHAS
+            const cappedCurrent = Math.min(badge.current, badge.target);
+            const cappedPercent = Math.min(100, badge.progress_percent);
 
             return (
               <motion.div
@@ -658,7 +668,7 @@ export default function ConquistasPage() {
                     <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase text-[var(--ff-text-muted)]">
                       <span>Progresso</span>
                       <span>
-                        {badge.current} / {badge.target}
+                        {cappedCurrent} / {badge.target}
                       </span>
                     </div>
 
@@ -666,7 +676,7 @@ export default function ConquistasPage() {
                       <motion.div
                         className="h-full rounded-full bg-[var(--ff-primary)]"
                         initial={{ width: 0 }}
-                        animate={{ width: `${badge.progress_percent}%` }}
+                        animate={{ width: `${cappedPercent}%` }}
                         transition={{ duration: 0.7 }}
                       />
                     </div>

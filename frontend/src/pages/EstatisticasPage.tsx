@@ -566,18 +566,22 @@ export default function EstatisticasPage() {
               className="space-y-4"
             >
               {activeChallenges.length > 0 ? (
-                activeChallenges.map((challenge) => (
-                  <ChallengeCard
-                    key={challenge.key}
-                    title={challenge.title}
-                    subtitle={challenge.description}
-                    progressLabel={`${challenge.current}/${challenge.target}`}
-                    value={Math.max(
-                      0,
-                      Math.min(1, challenge.progress_percent / 100)
-                    )}
-                  />
-                ))
+                activeChallenges.map((challenge) => {
+                  const cappedCurrent = Math.min(challenge.current, challenge.target);
+
+                  return (
+                    <ChallengeCard
+                      key={challenge.key}
+                      title={challenge.title}
+                      subtitle={challenge.description}
+                      progressLabel={`${cappedCurrent}/${challenge.target}`}
+                      value={Math.max(
+                        0,
+                        Math.min(1, challenge.progress_percent / 100)
+                      )}
+                    />
+                  );
+                })
               ) : (
                 <motion.div
                   variants={fadeUp}

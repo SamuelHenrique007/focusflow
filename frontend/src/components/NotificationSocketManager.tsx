@@ -17,13 +17,11 @@ export default function NotificationSocketManager() {
       return
     }
 
-    void fetchUnreadCount()
     connectSocket(accessToken)
+    void fetchUnreadCount()
 
-    return () => {
-      disconnectSocket()
-    }
-  }, [isAuthenticated, accessToken, fetchUnreadCount, connectSocket, disconnectSocket])
+    return disconnectSocket
+  }, [isAuthenticated, accessToken, connectSocket, disconnectSocket, fetchUnreadCount])
 
   useEffect(() => {
     if (!socketConnected || !socket) return

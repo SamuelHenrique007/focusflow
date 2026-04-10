@@ -28,7 +28,12 @@ def build_notifications_snapshot(user):
     }
 
 
-def broadcast_notifications_state(user, *, event_type: str = "notifications.updated", notification_id=None):
+def broadcast_notifications_state(
+    user,
+    *,
+    event_type: str = "notifications.updated",
+    notification_id=None,
+):
     channel_layer = get_channel_layer()
     if channel_layer is None:
         return
@@ -47,7 +52,7 @@ def broadcast_notifications_state(user, *, event_type: str = "notifications.upda
         async_to_sync(channel_layer.group_send)(
             group_name,
             {
-                "type": "notifications.event",
+                "type": "notifications_broadcast",
                 "payload": payload,
             },
         )
