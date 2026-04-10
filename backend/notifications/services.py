@@ -93,41 +93,68 @@ def create_or_update_unique_notification(
     next_metadata = metadata or {}
 
     if notification:
-        # Se foi apagada manualmente, não recria,
-        # exceto para notificações que devem reaparecer quando a key mudar.
         if notification.is_deleted:
-            return notification, False
+            can_reappear = {
+                "focus_coins_ready",
+            }
 
-        fields_changed = any(
-            [
-                notification.type != type,
-                notification.title != title,
-                notification.description != description,
-                notification.priority != priority,
-                notification.metadata != next_metadata,
-                notification.expires_at != expires_at,
-            ]
-        )
+            if type in can_reappear:
+                notification.is_deleted = False
+                notification.is_read = False
+                notification.type = type
+                notification.title = title
+                notification.description = description
+                notification.priority = priority
+                notification.metadata = next_metadata
+                notification.expires_at = expires_at
+                notification.save(
+                    update_fields=[
+                        "is_deleted",
+                        "is_read",
+                        "type",
+                        "title",
+                        "description",
+                        "priority",
+                        "metadata",
+                        "expires_at",
+                        "updated_at",
+                    ]
+                )
+                changed = True
+            else:
+                return notification, False
 
-        if fields_changed:
-            notification.type = type
-            notification.title = title
-            notification.description = description
-            notification.priority = priority
-            notification.metadata = next_metadata
-            notification.expires_at = expires_at
-            notification.save(
-                update_fields=[
-                    "type",
-                    "title",
-                    "description",
-                    "priority",
-                    "metadata",
-                    "expires_at",
-                    "updated_at",
+        else:
+            fields_changed = any(
+                [
+                    notification.type != type,
+                    notification.title != title,
+                    notification.description != description,
+                    notification.priority != priority,
+                    notification.metadata != next_metadata,
+                    notification.expires_at != expires_at,
                 ]
             )
-            changed = True
+
+            if fields_changed:
+                notification.type = type
+                notification.title = title
+                notification.description = description
+                notification.priority = priority
+                notification.metadata = next_metadata
+                notification.expires_at = expires_at
+                notification.save(
+                    update_fields=[
+                        "type",
+                        "title",
+                        "description",
+                        "priority",
+                        "metadata",
+                        "expires_at",
+                        "updated_at",
+                    ]
+                )
+                changed = True
     else:
         notification = Notification.objects.create(
             user=user,
@@ -387,31 +414,11 @@ def sync_gamification_notifications(user):
 
 
 def sync_user_notifications(user):
-    changed = False
+    task_changed = sync_task_notifications(user)
+    gamification_changed = sync_gamification_notifications(user)
 
-    if sync_task_notifications(user):
-        changed = True
-
-    if sync_gamification_notifications(user):
-        changed = True
-
-    if changed:
-        channel_layer = get_channel_layer()
-        snapshot = build_notifications_snapshot(user)
-
-        async_to_sync(channel_layer.group_send)(
-            f"notifications_{user.id}",
-            {
-                "type": "notifications.broadcast",
-                "payload": {
-                    "type": "notifications.updated",
-                    **snapshot,
-                },
-            },
-        )
-
-    return changed
-
+    if task_changed or gamification_changed:
+        broadcast_notifications_state(user)
 
 def notify_task_completed(task):
     create_notification(

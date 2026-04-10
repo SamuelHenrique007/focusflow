@@ -7,7 +7,10 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from datetime import datetime
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -180,21 +183,33 @@ class ForgotPasswordSerializer(serializers.Serializer):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = token_generator.make_token(user)
 
-        frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:8080")
+        frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173").strip()
         reset_link = f"{frontend_url}/reset-password/{uid}/{token}"
 
-        send_mail(
-            subject="Recuperação de senha - FocusFlow",
-            message=(
-                f"Olá, {user.name or user.email}!\n\n"
-                f"Recebemos uma solicitação para redefinir sua senha.\n"
-                f"Acesse o link abaixo:\n\n{reset_link}\n\n"
-                f"Se você não fez essa solicitação, ignore este e-mail."
-            ),
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@focusflow.com"),
-            recipient_list=[user.email],
-            fail_silently=False,
+        context = {
+            "user_name": user.name or user.email,
+            "reset_link": reset_link,
+            "current_year": datetime.now().year,
+        }
+
+        subject = "Recuperação de senha - FocusFlow"
+        text_content = render_to_string(
+            "accounts/emails/reset_password.txt",
+            context,
         )
+        html_content = render_to_string(
+            "accounts/emails/reset_password.html",
+            context,
+        )
+
+        email_message = EmailMultiAlternatives(
+            subject=subject,
+            body=strip_tags(text_content).strip(),
+            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@focusflow.com"),
+            to=[user.email],
+        )
+        email_message.attach_alternative(html_content, "text/html")
+        email_message.send(fail_silently=False)
 
 class ResetPasswordSerializer(serializers.Serializer):
     uid = serializers.CharField(required=True)
