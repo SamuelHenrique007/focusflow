@@ -1013,6 +1013,11 @@ export default function PomodoroTimer({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1, duration: 0.4 }}
+              className={
+                i === 2
+                  ? "w-full sm:col-span-2 sm:mx-auto sm:w-[calc(50%-0.5rem)] xl:col-span-1 xl:w-full"
+                  : "w-full"
+              }
             >
               <StatCard {...stat} />
             </motion.div>

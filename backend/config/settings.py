@@ -145,3 +145,6 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+
+# settings.py
+PASSWORD_RESET_TIMEOUT = 900

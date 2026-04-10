@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Award,
@@ -142,7 +143,21 @@ function ToastCard({ toast }: { toast: ToastItem }) {
 }
 
 export default function RewardToastViewport() {
+  const location = useLocation();
   const toasts = useToastStore((state) => state.toasts);
+  const clearToasts = useToastStore((state) => state.clearToasts);
+
+  const isFocusMode = location.pathname === "/pomodoro/focus";
+
+  useEffect(() => {
+    if (isFocusMode) {
+      clearToasts();
+    }
+  }, [isFocusMode, clearToasts]);
+
+  if (isFocusMode) {
+    return null;
+  }
 
   return (
     <div className="pointer-events-none fixed right-4 top-4 z-[9999] flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-3 sm:right-6 sm:top-6">
