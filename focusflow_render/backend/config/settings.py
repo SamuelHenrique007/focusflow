@@ -176,7 +176,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 FRONTEND_URL = (env("FRONTEND_URL", "http://localhost:5173") or "http://localhost:5173").strip()
 BACKEND_PUBLIC_URL = (env("BACKEND_PUBLIC_URL", "http://localhost:8000") or "http://localhost:8000").rstrip("/")
 
-EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = env("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(env("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", default=True)
