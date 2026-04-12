@@ -14,3 +14,4 @@ psycopg2-binary==2.9.11
 dj-database-url==3.0.1
 whitenoise[brotli]==6.11.0
 APScheduler==3.11.1
+resend==2.27.0
