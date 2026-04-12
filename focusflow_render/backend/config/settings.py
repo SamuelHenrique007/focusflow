@@ -9,6 +9,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
+from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -198,3 +199,18 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool(
     "SECURE_HSTS_INCLUDE_SUBDOMAINS", default=not DEBUG
 )
 SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", default=not DEBUG)
+
+
+
+if os.getenv("CREATE_SUPERUSER") == "true":
+    User = get_user_model()
+    email = os.getenv("SUPERUSER_EMAIL")
+    password = os.getenv("SUPERUSER_PASSWORD")
+
+    if email and password and not User.objects.filter(email=email).exists():
+        User.objects.create_superuser(
+            username=email,
+            email=email,
+            password=password,
+            name="Administrador",
+        )
