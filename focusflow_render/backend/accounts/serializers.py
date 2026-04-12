@@ -1,16 +1,19 @@
+import os
+import resend
+from datetime import datetime
+
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
-from datetime import datetime
+
+from .models import User
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -34,6 +37,14 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("O e-mail é obrigatório.")
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Já existe uma conta com este e-mail.")
+        return value
+
+    def validate_password(self, value):
+        try:
+            # Passa pela validação nativa do Django (tamanho, senhas comuns, etc.)
+            validate_password(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages))
         return value
 
     def create(self, validated_data):
@@ -131,6 +142,14 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("A senha atual é obrigatória.")
         return value
 
+    def validate_new_password(self, value):
+        try:
+            # Garante que a nova senha seja forte antes de prosseguir
+            validate_password(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages))
+        return value
+
     def validate(self, attrs):
         user = self.context["request"].user
         current_password = attrs.get("current_password", "")
@@ -160,6 +179,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(new_password)
         user.save()
         return user
+
 
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
@@ -202,14 +222,20 @@ class ForgotPasswordSerializer(serializers.Serializer):
             context,
         )
 
-        email_message = EmailMultiAlternatives(
-            subject=subject,
-            body=strip_tags(text_content).strip(),
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@focusflow.com"),
-            to=[user.email],
-        )
-        email_message.attach_alternative(html_content, "text/html")
-        email_message.send(fail_silently=False)
+        resend.api_key = os.getenv("RESEND_API_KEY")
+
+        resend.Emails.send({
+            "from": getattr(
+                settings,
+                "DEFAULT_FROM_EMAIL",
+                "FocusFlow <onboarding@resend.dev>"
+            ),
+            "to": [user.email],
+            "subject": subject,
+            "html": html_content,
+            "text": strip_tags(text_content).strip(),
+        })
+
 
 class ResetPasswordSerializer(serializers.Serializer):
     uid = serializers.CharField(required=True)
@@ -239,6 +265,8 @@ class ResetPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError({"detail": "Token inválido ou expirado."})
 
         try:
+            # Aqui podemos passar o `user` para a validação, evitando que ele 
+            # coloque senhas fáceis relacionadas aos seus dados pessoais.
             validate_password(new_password, user=user)
         except DjangoValidationError as exc:
             raise serializers.ValidationError({"new_password": list(exc.messages)})
