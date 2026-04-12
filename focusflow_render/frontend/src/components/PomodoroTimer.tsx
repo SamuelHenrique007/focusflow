@@ -370,7 +370,10 @@ export default function PomodoroTimer({
   const [isFinishing, setIsFinishing] = useState(false);
 
   const [isPaused, setIsPaused] = useState(false);
+  
+  // Refs para controle do timer
   const expectedEndTimeRef = useRef<number | null>(null);
+  const isProcessingRef = useRef(false);
 
   useEffect(() => {
     if (location.state?.selectedTaskId) {
@@ -587,6 +590,9 @@ export default function PomodoroTimer({
 
   const handleFinish = useCallback(
     async (completed: boolean, shouldAdvance = false) => {
+      // Bloqueia execuções simultâneas
+      if (isProcessingRef.current) return;
+
       if (!runningSession) {
         if (shouldAdvance) {
           advancePomodoroCycle(completed && sessionType === "focus");
@@ -595,6 +601,7 @@ export default function PomodoroTimer({
       }
 
       try {
+        isProcessingRef.current = true;
         setIsFinishing(true);
 
         const sessionFinishedByTimer =
@@ -636,6 +643,7 @@ export default function PomodoroTimer({
         console.error("Erro ao finalizar sessão:", error);
       } finally {
         setIsFinishing(false);
+        isProcessingRef.current = false;
       }
     },
     [
@@ -660,7 +668,8 @@ export default function PomodoroTimer({
   ]);
 
   useEffect(() => {
-    if (!runningSession || isPaused) {
+    // Adicionamos a verificação de isFinishing aqui
+    if (!runningSession || isPaused || isFinishing) {
       expectedEndTimeRef.current = null;
       return;
     }
@@ -688,7 +697,7 @@ export default function PomodoroTimer({
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [runningSession, isPaused, handleFinish, playFinishSound]);
+  }, [runningSession, isPaused, handleFinish, playFinishSound, isFinishing]);
 
   async function handleSaveSettings() {
     try {
