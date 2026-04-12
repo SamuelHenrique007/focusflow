@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
-from focusflow.focusflow_render.backend.notifications.services import sync_user_notifications
+from notifications.services import sync_user_notifications
 from .models import StoreItem, UserInventory
 from .serializers import (
     StoreItemSerializer,

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import include, path
 
-from focusflow.focusflow_render.backend.core.views import health_check
+from core.views import health_check
 
 urlpatterns = [
     path("", health_check, name="health-check"),

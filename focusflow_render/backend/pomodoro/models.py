@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import models
-from focusflow.focusflow_render.backend.tasks.models import Task
+from tasks.models import Task
 
 
 class PomodoroSetting(models.Model):

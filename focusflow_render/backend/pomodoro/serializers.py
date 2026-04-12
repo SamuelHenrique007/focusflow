@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from focusflow.focusflow_render.backend.tasks.models import Task
+from tasks.models import Task
 
 from .models import (
     PomodoroSetting,

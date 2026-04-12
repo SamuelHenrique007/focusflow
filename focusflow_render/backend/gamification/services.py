@@ -170,7 +170,7 @@ def finalize_gamification_notifications(profile, gained_levels=None):
     Centraliza a sincronização das notificações de gamificação
     e dispara aviso de subida de nível quando necessário.
     """
-    from focusflow.focusflow_render.backend.notifications.services import notify_level_up, sync_user_notifications
+    from notifications.services import notify_level_up, sync_user_notifications
 
     for level in gained_levels or []:
         notify_level_up(profile.user, level)
@@ -200,7 +200,7 @@ def calculate_focus_streak(user, extra_active_date=None):
     `extra_active_date` permite contabilizar uma sessão recém-concluída que ainda
     não foi persistida no banco.
     """
-    from focusflow.focusflow_render.backend.pomodoro.models import PomodoroSession
+    from pomodoro.models import PomodoroSession
 
     focus_days = set(
         PomodoroSession.objects.filter(
@@ -239,7 +239,7 @@ def calculate_focus_streak(user, extra_active_date=None):
 
 
 def get_today_completed_pomodoros(user):
-    from focusflow.focusflow_render.backend.pomodoro.models import PomodoroSession
+    from pomodoro.models import PomodoroSession
 
     today = get_local_today()
     return PomodoroSession.objects.filter(
@@ -251,7 +251,7 @@ def get_today_completed_pomodoros(user):
 
 
 def get_today_completed_tasks(user):
-    from focusflow.focusflow_render.backend.tasks.models import Task
+    from tasks.models import Task
 
     today = get_local_today()
     return Task.objects.filter(

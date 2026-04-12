@@ -3,9 +3,9 @@ from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from focusflow.focusflow_render.backend.notifications.services import notify_task_completed
+from notifications.services import notify_task_completed
 
-from focusflow.focusflow_render.backend.gamification.services import get_profile, reward_completed_task
+from gamification.services import get_profile, reward_completed_task
 from .models import Task
 from .serializers import TaskSerializer
 

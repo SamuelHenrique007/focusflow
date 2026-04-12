@@ -3,8 +3,8 @@ from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
 
-from focusflow.focusflow_render.backend.notifications.models import Notification
-from focusflow.focusflow_render.backend.notifications.services import notify_task_completed
+from notifications.models import Notification
+from notifications.services import notify_task_completed
 
 User = get_user_model()
 

@@ -8,9 +8,9 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from focusflow.focusflow_render.backend.gamification.services import get_profile, grant_focus_progress
+from gamification.services import get_profile, grant_focus_progress
 
-from focusflow.focusflow_render.backend.tasks.models import Task
+from tasks.models import Task
 
 from .models import PomodoroSetting, PomodoroSession
 from .serializers import (

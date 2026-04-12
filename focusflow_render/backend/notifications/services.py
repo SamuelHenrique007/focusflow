@@ -5,8 +5,8 @@ from channels.layers import get_channel_layer
 from django.db.models import Q
 from django.utils import timezone
 
-from focusflow.focusflow_render.backend.tasks.models import Task
-from focusflow.focusflow_render.backend.gamification.services import get_profile, chest_required_minutes
+from tasks.models import Task
+from gamification.services import get_profile, chest_required_minutes
 from .models import Notification
 from .realtime import broadcast_notifications_state
 
