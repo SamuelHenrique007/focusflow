@@ -342,8 +342,9 @@ def get_daily_challenge_metric_value(profile, metric, metrics=None):
     return getattr(profile, metric, 0)
 
 
-def build_daily_challenges(profile, metrics=None):
-    refresh_daily_progress(profile)
+def build_daily_challenges(profile, metrics=None, refresh_state=True):
+    if refresh_state:
+        refresh_daily_progress(profile)
     state = profile.daily_challenge_state or {}
     claimed_keys = set(state.get("claimed", []))
 

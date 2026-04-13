@@ -16,6 +16,8 @@ from .serializers import (
 )
 from .services import (
     apply_level_up,
+    build_badges,
+    build_daily_challenges,
     build_profile_metrics,
     chest_required_minutes,
     ensure_single_equipped_item,
@@ -24,7 +26,6 @@ from .services import (
     grant_focus_progress,
     refresh_daily_progress,
     reward_completed_task,
-    grant_daily_challenge_rewards,
     sync_profile_progress,
 )
 
@@ -58,17 +59,22 @@ class GameStatusView(APIView):
 
     def get(self, request):
         profile = get_profile(request.user)
-        sync_profile_progress(profile)
+        refresh_daily_progress(profile)
         metrics = build_profile_metrics(profile)
-        grant_daily_challenge_rewards(profile, metrics=metrics)
-        profile.refresh_from_db()
-        metrics = build_profile_metrics(profile)
+        badges = build_badges(profile, metrics=metrics)
+        challenges = build_daily_challenges(
+            profile,
+            metrics=metrics,
+            refresh_state=False,
+        )
 
         serializer = UserProfileSerializer(
             profile,
             context={
                 "profile": profile,
                 "profile_metrics": metrics,
+                "precomputed_badges": badges,
+                "precomputed_challenges": challenges,
             },
         )
 

@@ -207,10 +207,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return chests
 
     def get_badges(self, obj):
+        precomputed = self.context.get("precomputed_badges")
+        if precomputed is not None:
+            return precomputed
+
         metrics = self.context.get("profile_metrics")
         return build_badges(obj, metrics=metrics)
 
     def get_challenges(self, obj):
+        precomputed = self.context.get("precomputed_challenges")
+        if precomputed is not None:
+            return precomputed
+
         metrics = self.context.get("profile_metrics")
         return build_daily_challenges(obj, metrics=metrics)
 
