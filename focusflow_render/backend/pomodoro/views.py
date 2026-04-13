@@ -1,5 +1,5 @@
 from django.utils import timezone
-from django.db.models import F, Sum
+from django.db.models import Count, F, Sum
 from django.db.models.functions import TruncDate
 from django.db import transaction
 
@@ -160,12 +160,13 @@ class PomodoroStatsView(APIView):
             ended_at__date=today,
         )
 
-        total_pomodoros = completed_focus_sessions_today.count()
-
-        total_minutes = (
-            completed_focus_sessions_today.aggregate(total=Sum("planned_minutes"))["total"]
-            or 0
+        today_focus_stats = completed_focus_sessions_today.aggregate(
+            total_pomodoros=Count("id"),
+            total_minutes=Sum("planned_minutes"),
         )
+
+        total_pomodoros = today_focus_stats["total_pomodoros"] or 0
+        total_minutes = today_focus_stats["total_minutes"] or 0
 
         total_points = (
             PomodoroSession.objects.filter(

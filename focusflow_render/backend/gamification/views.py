@@ -16,6 +16,7 @@ from .serializers import (
 )
 from .services import (
     apply_level_up,
+    build_profile_metrics,
     chest_required_minutes,
     ensure_single_equipped_item,
     finalize_gamification_notifications,
@@ -58,10 +59,18 @@ class GameStatusView(APIView):
     def get(self, request):
         profile = get_profile(request.user)
         sync_profile_progress(profile)
-        grant_daily_challenge_rewards(profile)
+        metrics = build_profile_metrics(profile)
+        grant_daily_challenge_rewards(profile, metrics=metrics)
         profile.refresh_from_db()
+        metrics = build_profile_metrics(profile)
 
-        serializer = UserProfileSerializer(profile)
+        serializer = UserProfileSerializer(
+            profile,
+            context={
+                "profile": profile,
+                "profile_metrics": metrics,
+            },
+        )
 
         return Response(
             {
@@ -76,7 +85,20 @@ class StoreItemListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        items = StoreItem.objects.all().order_by(
+        profile = get_profile(request.user)
+        owned_item_ids = set(
+            UserInventory.objects.filter(user=request.user).values_list("item_id", flat=True)
+        )
+        items = StoreItem.objects.only(
+            "id",
+            "name",
+            "description",
+            "category",
+            "rarity",
+            "price",
+            "required_level",
+            "visual_resource",
+        ).order_by(
             "category",
             "required_level",
             "price",
@@ -86,7 +108,11 @@ class StoreItemListView(APIView):
         serializer = StoreItemSerializer(
             items,
             many=True,
-            context={"request": request},
+            context={
+                "request": request,
+                "profile": profile,
+                "owned_item_ids": owned_item_ids,
+            },
         )
 
         return Response(

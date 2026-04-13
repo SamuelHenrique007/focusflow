@@ -260,18 +260,28 @@ def get_today_completed_tasks(user):
     ).count()
 
 
-def get_badge_metric_value(profile, metric):
+def build_profile_metrics(profile):
+    return {
+        "today_completed_pomodoros": get_today_completed_pomodoros(profile.user),
+        "today_completed_tasks": get_today_completed_tasks(profile.user),
+    }
+
+
+def get_badge_metric_value(profile, metric, metrics=None):
+    if metrics and metric in metrics:
+        return metrics[metric]
+
     if metric == "today_completed_pomodoros":
         return get_today_completed_pomodoros(profile.user)
 
     return getattr(profile, metric, 0)
 
 
-def build_badges(profile):
+def build_badges(profile, metrics=None):
     badges = []
 
     for definition in BADGE_DEFINITIONS:
-        current = get_badge_metric_value(profile, definition["metric"])
+        current = get_badge_metric_value(profile, definition["metric"], metrics=metrics)
         target = definition["target"]
         progress_percent = 100 if target <= 0 else min(round((current / target) * 100, 2), 100)
 
@@ -292,7 +302,9 @@ def build_badges(profile):
     return badges
 
 
-def get_daily_challenge_metric_value(profile, metric):
+def get_daily_challenge_metric_value(profile, metric, metrics=None):
+    if metrics and metric in metrics:
+        return metrics[metric]
     if metric == "today_completed_pomodoros":
         return get_today_completed_pomodoros(profile.user)
     if metric == "today_completed_tasks":
@@ -300,7 +312,7 @@ def get_daily_challenge_metric_value(profile, metric):
     return getattr(profile, metric, 0)
 
 
-def build_daily_challenges(profile):
+def build_daily_challenges(profile, metrics=None):
     refresh_daily_progress(profile)
     state = profile.daily_challenge_state or {}
     claimed_keys = set(state.get("claimed", []))
@@ -308,7 +320,7 @@ def build_daily_challenges(profile):
     challenges = []
 
     for definition in DAILY_CHALLENGE_DEFINITIONS:
-        current = get_daily_challenge_metric_value(profile, definition["metric"])
+        current = get_daily_challenge_metric_value(profile, definition["metric"], metrics=metrics)
         target = definition["target"]
         completed = current >= target
         claimed = definition["key"] in claimed_keys
@@ -348,7 +360,7 @@ def sync_profile_progress(profile, extra_active_date=None, save=True):
     return profile
 
 
-def grant_daily_challenge_rewards(profile, save=True):
+def grant_daily_challenge_rewards(profile, save=True, metrics=None):
     refresh_daily_progress(profile)
     state = profile.daily_challenge_state or {
         "date": get_local_today().isoformat(),
@@ -357,7 +369,7 @@ def grant_daily_challenge_rewards(profile, save=True):
     claimed_keys = set(state.get("claimed", []))
     earned = []
 
-    for challenge in build_daily_challenges(profile):
+    for challenge in build_daily_challenges(profile, metrics=metrics):
         if challenge["completed"] and challenge["key"] not in claimed_keys:
             profile.current_xp += challenge["reward_xp"]
             profile.coins += challenge["reward_coins"]

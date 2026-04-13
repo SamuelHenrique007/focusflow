@@ -24,6 +24,7 @@ type GameStore = {
   stats: GameStatus | null;
   isLoading: boolean;
   message: MessageState;
+  lastFetchedAt: number | null;
 
   setStats: (stats: GameStatus | null) => void;
   clearMessage: () => void;
@@ -141,10 +142,13 @@ function notifyRewardChanges(previousStats: GameStatus | null, nextStats: GameSt
   }
 }
 
+const STATUS_TTL_MS = 15_000;
+
 export const useGameStore = create<GameStore>((set, get) => ({
   stats: null,
   isLoading: false,
   message: null,
+  lastFetchedAt: null,
 
   setStats: (stats) => {
     set({ stats });
@@ -154,6 +158,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   clearMessage: () => set({ message: null }),
 
   fetchStatus: async (options) => {
+    const { stats, lastFetchedAt, isLoading } = get();
+    const shouldReuseCachedStatus =
+      !options?.notifyChanges &&
+      !!stats &&
+      !!lastFetchedAt &&
+      Date.now() - lastFetchedAt < STATUS_TTL_MS;
+
+    if (shouldReuseCachedStatus || isLoading) {
+      return;
+    }
+
     set({ isLoading: true });
 
     try {
@@ -163,6 +178,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         set({
           stats: null,
           isLoading: false,
+          lastFetchedAt: Date.now(),
         });
         return;
       }
@@ -177,6 +193,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({
         stats,
         isLoading: false,
+        lastFetchedAt: Date.now(),
       });
 
       hydrateEquippedPreferences(stats);
@@ -186,6 +203,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({
         stats: null,
         isLoading: false,
+        lastFetchedAt: null,
         message: {
           type: "error",
           text: "Não foi possível carregar os dados de gamificação.",

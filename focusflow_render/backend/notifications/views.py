@@ -8,15 +8,13 @@ from rest_framework.views import APIView
 from .models import Notification
 from .realtime import broadcast_notifications_state
 from .serializers import NotificationSerializer
-from .services import active_notifications_queryset, sync_user_notifications
+from .services import active_notifications_queryset
 
 
 class NotificationListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        sync_user_notifications(request.user)
-
         notifications = active_notifications_queryset(request.user)
         serializer = NotificationSerializer(notifications, many=True)
 
@@ -32,8 +30,6 @@ class UnreadNotificationCountView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        sync_user_notifications(request.user)
-
         count = active_notifications_queryset(request.user).filter(is_read=False).count()
 
         return Response(

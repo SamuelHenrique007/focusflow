@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from .models import StoreItem, UserInventory, UserProfile
-from .services import build_badges, build_daily_challenges
+from .services import build_badges, build_daily_challenges, build_profile_metrics
 
 
 CHEST_CONFIG = [
@@ -59,23 +59,24 @@ class StoreItemSerializer(serializers.ModelSerializer):
         ]
 
     def get_owned(self, obj):
-        request = self.context.get("request")
+        owned_item_ids = self.context.get("owned_item_ids")
+        if owned_item_ids is not None:
+            return obj.id in owned_item_ids
 
+        request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return False
 
-        return UserInventory.objects.filter(
-            user=request.user,
-            item=obj,
-        ).exists()
+        return UserInventory.objects.filter(user=request.user, item=obj).exists()
 
     def get_equipped(self, obj):
-        request = self.context.get("request")
+        profile = self.context.get("profile")
 
-        if not request or not request.user.is_authenticated:
-            return False
-
-        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        if profile is None:
+            request = self.context.get("request")
+            if not request or not request.user.is_authenticated:
+                return False
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
 
         if obj.category == "avatar":
             return profile.equipped_avatar_item_id == obj.id
@@ -206,10 +207,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return chests
 
     def get_badges(self, obj):
-        return build_badges(obj)
+        metrics = self.context.get("profile_metrics")
+        return build_badges(obj, metrics=metrics)
 
     def get_challenges(self, obj):
-        return build_daily_challenges(obj)
+        metrics = self.context.get("profile_metrics")
+        return build_daily_challenges(obj, metrics=metrics)
 
     def get_equipped_avatar(self, obj):
         return self._serialize_equipped_item(obj.equipped_avatar_item)
@@ -222,5 +225,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 def serialize_profile(profile):
-    serializer = UserProfileSerializer(profile)
+    metrics = build_profile_metrics(profile)
+    serializer = UserProfileSerializer(
+        profile,
+        context={
+            "profile": profile,
+            "profile_metrics": metrics,
+        },
+    )
     return serializer.data
