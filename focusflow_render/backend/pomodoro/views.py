@@ -99,7 +99,7 @@ class FinishPomodoroSessionView(APIView):
 
     def post(self, request, session_id):
         try:
-            session = PomodoroSession.objects.get(
+            session = PomodoroSession.objects.select_related("task").get(
                 id=session_id,
                 user=request.user,
             )
@@ -143,7 +143,7 @@ class FinishPomodoroSessionView(APIView):
                 session.status = "skipped"
                 session.earned_points = 0
 
-            session.save()
+            session.save(update_fields=["ended_at", "status", "earned_points"])
 
         return Response(PomodoroSessionSerializer(session).data)
 

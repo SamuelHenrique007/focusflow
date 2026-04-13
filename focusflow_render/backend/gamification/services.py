@@ -189,6 +189,28 @@ def calculate_daily_goal_progress(profile):
     return min(progress, 100)
 
 
+def update_focus_streak_after_session(profile, focus_date=None):
+    """
+    Atualiza a streak de forma incremental no término de uma sessão de foco,
+    evitando recalcular todo o histórico em cada finalização.
+    """
+    focus_date = focus_date or get_local_today()
+    previous_focus_date = profile.last_focus_session_date
+
+    if previous_focus_date == focus_date:
+        return profile.streak
+
+    if previous_focus_date == focus_date - timedelta(days=1):
+        profile.streak = max(profile.streak, 0) + 1
+    elif previous_focus_date == focus_date:
+        pass
+    else:
+        profile.streak = 1
+
+    profile.last_focus_session_date = focus_date
+    return profile.streak
+
+
 def calculate_focus_streak(user, extra_active_date=None):
     """
     Calcula a sequência de dias com foco concluído.
@@ -260,10 +282,18 @@ def get_today_completed_tasks(user):
     ).count()
 
 
-def build_profile_metrics(profile):
+def build_profile_metrics(profile, today_completed_pomodoros=None, today_completed_tasks=None):
     return {
-        "today_completed_pomodoros": get_today_completed_pomodoros(profile.user),
-        "today_completed_tasks": get_today_completed_tasks(profile.user),
+        "today_completed_pomodoros": (
+            get_today_completed_pomodoros(profile.user)
+            if today_completed_pomodoros is None
+            else today_completed_pomodoros
+        ),
+        "today_completed_tasks": (
+            get_today_completed_tasks(profile.user)
+            if today_completed_tasks is None
+            else today_completed_tasks
+        ),
     }
 
 
@@ -353,9 +383,11 @@ def sync_profile_progress(profile, extra_active_date=None, save=True):
         profile.user,
         extra_active_date=extra_active_date,
     )
+    if profile.streak > 0:
+        profile.last_focus_session_date = extra_active_date or get_local_today()
 
     if save:
-        profile.save(update_fields=["daily_goal_progress", "streak"])
+        profile.save(update_fields=["daily_goal_progress", "streak", "last_focus_session_date"])
 
     return profile
 
@@ -420,20 +452,16 @@ def grant_focus_progress(profile, focus_minutes, completed_pomodoro=False, save=
     if completed_pomodoro:
         profile.total_pomodoros += 1
 
-    extra_active_date = get_local_today() if focus_minutes > 0 else None
-    profile.daily_goal_progress = calculate_daily_goal_progress(profile)
-    profile.streak = calculate_focus_streak(
-        profile.user,
-        extra_active_date=extra_active_date,
-    )
+    if focus_minutes > 0:
+        update_focus_streak_after_session(profile, focus_date=get_local_today())
 
-    gained_levels = apply_level_up(profile)
+    profile.daily_goal_progress = calculate_daily_goal_progress(profile)
 
     if save:
-        metrics = {
-            "today_completed_pomodoros": profile.total_pomodoros,
-            "today_completed_tasks": None,
-        }
+        metrics = build_profile_metrics(
+            profile,
+            today_completed_pomodoros=get_today_completed_pomodoros(profile.user),
+        )
         grant_daily_challenge_rewards(profile, save=False, metrics=metrics)
         profile.save()
 
@@ -447,7 +475,6 @@ def reward_completed_task(profile, xp_reward=15, coins_reward=10, save=True):
     profile.current_xp += xp_reward
     profile.coins += coins_reward
     profile.daily_goal_progress = calculate_daily_goal_progress(profile)
-    profile.streak = calculate_focus_streak(profile.user)
 
     gained_levels = apply_level_up(profile)
 

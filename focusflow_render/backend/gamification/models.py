@@ -24,6 +24,7 @@ class UserProfile(models.Model):
     total_tasks_completed = models.IntegerField(default=0)
     total_focus_minutes = models.IntegerField(default=0)
     last_activity = models.DateField(auto_now=True)
+    last_focus_session_date = models.DateField(null=True, blank=True)
 
     daily_goal_progress = models.IntegerField(
         default=0,
