@@ -123,13 +123,14 @@ class FinishPomodoroSessionView(APIView):
                 session.status = "completed"
                 session.earned_points = 25 if session.session_type == "focus" else 5
 
-                if session.task and session.session_type == "focus":
-                    session.task.pomodoro_completed = F("pomodoro_completed") + 1
-                    session.task.focus_minutes_completed = (
-                        F("focus_minutes_completed") + session.planned_minutes
+                if session.task_id and session.session_type == "focus":
+                    Task.objects.filter(
+                        id=session.task_id,
+                        user=request.user,
+                    ).update(
+                        pomodoro_completed=F("pomodoro_completed") + 1,
+                        focus_minutes_completed=F("focus_minutes_completed") + session.planned_minutes,
                     )
-                    session.task.save()
-                    session.task.refresh_from_db()
 
                 if session.session_type == "focus":
                     profile = get_profile(request.user)
