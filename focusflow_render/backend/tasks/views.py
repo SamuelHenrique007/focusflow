@@ -3,7 +3,7 @@ from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from notifications.services import notify_task_completed
+from notifications.services import notify_task_completed, sync_user_notifications
 
 from gamification.services import get_profile, reward_completed_task
 from .models import Task
@@ -23,7 +23,8 @@ class TaskViewSet(viewsets.ModelViewSet):
         return queryset.prefetch_related("subtasks").order_by("-created_at")
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        task = serializer.save(user=self.request.user)
+        sync_user_notifications(task.user)
 
     @transaction.atomic
     def perform_update(self, serializer):
@@ -41,6 +42,13 @@ class TaskViewSet(viewsets.ModelViewSet):
             reward_completed_task(profile)
 
             notify_task_completed(task)
-            
+
             task.reward_granted = True
             task.save(update_fields=["reward_granted"])
+
+        sync_user_notifications(task.user)
+
+    def perform_destroy(self, instance):
+        user = instance.user
+        instance.delete()
+        sync_user_notifications(user)
