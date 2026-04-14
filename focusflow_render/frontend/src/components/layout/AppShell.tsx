@@ -4,6 +4,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { SidebarNav, type NavKey } from "@/components/layout/SidebarNav";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotificationsStore } from "@/store/useNotificationsStore";
 
 function getActiveKey(pathname: string): NavKey {
   if (pathname.startsWith("/dashboard")) return "dashboard";
@@ -33,10 +34,19 @@ export function AppShell({
   const location = useLocation();
   const { logout } = useAuth();
 
+  const unreadCount = useNotificationsStore((state) => state.unreadCount);
+  const fetchUnreadCount = useNotificationsStore(
+    (state) => state.fetchUnreadCount
+  );
+
   const activeKey = useMemo(
     () => getActiveKey(location.pathname),
-    [location.pathname],
+    [location.pathname]
   );
+
+  useEffect(() => {
+    void fetchUnreadCount();
+  }, [fetchUnreadCount]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -110,12 +120,19 @@ export function AppShell({
                 </div>
 
                 <button
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[var(--ff-border)] bg-[var(--ff-surface-soft)] text-[var(--ff-text-soft)]"
+                  className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[var(--ff-border)] bg-[var(--ff-surface-soft)] text-[var(--ff-text-soft)]"
                   type="button"
                   onClick={() => setMobileOpen(true)}
                   aria-label="Abrir menu"
                 >
                   <Menu className="h-5 w-5" />
+
+                  {unreadCount > 0 ? (
+                    <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[var(--ff-surface-soft)]" />
+                    </span>
+                  ) : null}
                 </button>
               </div>
             </header>
