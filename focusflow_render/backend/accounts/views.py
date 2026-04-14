@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import generics, status
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.http import JsonResponse
 
 from .serializers import (
     RegisterSerializer,
@@ -116,3 +117,10 @@ class ResetPasswordView(APIView):
             {"message": "Senha redefinida com sucesso."},
             status=status.HTTP_200_OK,
         )
+
+def health_check(request):
+    """
+    Rota ultra leve apenas para manter o Render acordado.
+    Não faz consultas ao banco de dados.
+    """
+    return JsonResponse({"status": "ok", "message": "FocusFlow server is awake!"}, status=200)
