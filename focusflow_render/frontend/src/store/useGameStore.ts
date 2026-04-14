@@ -151,7 +151,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   lastFetchedAt: null,
 
   setStats: (stats) => {
-    set({ stats });
+    set({
+      stats,
+      lastFetchedAt: stats ? Date.now() : null,
+    });
     hydrateEquippedPreferences(stats);
   },
 
@@ -219,6 +222,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (data?.stats) {
         set({
           stats: data.stats,
+          lastFetchedAt: Date.now(),
           message: {
             type: "success",
             text: data.message || "Moedas resgatadas com sucesso.",
@@ -254,6 +258,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (data?.stats) {
         set({
           stats: data.stats,
+          lastFetchedAt: Date.now(),
           message: {
             type: "success",
             text: data.message || "Baú resgatado com sucesso.",

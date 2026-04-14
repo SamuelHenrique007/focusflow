@@ -15,7 +15,6 @@ import {
 
 import { cn } from "@/lib/cn";
 import {
-  gamificationService,
   type BadgeStatus,
   type ChestStatus,
   type ChallengeStatus,
@@ -111,7 +110,7 @@ function chestRewardTone(chest: ChestStatus) {
 }
 
 export default function ConquistasPage() {
-  const { stats, fetchStatus } = useGameStore();
+  const { stats, fetchStatus, claimChest } = useGameStore();
   const pushToast = useToastStore((state) => state.pushToast);
 
   const [claimingChest, setClaimingChest] = useState<string | null>(null);
@@ -169,15 +168,13 @@ export default function ConquistasPage() {
   async function handleClaimChest(chestKey: "wood" | "silver" | "gold") {
     try {
       setClaimingChest(chestKey);
-      const response = await gamificationService.claimChest(chestKey);
+      await claimChest(chestKey);
 
       showToast(
         "success",
         "Baú resgatado",
-        response.message || "Baú resgatado com sucesso.",
+        "Baú resgatado com sucesso.",
       );
-
-      await fetchStatus();
     } catch (error) {
       showToast(
         "error",

@@ -436,9 +436,9 @@ def grant_focus_progress(profile, focus_minutes, completed_pomodoro=False, save=
     """
     Aplica toda a progressão de gamificação derivada de foco.
 
-    Mantém o caminho síncrono do término de pomodoro o mais leve possível:
-    atualiza o perfil e calcula desafios uma única vez, sem forçar a
-    sincronização completa de notificações nesta etapa.
+    Também consolida a evolução de nível, recompensas diárias e
+    sincronização de notificações para que a interface reflita o novo
+    estado imediatamente após o término do pomodoro.
     """
     refresh_daily_progress(profile)
 
@@ -457,6 +457,7 @@ def grant_focus_progress(profile, focus_minutes, completed_pomodoro=False, save=
         update_focus_streak_after_session(profile, focus_date=get_local_today())
 
     profile.daily_goal_progress = calculate_daily_goal_progress(profile)
+    gained_levels = apply_level_up(profile)
 
     if save:
         metrics = build_profile_metrics(
@@ -465,6 +466,7 @@ def grant_focus_progress(profile, focus_minutes, completed_pomodoro=False, save=
         )
         grant_daily_challenge_rewards(profile, save=False, metrics=metrics)
         profile.save()
+        finalize_gamification_notifications(profile, gained_levels)
 
     return xp_gained
 
