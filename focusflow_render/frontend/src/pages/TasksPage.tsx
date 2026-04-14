@@ -978,9 +978,11 @@ export default function TasksPage() {
     const previousTasks = [...tasks];
 
     const isCurrentlyDone = task.status === "concluida";
-    const optimisticTask = {
+    
+    // Tipamos explicitamente como Task e forçamos o status para o tipo correto
+    const optimisticTask: Task = {
       ...task,
-      status: isCurrentlyDone ? "pendente" : "concluida",
+      status: (isCurrentlyDone ? "pendente" : "concluida") as Task["status"],
       completedAt: isCurrentlyDone ? null : new Date().toISOString(),
     };
 

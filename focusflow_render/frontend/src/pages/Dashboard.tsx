@@ -593,11 +593,15 @@ export default function FocusFlowDashboard() {
     const previousTasks = [...tasks];
 
     const isCurrentlyDone = task.status === "concluida";
-    const optimisticTask = {
+    
+    // Tipamos explicitamente como Task e forçamos o status para o tipo correto
+    const optimisticTask: Task = {
       ...task,
-      status: isCurrentlyDone ? "pendente" : "concluida",
+      status: (isCurrentlyDone ? "pendente" : "concluida") as Task["status"],
       completedAt: isCurrentlyDone ? null : new Date().toISOString(),
     };
+
+    // ... o resto do código continua exatamente igual ...
 
     // Atualiza a UI imediatamente (se ficar "concluída", some do dashboard devido ao shouldShowOnDashboard)
     setTasks((prev) =>
