@@ -792,7 +792,7 @@ export default function TasksPage() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         loadTasks(true);
-        // Atualiza os status do sistema de gamificação, já que o usuário importou o useGameStore
+        // Atualiza os status do sistema de gamificação
         useGameStore.getState().fetchStatus();
       }
     };
@@ -920,54 +920,81 @@ export default function TasksPage() {
     setEditOpen(true);
   }
 
+  // --- Função de Edição Otimista (Optimistic UI) ---
   async function handleEditTask(payload: CreateTaskRequest | UpdateTaskRequest) {
     if (!selectedTask) return;
 
-    try {
-      setIsSubmitting(true);
+    const previousTasks = [...tasks];
 
+    const optimisticUpdatedTask: Task = {
+      ...selectedTask,
+      ...payload,
+    } as Task;
+
+    setTasks((prev) =>
+      prev.map((task) => (task.id === selectedTask.id ? optimisticUpdatedTask : task))
+    );
+    setSelectedTask(optimisticUpdatedTask);
+    setEditOpen(false);
+
+    try {
       const updated = await updateTask(
         selectedTask.id,
         payload as UpdateTaskRequest,
       );
 
       setTasks((prev) =>
-        prev.map((task) => (task.id === updated.id ? updated : task)),
+        prev.map((task) => (task.id === updated.id ? updated : task))
       );
-
-      setSelectedTask(updated);
-      setEditOpen(false);
-    } catch {
-      alert("Não foi possível atualizar a tarefa.");
-    } finally {
-      setIsSubmitting(false);
+    } catch (error) {
+      console.error("Erro ao atualizar a tarefa", error);
+      setTasks(previousTasks);
+      alert("Não foi possível salvar as alterações da tarefa.");
     }
   }
 
+  // --- Função de Exclusão Otimista (Optimistic UI) ---
   async function handleDeleteTask(taskId: number) {
+    const previousTasks = [...tasks];
+
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+
+    if (selectedTask?.id === taskId) {
+      setSelectedTask(null);
+      setEditOpen(false);
+    }
+
     try {
       await deleteTask(taskId);
-      setTasks((prev) => prev.filter((t) => t.id !== taskId));
-
-      if (selectedTask?.id === taskId) {
-        setSelectedTask(null);
-        setEditOpen(false);
-      }
-    } catch {
-      alert("Não foi possível excluir a tarefa.");
+    } catch (error) {
+      console.error("Erro ao excluir a tarefa", error);
+      setTasks(previousTasks);
+      alert("Não foi possível excluir a tarefa. Verifique sua conexão.");
     }
   }
 
+  // --- Função de Toggle Otimista (Optimistic UI) ---
   async function handleToggleComplete(task: Task) {
-    try {
-      const isCurrentlyDone = task.status === "concluida";
+    const previousTasks = [...tasks];
 
+    const isCurrentlyDone = task.status === "concluida";
+    const optimisticTask = {
+      ...task,
+      status: isCurrentlyDone ? "pendente" : "concluida",
+      completedAt: isCurrentlyDone ? null : new Date().toISOString(),
+    };
+
+    setTasks((prev) =>
+      prev.map((item) => (item.id === task.id ? optimisticTask : item))
+    );
+
+    try {
       const updated = await updateTask(task.id, {
-        completedAt: isCurrentlyDone ? null : new Date().toISOString(),
+        completedAt: optimisticTask.completedAt,
       });
 
       setTasks((prev) =>
-        prev.map((item) => (item.id === updated.id ? updated : item)),
+        prev.map((item) => (item.id === updated.id ? updated : item))
       );
 
       if (selectedTask?.id === updated.id) {
@@ -977,7 +1004,7 @@ export default function TasksPage() {
       await useGameStore.getState().fetchStatus({ notifyChanges: true });
     } catch (error) {
       console.error("Erro ao atualizar conclusão da tarefa", error);
-      alert("Não foi possível atualizar a conclusão da tarefa.");
+      setTasks(previousTasks);
     }
   }
 

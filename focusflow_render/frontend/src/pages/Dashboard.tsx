@@ -8,6 +8,7 @@ import {
   Target,
   Clock,
   CheckCircle2,
+  Circle,
   BookOpen,
   Briefcase,
   User,
@@ -28,6 +29,7 @@ import { api } from "@/services/api";
 import {
   listTasks,
   createTask,
+  updateTask,
   type Task,
   type CreateTaskRequest,
   type UpdateTaskRequest,
@@ -127,7 +129,7 @@ function shouldShowOnDashboard(task: Task) {
   return taskIsToday || isOverdue;
 }
 
-function TaskRow({ task }: { task: Task }) {
+function TaskRow({ task, onToggleComplete }: { task: Task; onToggleComplete: () => void }) {
   const priorityTone =
     task.priority === "alta"
       ? "danger"
@@ -166,6 +168,46 @@ function TaskRow({ task }: { task: Task }) {
       ) : null}
 
       <div className="flex items-start gap-3 pl-2">
+        
+        {/* Botão de Toggle Adicionado ao Dashboard */}
+        <button
+          type="button"
+          onClick={onToggleComplete}
+          className="mt-0.5 grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-2xl bg-slate-50 ring-1 ring-slate-200 transition-all hover:scale-105 hover:bg-white active:scale-95"
+          aria-label={isDone ? "Desmarcar tarefa" : "Concluir tarefa"}
+          title={isDone ? "Desmarcar concluída" : "Marcar concluída"}
+        >
+          <AnimatePresence mode="wait">
+            {isDone ? (
+              <motion.div
+                key="done"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0, rotate: 180 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              >
+                <CheckCircle2 className="h-6 w-6 text-blue-500" />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="pending"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+              >
+                <Circle
+                  className={cn(
+                    "h-6 w-6 transition-colors",
+                    isOverdue
+                      ? "text-red-500"
+                      : "text-slate-400 group-hover:text-blue-500"
+                  )}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </button>
+
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -337,7 +379,6 @@ export default function FocusFlowDashboard() {
   const [loadingPomodoro, setLoadingPomodoro] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Usamos o useCallback para estabilizar a referência da função e usá-la no useEffect
   const loadDashboardData = useCallback(async (isBackground = false) => {
     try {
       if (!isBackground) {
@@ -367,14 +408,12 @@ export default function FocusFlowDashboard() {
 
   useEffect(() => {
     fetchStatus();
-    loadDashboardData(); // Carregamento inicial
+    loadDashboardData(); 
 
-    // 1. Polling Automático a cada 30 segundos
     const intervalId = setInterval(() => {
-      loadDashboardData(true); // true = isBackground (não pisca a tela)
+      loadDashboardData(true); 
     }, 30000);
 
-    // 2. Listener para atualizar quando o usuário voltar para a aba
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         fetchStatus();
@@ -384,7 +423,6 @@ export default function FocusFlowDashboard() {
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // Limpeza dos eventos quando o componente for desmontado
     return () => {
       clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -533,18 +571,52 @@ export default function FocusFlowDashboard() {
     };
   }, [overdueTasks.length, inProgressTodayTasks.length, todayTasks.length]);
 
+  // --- Função de Criação Otimizada (Fecha o Modal na hora) ---
   async function handleCreateTask(
     payload: CreateTaskRequest | UpdateTaskRequest,
   ) {
+    setNewTaskOpen(false); // Fecha instantaneamente
     try {
       setIsSubmitting(true);
       const newTask = await createTask(payload as CreateTaskRequest);
       setTasks((prev) => [newTask, ...prev]);
-      setNewTaskOpen(false);
     } catch {
       alert("Não foi possível criar a tarefa.");
+      setNewTaskOpen(true); // Reabre se falhar
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  // --- Função de Toggle Otimista para o Dashboard ---
+  async function handleToggleComplete(task: Task) {
+    const previousTasks = [...tasks];
+
+    const isCurrentlyDone = task.status === "concluida";
+    const optimisticTask = {
+      ...task,
+      status: isCurrentlyDone ? "pendente" : "concluida",
+      completedAt: isCurrentlyDone ? null : new Date().toISOString(),
+    };
+
+    // Atualiza a UI imediatamente (se ficar "concluída", some do dashboard devido ao shouldShowOnDashboard)
+    setTasks((prev) =>
+      prev.map((item) => (item.id === task.id ? optimisticTask : item))
+    );
+
+    try {
+      const updated = await updateTask(task.id, {
+        completedAt: optimisticTask.completedAt,
+      });
+
+      setTasks((prev) =>
+        prev.map((item) => (item.id === updated.id ? updated : item))
+      );
+
+      await useGameStore.getState().fetchStatus({ notifyChanges: true });
+    } catch (error) {
+      console.error("Erro ao atualizar conclusão da tarefa", error);
+      setTasks(previousTasks); // Rollback visual em caso de erro
     }
   }
 
@@ -849,7 +921,10 @@ export default function FocusFlowDashboard() {
                       exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
                       transition={{ duration: 0.3, type: "spring", bounce: 0.3 }}
                     >
-                      <TaskRow task={task} />
+                      <TaskRow
+                        task={task}
+                        onToggleComplete={() => handleToggleComplete(task)}
+                      />
                     </motion.div>
                   ))}
                 </AnimatePresence>

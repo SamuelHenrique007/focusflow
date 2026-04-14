@@ -126,7 +126,7 @@ def start_scheduler():
         scheduler.add_job(
             dispatch_automated_emails,
             "interval",
-            minutes=5,
+            seconds=10,
             id="notifications_email_job",
             replace_existing=True,
         )
