@@ -34,7 +34,11 @@ def env_list(key: str, default: list[str] | None = None) -> list[str]:
 
 SECRET_KEY = env("SECRET_KEY", "django-insecure-change-me")
 DEBUG = env_bool("DEBUG", default=False)
+
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", ["localhost", "127.0.0.1"])
+if not DEBUG:
+    ALLOWED_HOSTS += [".onrender.com"]
+
 
 INSTALLED_APPS = [
     "daphne",
@@ -137,22 +141,13 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = "accounts.User"
 
-DATABASE_URL = env("DATABASE_URL")
-if DATABASE_URL:
-    DATABASES = {
-        "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=not DEBUG)
-    }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": env("DB_NAME", "focusflow_db"),
-            "USER": env("DB_USER", "focusflow_user"),
-            "PASSWORD": env("DB_PASSWORD", "123456"),
-            "HOST": env("DB_HOST", "localhost"),
-            "PORT": env("DB_PORT", "5432"),
-        }
-    }
+DATABASES = {
+    "default": dj_database_url.config(
+        default=os.environ.get("DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True,
+    )
+}
 
 REDIS_URL = env("REDIS_URL")
 if REDIS_URL:
@@ -195,9 +190,7 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 SECURE_HSTS_SECONDS = int(env("SECURE_HSTS_SECONDS", "31536000" if not DEBUG else "0"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool(
-    "SECURE_HSTS_INCLUDE_SUBDOMAINS", default=not DEBUG
+    "SECURE_HSTS_INCLUDE_SUBDOMAINS",
+    default=not DEBUG,
 )
 SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", default=not DEBUG)
-
-
-
