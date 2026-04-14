@@ -440,7 +440,7 @@ export default function SettingsPage() {
             </h1>
             <p className="mt-1 text-sm text-(--ff-text-soft)">
               Aqui você pode gerenciar sua conta, restaurar itens equipados,
-              ajustar o pomodoro e conhecer melhor a aplicação.
+              ajustar o pomodoro e visualizar informações sobre a aplicação.
             </p>
           </div>
         </div>
@@ -714,7 +714,7 @@ export default function SettingsPage() {
 
       <SectionCard
         title="Sobre"
-        description="Informações sobre a aplicação e suas principais funcionalidades."
+        description="Conheça a aplicação e suas principais funcionalidades."
         icon={<Info className="h-5 w-5" />}
       >
         <div className="space-y-5">
@@ -723,12 +723,11 @@ export default function SettingsPage() {
               Sobre o FocusFlow
             </h3>
             <p className="mt-2 text-sm leading-6 text-(--ff-text-soft)">
-              O FocusFlow é uma aplicação voltada para produtividade e
-              organização pessoal. Seu objetivo é ajudar o usuário a manter o
-              foco nas atividades, acompanhar o próprio desempenho e tornar a
-              rotina mais eficiente por meio de recursos visuais, estatísticas,
-              gerenciamento de tarefas e técnicas de concentração como o método
-              Pomodoro.
+              O FocusFlow é uma aplicação voltada para produtividade,
+              organização e gerenciamento do tempo. Seu objetivo é ajudar o
+              usuário a manter o foco nas tarefas, acompanhar o próprio
+              desempenho e tornar a rotina mais eficiente com recursos de
+              planejamento, estatísticas, personalização e sessões de Pomodoro.
             </p>
           </div>
 
@@ -743,9 +742,8 @@ export default function SettingsPage() {
                     Dashboard
                   </h3>
                   <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
-                    Exibe uma visão geral da rotina do usuário, reunindo
-                    informações importantes como progresso, produtividade e
-                    acompanhamento diário.
+                    Exibe uma visão geral da produtividade, do progresso e das
+                    informações mais importantes do usuário.
                   </p>
                 </div>
               </div>
@@ -758,11 +756,11 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-(--ff-text)">
-                    Gerenciamento de tarefas
+                    Tarefas
                   </h3>
                   <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
-                    Permite criar, visualizar e organizar tarefas para facilitar
-                    o planejamento das atividades do dia a dia.
+                    Permite cadastrar, visualizar e organizar tarefas para
+                    melhorar o planejamento da rotina.
                   </p>
                 </div>
               </div>
@@ -778,9 +776,8 @@ export default function SettingsPage() {
                     Pomodoro
                   </h3>
                   <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
-                    Ajuda o usuário a dividir o tempo entre foco e pausas,
-                    favorecendo a concentração e uma rotina de trabalho ou estudo
-                    mais equilibrada.
+                    Ajuda no controle do tempo por meio de ciclos de foco e
+                    pausa, favorecendo a concentração e a produtividade.
                   </p>
                 </div>
               </div>
@@ -796,8 +793,8 @@ export default function SettingsPage() {
                     Estatísticas
                   </h3>
                   <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
-                    Apresenta dados e métricas sobre o desempenho do usuário,
-                    ajudando a entender hábitos e evolução da produtividade.
+                    Mostra dados e métricas para acompanhar o desempenho e a
+                    evolução dos hábitos do usuário.
                   </p>
                 </div>
               </div>
@@ -813,9 +810,8 @@ export default function SettingsPage() {
                     Gamificação
                   </h3>
                   <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
-                    Inclui elementos de recompensa, evolução e motivação para
-                    tornar a experiência mais envolvente durante o uso da
-                    aplicação.
+                    Inclui recompensas e elementos motivacionais para tornar a
+                    experiência mais envolvente.
                   </p>
                 </div>
               </div>
@@ -831,8 +827,8 @@ export default function SettingsPage() {
                     Personalização
                   </h3>
                   <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
-                    Permite ao usuário personalizar elementos da interface, como
-                    tema, avatar e som, tornando a experiência mais agradável.
+                    Permite personalizar tema, avatar e som, deixando a
+                    aplicação mais adequada às preferências do usuário.
                   </p>
                 </div>
               </div>
@@ -848,8 +844,8 @@ export default function SettingsPage() {
                     Notificações
                   </h3>
                   <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
-                    Auxiliam no acompanhamento de tarefas, lembretes e eventos
-                    importantes dentro da aplicação.
+                    Auxiliam o usuário com lembretes e avisos importantes dentro
+                    da aplicação.
                   </p>
                 </div>
               </div>
@@ -865,8 +861,8 @@ export default function SettingsPage() {
                     Organização da rotina
                   </h3>
                   <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
-                    O aplicativo reúne recursos que ajudam o usuário a planejar,
-                    acompanhar e melhorar a execução das atividades diárias.
+                    Reúne recursos para ajudar o usuário a planejar, executar e
+                    acompanhar melhor suas atividades diárias.
                   </p>
                 </div>
               </div>
