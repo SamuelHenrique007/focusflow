@@ -38,7 +38,6 @@ import {
 import { getThemeDefinition } from "@/lib/themeCatalog";
 import { cn } from "@/lib/cn";
 
-// Variantes de animação do Framer Motion
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -121,15 +120,12 @@ export default function SettingsPage() {
 
   const equippedThemeKey = useThemeStore((state) => state.equippedThemeKey);
   const clearTheme = useThemeStore((state) => state.clearTheme);
-  const loadTheme = useThemeStore((state) => state.loadTheme);
 
   const equippedAvatar = useAvatarStore((state) => state.equippedAvatar);
   const clearAvatar = useAvatarStore((state) => state.clearAvatar);
-  const loadAvatar = useAvatarStore((state) => state.loadAvatar);
 
   const equippedSoundKey = useSoundStore((state) => state.equippedSoundKey);
   const clearSound = useSoundStore((state) => state.clearSound);
-  const loadSound = useSoundStore((state) => state.loadSound);
 
   const [profileForm, setProfileForm] = useState({
     name: "",
@@ -181,10 +177,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchStatus();
-    loadTheme();
-    loadAvatar();
-    loadSound();
-  }, [fetchStatus, loadTheme, loadAvatar, loadSound]);
+  }, [fetchStatus]);
 
   useEffect(() => {
     if (!user) return;
@@ -391,31 +384,34 @@ export default function SettingsPage() {
       if (category === "avatar") clearAvatar();
       if (category === "sound") clearSound();
 
-      fetchStatus();
-
-      if (category === "theme" && data?.theme_key) {
-        loadTheme();
-      }
-
-      if (category === "avatar" && data?.avatar) {
-        loadAvatar();
-      }
-
-      if (category === "sound" && data?.sound_key) {
-        loadSound();
-      }
+      await fetchStatus();
 
       showToast(
         "success",
-        "Preferência redefinida",
-        "A configuração foi restaurada para o padrão do aplicativo.",
+        category === "theme"
+          ? "Tema restaurado"
+          : category === "avatar"
+            ? "Avatar restaurado"
+            : "Som restaurado",
+        data?.message ||
+          (category === "theme"
+            ? "Tema restaurado para o padrão."
+            : category === "avatar"
+              ? "Avatar restaurado para o padrão."
+              : "Som restaurado para o padrão."),
       );
     } catch (error) {
-      console.error("Erro ao resetar equipamento:", error);
+      console.error(`Erro ao redefinir ${category}:`, error);
       showToast(
         "error",
-        "Falha ao redefinir",
-        "Não foi possível restaurar essa configuração.",
+        "Falha ao restaurar item",
+        `Não foi possível redefinir ${
+          category === "theme"
+            ? "o tema"
+            : category === "avatar"
+              ? "o avatar"
+              : "o som"
+        }.`,
       );
     } finally {
       setBusySection(null);
@@ -427,39 +423,37 @@ export default function SettingsPage() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-6"
+      className="mx-auto max-w-5xl space-y-6 pb-12"
     >
-      <motion.section
+      <motion.div
         variants={itemVariants}
-        className="overflow-hidden rounded-3xl border border-(--ff-border) bg-linear-to-r from-(--ff-primary) to-(--ff-primary-strong) p-6 text-white shadow-sm"
+        className="rounded-3xl border border-(--ff-border) bg-(--ff-surface) p-6 shadow-sm"
       >
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white/90 ring-1 ring-white/15">
+            <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-(--ff-primary-soft) px-3 py-1 text-xs font-semibold text-(--ff-primary)">
               <Sparkles className="h-3.5 w-3.5" />
-              Preferências do FocusFlow
-            </div>
-            <h1 className="text-2xl font-bold sm:text-3xl">Configurações</h1>
-            <p className="mt-2 max-w-2xl text-sm text-white/85 sm:text-base">
-              Personalize seu perfil, ajuste o Pomodoro e redefina elementos
-              visuais sempre que precisar.
+              Personalização
+            </p>
+            <h1 className="text-2xl font-bold text-(--ff-text)">
+              Configurações
+            </h1>
+            <p className="mt-1 text-sm text-(--ff-text-soft)">
+              Aqui você pode gerenciar sua conta, restaurar itens equipados,
+              ajustar o pomodoro e conhecer melhor a aplicação.
             </p>
           </div>
-
-          <div className="rounded-2xl bg-white/10 px-4 py-3 text-sm text-white/90 ring-1 ring-white/15">
-            {user?.email || "Conta conectada"}
-          </div>
         </div>
-      </motion.section>
+      </motion.div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         <SectionCard
-          title="Perfil"
-          description="Atualize seus dados básicos para manter a conta sempre em dia."
+          title="Dados do usuário"
+          description="Atualize seu nome e e-mail da conta."
           icon={<UserCog className="h-5 w-5" />}
         >
           <form className="space-y-4" onSubmit={handleSaveProfile}>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4">
               <label className="block cursor-pointer space-y-2">
                 <span className="block text-sm font-semibold text-(--ff-text)">
                   Nome
@@ -506,7 +500,7 @@ export default function SettingsPage() {
                 className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-(--ff-primary) px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Save className="h-4 w-4" />
-                {isSavingProfile ? "Salvando..." : "Salvar perfil"}
+                {isSavingProfile ? "Salvando..." : "Salvar dados"}
               </button>
             </div>
           </form>
@@ -533,7 +527,7 @@ export default function SettingsPage() {
                         current_password: event.target.value,
                       }))
                     }
-                    placeholder="Digite a senha atual"
+                    placeholder="Digite sua senha atual"
                     disabled={isSavingPassword}
                     className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) py-2 pl-3 pr-10 text-sm text-(--ff-text) outline-none transition focus:border-(--ff-primary)"
                   />
@@ -720,106 +714,163 @@ export default function SettingsPage() {
 
       <SectionCard
         title="Sobre"
-        description="Conheça o FocusFlow e veja os principais recursos disponíveis na aplicação."
+        description="Informações sobre a aplicação e suas principais funcionalidades."
         icon={<Info className="h-5 w-5" />}
       >
         <div className="space-y-5">
           <div className="rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) p-5">
             <h3 className="text-base font-bold text-(--ff-text)">
-              O que é o FocusFlow?
+              Sobre o FocusFlow
             </h3>
             <p className="mt-2 text-sm leading-6 text-(--ff-text-soft)">
-              O FocusFlow é uma aplicação de produtividade criada para ajudar o
-              usuário a organizar a rotina, manter o foco e acompanhar sua
-              evolução ao longo do tempo. A plataforma reúne gerenciamento de
-              tarefas, sessões Pomodoro, métricas de desempenho, notificações e
-              elementos de gamificação em uma experiência personalizável.
+              O FocusFlow é uma aplicação voltada para produtividade e
+              organização pessoal. Seu objetivo é ajudar o usuário a manter o
+              foco nas atividades, acompanhar o próprio desempenho e tornar a
+              rotina mais eficiente por meio de recursos visuais, estatísticas,
+              gerenciamento de tarefas e técnicas de concentração como o método
+              Pomodoro.
             </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            {[
-              {
-                icon: <ListTodo className="h-5 w-5" />,
-                title: "Gestão de tarefas",
-                description:
-                  "Permite criar, editar e organizar tarefas com mais clareza para acompanhar o que precisa ser feito no dia a dia.",
-              },
-              {
-                icon: <Timer className="h-5 w-5" />,
-                title: "Pomodoro integrado",
-                description:
-                  "Oferece ciclos de foco e pausa para melhorar a concentração e manter uma rotina de estudos ou trabalho mais consistente.",
-              },
-              {
-                icon: <LayoutDashboard className="h-5 w-5" />,
-                title: "Dashboard",
-                description:
-                  "Apresenta uma visão geral da rotina com informações úteis sobre progresso, pendências e produtividade.",
-              },
-              {
-                icon: <BarChart3 className="h-5 w-5" />,
-                title: "Estatísticas",
-                description:
-                  "Mostra dados de desempenho para acompanhar sessões concluídas, evolução do foco e hábitos de produtividade.",
-              },
-              {
-                icon: <Trophy className="h-5 w-5" />,
-                title: "Conquistas e gamificação",
-                description:
-                  "Transforma o progresso em motivação com recompensas, metas e incentivos visuais durante o uso da plataforma.",
-              },
-              {
-                icon: <ShoppingBag className="h-5 w-5" />,
-                title: "Loja e personalização",
-                description:
-                  "Permite usar recompensas obtidas no sistema para personalizar elementos da experiência, como itens visuais e preferências.",
-              },
-              {
-                icon: <Bell className="h-5 w-5" />,
-                title: "Notificações",
-                description:
-                  "Envia lembretes e avisos importantes para ajudar o usuário a não perder tarefas, sessões e atualizações relevantes.",
-              },
-              {
-                icon: <Palette className="h-5 w-5" />,
-                title: "Configurações personalizadas",
-                description:
-                  "Possibilita ajustar perfil, aparência, sons e tempos do Pomodoro conforme a preferência de uso de cada pessoa.",
-              },
-            ].map((feature) => (
-              <div
-                key={feature.title}
-                className="rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) p-4"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-(--ff-primary-soft) text-(--ff-primary)">
-                    {feature.icon}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-(--ff-text)">
-                      {feature.title}
-                    </h3>
-                    <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
-                      {feature.description}
-                    </p>
-                  </div>
+            <div className="rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) p-4">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-(--ff-primary-soft) text-(--ff-primary)">
+                  <LayoutDashboard className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-(--ff-text)">
+                    Dashboard
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
+                    Exibe uma visão geral da rotina do usuário, reunindo
+                    informações importantes como progresso, produtividade e
+                    acompanhamento diário.
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
 
-          <div className="rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) p-5">
-            <h3 className="flex items-center gap-2 text-sm font-bold text-(--ff-text)">
-              <CheckCircle2 className="h-4 w-4 text-(--ff-primary)" />
-              Resumo da proposta
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-(--ff-text-soft)">
-              A proposta do FocusFlow é reunir organização, foco, acompanhamento
-              de desempenho e motivação em um único ambiente, ajudando o usuário
-              a manter constância nas atividades e tomar decisões melhores sobre
-              sua rotina.
-            </p>
+            <div className="rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) p-4">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-(--ff-primary-soft) text-(--ff-primary)">
+                  <ListTodo className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-(--ff-text)">
+                    Gerenciamento de tarefas
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
+                    Permite criar, visualizar e organizar tarefas para facilitar
+                    o planejamento das atividades do dia a dia.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) p-4">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-(--ff-primary-soft) text-(--ff-primary)">
+                  <Timer className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-(--ff-text)">
+                    Pomodoro
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
+                    Ajuda o usuário a dividir o tempo entre foco e pausas,
+                    favorecendo a concentração e uma rotina de trabalho ou estudo
+                    mais equilibrada.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) p-4">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-(--ff-primary-soft) text-(--ff-primary)">
+                  <BarChart3 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-(--ff-text)">
+                    Estatísticas
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
+                    Apresenta dados e métricas sobre o desempenho do usuário,
+                    ajudando a entender hábitos e evolução da produtividade.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) p-4">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-(--ff-primary-soft) text-(--ff-primary)">
+                  <Trophy className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-(--ff-text)">
+                    Gamificação
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
+                    Inclui elementos de recompensa, evolução e motivação para
+                    tornar a experiência mais envolvente durante o uso da
+                    aplicação.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) p-4">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-(--ff-primary-soft) text-(--ff-primary)">
+                  <ShoppingBag className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-(--ff-text)">
+                    Personalização
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
+                    Permite ao usuário personalizar elementos da interface, como
+                    tema, avatar e som, tornando a experiência mais agradável.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) p-4">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-(--ff-primary-soft) text-(--ff-primary)">
+                  <Bell className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-(--ff-text)">
+                    Notificações
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
+                    Auxiliam no acompanhamento de tarefas, lembretes e eventos
+                    importantes dentro da aplicação.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) p-4">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-(--ff-primary-soft) text-(--ff-primary)">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-(--ff-text)">
+                    Organização da rotina
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-(--ff-text-soft)">
+                    O aplicativo reúne recursos que ajudam o usuário a planejar,
+                    acompanhar e melhorar a execução das atividades diárias.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </SectionCard>
