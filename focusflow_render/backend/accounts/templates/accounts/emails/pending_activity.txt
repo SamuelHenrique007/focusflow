@@ -1,0 +1,14 @@
+Atividades pendentes - FocusFlow
+
+Olá, {{ user_name }}!
+
+Este lembrete foi gerado em {{ reference_date }} para destacar atividades em aberto.
+
+{% if has_overdue_tasks %}Tarefas atrasadas:
+{% for task in overdue_tasks %}- {{ task.title }}{% if task.due_date %} — prazo {{ task.due_date|date:"d/m/Y H:i" }}{% endif %}
+{% endfor %}
+{% endif %}{% if has_due_today_tasks %}Tarefas com vencimento hoje:
+{% for task in due_today_tasks %}- {{ task.title }}{% if task.due_date %} — prazo {{ task.due_date|date:"d/m/Y H:i" }}{% endif %}
+{% endfor %}
+{% endif %}
+Revisar tarefas: {{ tasks_link }}

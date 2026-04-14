@@ -1,0 +1,15 @@
+Cadastro confirmado - FocusFlow
+
+Olá, {{ user_name }}!
+
+Seu cadastro foi confirmado com sucesso no FocusFlow.
+
+Funcionalidades principais:
+{% for item in functionalities %}- {{ item.title }}: {{ item.description }}
+{% endfor %}
+Acesse sua conta:
+{{ dashboard_link }}
+
+Tarefas: {{ tasks_link }}
+Pomodoro: {{ pomodoro_link }}
+Estatísticas: {{ statistics_link }}

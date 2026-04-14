@@ -1,11 +1,14 @@
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import generics, status
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.http import JsonResponse
+import logging
 
+from django.http import JsonResponse
+from rest_framework import generics, status
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+from .emailing import EMAIL_TYPE_WELCOME, safe_send_email, send_welcome_email
 from .serializers import (
     RegisterSerializer,
     MeSerializer,
@@ -15,6 +18,8 @@ from .serializers import (
     ForgotPasswordSerializer,
     ResetPasswordSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class LoginView(TokenObtainPairView):
@@ -30,6 +35,14 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+
+        safe_send_email(
+            lambda user=user: send_welcome_email(user),
+            user=user,
+            email_type=EMAIL_TYPE_WELCOME,
+            reference_key=f"user-{user.id}",
+            metadata={"email": user.email},
+        )
 
         refresh = RefreshToken.for_user(user)
 
@@ -105,6 +118,7 @@ class ForgotPasswordView(APIView):
             status=status.HTTP_200_OK,
         )
 
+
 class ResetPasswordView(APIView):
     permission_classes = [AllowAny]
 
@@ -117,6 +131,7 @@ class ResetPasswordView(APIView):
             {"message": "Senha redefinida com sucesso."},
             status=status.HTTP_200_OK,
         )
+
 
 def health_check(request):
     """

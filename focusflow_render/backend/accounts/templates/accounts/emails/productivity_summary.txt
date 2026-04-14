@@ -1,0 +1,20 @@
+Resumo periódico de produtividade - FocusFlow
+
+Olá, {{ user_name }}!
+
+Período analisado: {{ week_label }}
+
+- Foco registrado: {{ focus_minutes }} minuto(s) em {{ focus_sessions_count }} sessão(ões)
+- Média por sessão: {{ average_focus_minutes }} minuto(s)
+- Tarefas concluídas: {{ completed_tasks_count }}
+- Tarefas pendentes: {{ pending_tasks_count }}
+- Consistência: {{ consistency_rate }}%
+- Sequência atual: {{ streak }} dia(s)
+- Nível: {{ level }}
+- Moedas: {{ coins }}
+
+Próxima ação sugerida: {{ next_recommended_action }}
+
+Indicadores: {{ statistics_link }}
+Tarefas: {{ tasks_link }}
+Pomodoro: {{ pomodoro_link }}

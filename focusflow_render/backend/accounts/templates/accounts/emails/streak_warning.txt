@@ -1,0 +1,10 @@
+Sua sequência está em risco - FocusFlow
+
+Olá, {{ user_name }}!
+
+Sua sequência atual de {{ streak }} dia(s) pode ser interrompida hoje.
+Você registrou {{ today_focus_minutes }} de {{ daily_goal_minutes }} minuto(s) hoje ({{ progress_percent }}%).
+
+Recomendação: faça pelo menos mais {{ missing_minutes }} minuto(s) de foco.
+
+Abrir cronômetro: {{ pomodoro_link }}
