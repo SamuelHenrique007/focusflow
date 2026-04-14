@@ -1,12 +1,13 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
 
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=150, blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
-    last_seen_at = models.DateTimeField(null=True, blank=True)
+    last_seen_at = models.DateTimeField(default=timezone.now)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]

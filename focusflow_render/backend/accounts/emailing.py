@@ -88,6 +88,58 @@ def get_tasks_became_overdue_for_email(user, *, reference_dt=None, window_minute
     )
 
 
+def build_due_soon_reference(task, *, reference_dt=None) -> str:
+    reference_dt = timezone.localtime(reference_dt or timezone.now())
+    due_date = task.due_date
+    if timezone.is_naive(due_date):
+        due_date = timezone.make_aware(due_date, timezone.get_current_timezone())
+    return f"due-soon:{reference_dt.date().isoformat()}:{task.id}:{int(due_date.timestamp())}"
+
+
+def build_became_overdue_reference(task, *, reference_dt=None) -> str:
+    reference_dt = timezone.localtime(reference_dt or timezone.now())
+    due_date = task.due_date
+    if timezone.is_naive(due_date):
+        due_date = timezone.make_aware(due_date, timezone.get_current_timezone())
+    return f"became-overdue:{reference_dt.date().isoformat()}:{task.id}:{int(due_date.timestamp())}"
+
+
+def maybe_send_task_event_emails(task, *, reference_dt=None) -> None:
+    if task.completed_at is not None or task.due_date is None:
+        return
+
+    now = reference_dt or timezone.now()
+    user = task.user
+
+    if not is_user_offline(user, reference_dt=now):
+        return
+
+    due_date = task.due_date
+    if timezone.is_naive(due_date):
+        due_date = timezone.make_aware(due_date, timezone.get_current_timezone())
+
+    if now < due_date <= now + timedelta(minutes=DUE_SOON_WINDOW_MINUTES):
+        reference_key = build_due_soon_reference(task, reference_dt=now)
+        safe_send_email(
+            lambda user=user, task=task: send_due_soon_email(user, [task]),
+            user=user,
+            email_type=EMAIL_TYPE_TASK_DUE_SOON,
+            reference_key=reference_key,
+            metadata={"tasks_count": 1, "task_id": task.id, "trigger": "signal"},
+        )
+        return
+
+    if now - timedelta(minutes=BECAME_OVERDUE_WINDOW_MINUTES) < due_date <= now:
+        reference_key = build_became_overdue_reference(task, reference_dt=now)
+        safe_send_email(
+            lambda user=user, task=task: send_became_overdue_email(user, [task]),
+            user=user,
+            email_type=EMAIL_TYPE_TASK_BECAME_OVERDUE,
+            reference_key=reference_key,
+            metadata={"tasks_count": 1, "task_id": task.id, "trigger": "signal"},
+        )
+
+
 def send_due_soon_email(user, tasks) -> None:
     context = {
         **_base_context(user),

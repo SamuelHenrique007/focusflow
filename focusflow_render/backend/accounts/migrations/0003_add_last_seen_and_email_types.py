@@ -1,4 +1,5 @@
 from django.db import migrations, models
+import django.utils.timezone
 
 
 class Migration(migrations.Migration):
@@ -8,6 +9,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AddField(
+            model_name="user",
+            name="last_seen_at",
+            field=models.DateTimeField(default=django.utils.timezone.now),
+        ),
         migrations.AlterField(
             model_name="emailnotificationlog",
             name="email_type",
