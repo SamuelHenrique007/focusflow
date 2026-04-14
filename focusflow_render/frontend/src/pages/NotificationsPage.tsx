@@ -482,7 +482,7 @@ export default function NotificationsPage() {
                 type="button"
                 onClick={handleMarkAllAsRead}
                 disabled={notifications.length === 0 || unreadCount === 0}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-soft)] px-4 py-2 text-sm font-semibold text-[var(--ff-text)] transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-soft)] px-4 py-2 text-sm font-semibold text-[var(--ff-text)] transition-colors hover:bg-[var(--ff-surface)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <CheckCheck className="h-4 w-4" />
                 Marcar todas lidas
