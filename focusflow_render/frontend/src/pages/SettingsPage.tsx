@@ -713,6 +713,80 @@ export default function SettingsPage() {
       </div>
 
       <SectionCard
+        title="Pomodoro"
+        description="Ajuste os tempos padrão das sessões e pausas."
+        icon={<Clock3 className="h-5 w-5" />}
+      >
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {[
+            {
+              key: "focus_minutes" as const,
+              label: "Foco",
+              min: 15,
+              max: 60,
+            },
+            {
+              key: "short_break_minutes" as const,
+              label: "Pausa curta",
+              min: 3,
+              max: 15,
+            },
+            {
+              key: "long_break_minutes" as const,
+              label: "Pausa longa",
+              min: 10,
+              max: 30,
+            },
+            {
+              key: "cycles_before_long_break" as const,
+              label: "Ciclos até pausa longa",
+              min: 2,
+              max: 6,
+            },
+          ].map((field) => (
+            <label
+              key={field.key}
+              className="block cursor-pointer rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) p-4"
+            >
+              <span className="mb-2 block text-sm font-semibold text-(--ff-text)">
+                {field.label}
+              </span>
+              <input
+                type="number"
+                min={field.min}
+                max={field.max}
+                value={pomodoroSettings[field.key]}
+                onChange={(event) => {
+                  const rawValue = Number(event.target.value);
+                  const safeValue = Number.isNaN(rawValue)
+                    ? field.min
+                    : Math.min(field.max, Math.max(field.min, rawValue));
+                  updatePomodoroField(field.key, safeValue);
+                }}
+                disabled={isLoadingPomodoro || isSavingPomodoro}
+                className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) px-3 py-2 text-sm text-(--ff-text) outline-none ring-0 transition focus:border-(--ff-primary)"
+              />
+            </label>
+          ))}
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-(--ff-text-soft)">
+            Essas configurações são usadas nas suas próximas sessões de foco.
+          </p>
+          <button
+            type="button"
+            onClick={handleSavePomodoro}
+            disabled={isLoadingPomodoro || isSavingPomodoro}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-(--ff-primary) px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" />
+            {isSavingPomodoro ? "Salvando..." : "Salvar pomodoro"}
+          </button>
+        </div>
+      </SectionCard>
+
+      <SectionCard
         title="Sobre"
         description="Conheça a aplicação e suas principais funcionalidades."
         icon={<Info className="h-5 w-5" />}
@@ -868,80 +942,6 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-        </div>
-      </SectionCard>
-
-      <SectionCard
-        title="Pomodoro"
-        description="Ajuste os tempos padrão das sessões e pausas."
-        icon={<Clock3 className="h-5 w-5" />}
-      >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {[
-            {
-              key: "focus_minutes" as const,
-              label: "Foco",
-              min: 15,
-              max: 60,
-            },
-            {
-              key: "short_break_minutes" as const,
-              label: "Pausa curta",
-              min: 3,
-              max: 15,
-            },
-            {
-              key: "long_break_minutes" as const,
-              label: "Pausa longa",
-              min: 10,
-              max: 30,
-            },
-            {
-              key: "cycles_before_long_break" as const,
-              label: "Ciclos até pausa longa",
-              min: 2,
-              max: 6,
-            },
-          ].map((field) => (
-            <label
-              key={field.key}
-              className="block cursor-pointer rounded-2xl border border-(--ff-border) bg-(--ff-surface-soft) p-4"
-            >
-              <span className="mb-2 block text-sm font-semibold text-(--ff-text)">
-                {field.label}
-              </span>
-              <input
-                type="number"
-                min={field.min}
-                max={field.max}
-                value={pomodoroSettings[field.key]}
-                onChange={(event) => {
-                  const rawValue = Number(event.target.value);
-                  const safeValue = Number.isNaN(rawValue)
-                    ? field.min
-                    : Math.min(field.max, Math.max(field.min, rawValue));
-                  updatePomodoroField(field.key, safeValue);
-                }}
-                disabled={isLoadingPomodoro || isSavingPomodoro}
-                className="w-full cursor-text rounded-xl border border-(--ff-border) bg-(--ff-surface) px-3 py-2 text-sm text-(--ff-text) outline-none ring-0 transition focus:border-(--ff-primary)"
-              />
-            </label>
-          ))}
-        </div>
-
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-(--ff-text-soft)">
-            Essas configurações são usadas nas suas próximas sessões de foco.
-          </p>
-          <button
-            type="button"
-            onClick={handleSavePomodoro}
-            disabled={isLoadingPomodoro || isSavingPomodoro}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-(--ff-primary) px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Save className="h-4 w-4" />
-            {isSavingPomodoro ? "Salvando..." : "Salvar pomodoro"}
-          </button>
         </div>
       </SectionCard>
     </motion.div>
