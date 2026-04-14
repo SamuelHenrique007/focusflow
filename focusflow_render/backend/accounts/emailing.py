@@ -22,6 +22,8 @@ EMAIL_TYPE_WELCOME = "welcome_account"
 EMAIL_TYPE_PENDING_ACTIVITY = "pending_activity"
 EMAIL_TYPE_STREAK_WARNING = "streak_warning"
 EMAIL_TYPE_PRODUCTIVITY_SUMMARY = "productivity_summary"
+EMAIL_TYPE_TASK_DUE_SOON = "task_due_soon"
+EMAIL_TYPE_TASK_BECAME_OVERDUE = "task_became_overdue"
 
 
 WEEKDAY_LABELS = {
@@ -37,6 +39,85 @@ WEEKDAY_LABELS = {
 
 class EmailDeliveryError(Exception):
     pass
+
+
+OFFLINE_THRESHOLD_MINUTES = 15
+DUE_SOON_WINDOW_MINUTES = 120
+BECAME_OVERDUE_WINDOW_MINUTES = 10
+
+
+def is_user_offline(user, *, reference_dt=None, offline_threshold_minutes: int = OFFLINE_THRESHOLD_MINUTES) -> bool:
+    reference_dt = reference_dt or timezone.now()
+    last_seen_at = getattr(user, "last_seen_at", None)
+    if last_seen_at is None:
+        return True
+
+    if timezone.is_naive(last_seen_at):
+        last_seen_at = timezone.make_aware(last_seen_at, timezone.get_current_timezone())
+
+    return last_seen_at <= reference_dt - timedelta(minutes=offline_threshold_minutes)
+
+
+def get_tasks_due_soon_for_email(user, *, reference_dt=None, window_minutes: int = DUE_SOON_WINDOW_MINUTES):
+    reference_dt = reference_dt or timezone.now()
+    upper_bound = reference_dt + timedelta(minutes=window_minutes)
+    return list(
+        Task.objects.filter(
+            user=user,
+            completed_at__isnull=True,
+            due_date__isnull=False,
+            due_date__gt=reference_dt,
+            due_date__lte=upper_bound,
+        )
+        .order_by("due_date")[:5]
+    )
+
+
+def get_tasks_became_overdue_for_email(user, *, reference_dt=None, window_minutes: int = BECAME_OVERDUE_WINDOW_MINUTES):
+    reference_dt = reference_dt or timezone.now()
+    lower_bound = reference_dt - timedelta(minutes=window_minutes)
+    return list(
+        Task.objects.filter(
+            user=user,
+            completed_at__isnull=True,
+            due_date__isnull=False,
+            due_date__gt=lower_bound,
+            due_date__lte=reference_dt,
+        )
+        .order_by("due_date")[:5]
+    )
+
+
+def send_due_soon_email(user, tasks) -> None:
+    context = {
+        **_base_context(user),
+        "tasks": tasks,
+        "tasks_count": len(tasks),
+        "reference_date": timezone.localdate().strftime("%d/%m/%Y"),
+    }
+
+    send_templated_email(
+        to_email=user.email,
+        subject="Atividades prestes a vencer - FocusFlow",
+        template_base="accounts/emails/task_due_soon",
+        context=context,
+    )
+
+
+def send_became_overdue_email(user, tasks) -> None:
+    context = {
+        **_base_context(user),
+        "tasks": tasks,
+        "tasks_count": len(tasks),
+        "reference_date": timezone.localdate().strftime("%d/%m/%Y"),
+    }
+
+    send_templated_email(
+        to_email=user.email,
+        subject="Atividades pendentes em aberto - FocusFlow",
+        template_base="accounts/emails/task_became_overdue",
+        context=context,
+    )
 
 
 def _default_from_email() -> str:

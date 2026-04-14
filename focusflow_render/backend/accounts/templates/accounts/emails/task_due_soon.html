@@ -1,0 +1,1 @@
+<p>Olá, {{ user_name }}.</p><p>Identificamos <strong>{{ tasks_count }}</strong> atividade(s) prestes a vencer no FocusFlow.</p><ul>{% for task in tasks %}<li><strong>{{ task.title }}</strong> — prazo: {{ task.due_date|date:"d/m/Y H:i" }}</li>{% endfor %}</ul><p><a href="{{ tasks_link }}">Acessar tarefas</a></p>

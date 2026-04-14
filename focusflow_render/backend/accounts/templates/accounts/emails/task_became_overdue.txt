@@ -1,0 +1,7 @@
+Olá, {{ user_name }}.
+
+Identificamos {{ tasks_count }} atividade(s) que acabou(aram) de entrar em atraso no FocusFlow.
+
+{% for task in tasks %}- {{ task.title }} — vencimento: {{ task.due_date|date:"d/m/Y H:i" }}
+{% endfor %}
+Acesse suas tarefas: {{ tasks_link }}
