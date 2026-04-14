@@ -746,7 +746,7 @@ export default function PomodoroTimer({
 
       setRunningSession(data);
 
-      setSecondsLeft(5);
+      setSecondsLeft(getDurationBySessionType(sessionType));
 
       await refreshStats();
     } catch (error) {
