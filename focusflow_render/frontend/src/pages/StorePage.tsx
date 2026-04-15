@@ -200,6 +200,7 @@ export default function StorePage() {
 
   const claimButtonRef = useRef<HTMLButtonElement | null>(null);
   const balanceCardRef = useRef<HTMLDivElement | null>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null); // Ref para controlar o áudio atual
 
   const userLevel = stats?.level || 1;
   const userCoins = stats?.coins || 0;
@@ -287,6 +288,16 @@ export default function StorePage() {
   useEffect(() => {
     setDisplayCoins(stats?.coins || 0);
   }, [stats?.coins]);
+
+  // Limpar áudio se o componente for desmontado
+  useEffect(() => {
+    return () => {
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
+      }
+    };
+  }, []);
 
   async function loadStoreItems() {
     try {
@@ -512,9 +523,23 @@ export default function StorePage() {
     }
 
     try {
+      // Parar o áudio anterior, se houver algum tocando
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current.currentTime = 0;
+      }
+
+      // Se clicar no mesmo som que já está tocando, funciona como um botão de "parar"
+      if (previewingSoundId === item.id) {
+        setPreviewingSoundId(null);
+        currentAudioRef.current = null;
+        return;
+      }
+
       setPreviewingSoundId(item.id);
 
       const audio = new Audio(file);
+      currentAudioRef.current = audio;
       audio.currentTime = 0;
 
       audio.play().catch(() => {
@@ -524,11 +549,16 @@ export default function StorePage() {
           "O navegador bloqueou a reprodução automática.",
         );
         setPreviewingSoundId(null);
+        currentAudioRef.current = null;
       });
 
-      audio.onended = () => setPreviewingSoundId(null);
+      audio.onended = () => {
+        setPreviewingSoundId(null);
+        currentAudioRef.current = null;
+      };
     } catch {
       setPreviewingSoundId(null);
+      currentAudioRef.current = null;
       showToast(
         "error",
         "Erro na prévia",
