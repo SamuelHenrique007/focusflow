@@ -23,6 +23,7 @@ class EmailNotificationLog(models.Model):
         ("task_became_overdue", "Atividade ficou pendente"),
         ("streak_warning", "Sequência em risco"),
         ("productivity_summary", "Resumo periódico de produtividade"),
+        ("pending_activity", "Atividade pendente"),
     ]
 
     user = models.ForeignKey(
