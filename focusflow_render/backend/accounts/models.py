@@ -19,7 +19,6 @@ class User(AbstractUser):
 class EmailNotificationLog(models.Model):
     EMAIL_TYPE_CHOICES = [
         ("welcome_account", "Cadastro confirmado"),
-        ("pending_activity", "Atividade pendente"),
         ("task_due_soon", "Atividade prestes a vencer"),
         ("task_became_overdue", "Atividade ficou pendente"),
         ("streak_warning", "Sequência em risco"),
