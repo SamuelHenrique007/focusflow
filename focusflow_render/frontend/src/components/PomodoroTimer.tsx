@@ -153,10 +153,10 @@ function TaskSelect({
           if (!disabled) setOpen((prev) => !prev);
         }}
         disabled={disabled}
-        className={`flex h-14.5 w-full items-center justify-between rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 text-left shadow-sm transition-all ${
+        className={`flex h-14.5 w-full items-center justify-between rounded-[18px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 text-left shadow-sm transition-all ${
           disabled
             ? "cursor-not-allowed opacity-60"
-            : "cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 ring-blue-200 focus:border-blue-500 focus:ring-4 dark:ring-blue-900/50"
+            : "cursor-pointer hover:border-slate-300 dark:hover:border-slate-600 ring-blue-200 focus:border-blue-500 focus:ring-4 dark:ring-blue-900"
         }`}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -166,7 +166,7 @@ function TaskSelect({
             <ListTodo className="h-5 w-5" />
           </div>
 
-          <span className="truncate text-[15px] font-medium text-slate-500 dark:text-slate-300">
+          <span className="truncate text-[15px] font-medium text-slate-500 dark:text-slate-200">
             {selected?.label ?? "Selecione uma tarefa"}
           </span>
         </div>
@@ -185,7 +185,7 @@ function TaskSelect({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl"
+            className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-[18px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl"
           >
             <div className="max-h-64 overflow-y-auto p-2">
               <button
@@ -196,8 +196,8 @@ function TaskSelect({
                 }}
                 className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-left transition-colors ${
                   value === ""
-                    ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                 }`}
                 role="option"
                 aria-selected={value === ""}
@@ -221,8 +221,8 @@ function TaskSelect({
                     }}
                     className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-left transition-colors ${
                       isSelected
-                        ? "bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-300"
-                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        ? "bg-blue-50 dark:bg-blue-900 text-blue-900 dark:text-blue-200"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
                     }`}
                     role="option"
                     aria-selected={isSelected}
@@ -268,10 +268,10 @@ function SettingControl({
   const canIncrease = value < max;
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-50/70 dark:bg-slate-800/40 p-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/80 sm:p-3">
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 sm:p-3">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="mb-1 sm:mb-0">
-          <p className="text-[15px] font-semibold text-slate-800 dark:text-slate-200 sm:text-sm">{label}</p>
+          <p className="text-[15px] font-semibold text-slate-800 dark:text-slate-100 sm:text-sm">{label}</p>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{description}</p>
           <p className="mt-2 inline-block rounded-md bg-white dark:bg-slate-900 px-2 py-0.5 text-[10px] font-medium text-slate-400 dark:text-slate-500 ring-1 ring-slate-200 dark:ring-slate-700">
             Mín: {min} • Máx: {max} {suffix}
@@ -285,20 +285,20 @@ function SettingControl({
             disabled={!canDecrease}
             className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ring-1 transition-all sm:h-10 sm:w-10 ${
               canDecrease
-                ? "cursor-pointer bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 ring-slate-200 dark:ring-slate-700 hover:scale-105 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95"
-                : "cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 ring-slate-100 dark:ring-slate-800/50"
+                ? "cursor-pointer bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 ring-slate-200 dark:ring-slate-600 hover:scale-105 hover:bg-slate-50 dark:hover:bg-slate-950 active:scale-95"
+                : "cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 ring-slate-100 dark:ring-slate-700"
             }`}
             aria-label={`Diminuir ${label}`}
           >
             <Minus className="h-4 w-4 sm:h-4 sm:w-4" />
           </button>
 
-          <div className="flex-1 rounded-xl bg-white dark:bg-slate-900 px-3 py-2 text-center ring-1 ring-slate-200 dark:ring-slate-700 sm:min-w-[5.5rem] sm:flex-none sm:rounded-2xl">
+          <div className="flex-1 rounded-xl bg-white dark:bg-slate-900 px-3 py-2 text-center ring-1 ring-slate-200 dark:ring-slate-600 sm:min-w-[5.5rem] sm:flex-none sm:rounded-2xl">
             <motion.div
               key={value}
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-lg font-bold text-slate-800 dark:text-slate-100"
+              className="text-lg font-bold text-slate-800 dark:text-white"
             >
               {value}
             </motion.div>
@@ -311,8 +311,8 @@ function SettingControl({
             disabled={!canIncrease}
             className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ring-1 transition-all sm:h-10 sm:w-10 ${
               canIncrease
-                ? "cursor-pointer bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 ring-slate-200 dark:ring-slate-700 hover:scale-105 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95"
-                : "cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 text-slate-300 dark:text-slate-600 ring-slate-100 dark:ring-slate-800/50"
+                ? "cursor-pointer bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 ring-slate-200 dark:ring-slate-600 hover:scale-105 hover:bg-slate-50 dark:hover:bg-slate-950 active:scale-95"
+                : "cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 ring-slate-100 dark:ring-slate-700"
             }`}
             aria-label={`Aumentar ${label}`}
           >
@@ -783,7 +783,7 @@ export default function PomodoroTimer({
         className={
           isFocusVariant
             ? "flex min-h-screen items-center justify-center bg-slate-950 text-white"
-            : "rounded-[28px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-6 shadow-sm"
+            : "rounded-[28px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm"
         }
       >
         <motion.div
@@ -829,7 +829,7 @@ export default function PomodoroTimer({
       <motion.div 
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-[28px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 shadow-sm sm:p-6"
+        className="rounded-[28px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm sm:p-6"
       >
         <div className="mt-4 flex items-stretch gap-3">
           <div className="flex-1">
@@ -844,7 +844,7 @@ export default function PomodoroTimer({
           <button
             type="button"
             onClick={() => setShowSettings(true)}
-            className="grid h-14.5 w-14.5 shrink-0 cursor-pointer place-items-center rounded-[18px] bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 shadow-sm ring-1 ring-slate-200 dark:ring-slate-800 transition-all hover:scale-[1.03] hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-[0.97]"
+            className="grid h-14.5 w-14.5 shrink-0 cursor-pointer place-items-center rounded-[18px] bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 transition-all hover:scale-[1.03] hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-[0.97]"
             aria-label="Configurações"
           >
             <Settings className="h-5 w-5 transition-transform duration-300 hover:rotate-90" />
@@ -856,7 +856,7 @@ export default function PomodoroTimer({
             key={sessionType}
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="inline-flex items-center gap-2 rounded-full bg-blue-50 dark:bg-blue-900/30 px-4 py-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400"
+            className="inline-flex items-center gap-2 rounded-full bg-blue-50 dark:bg-blue-900 px-4 py-1.5 text-sm font-semibold text-blue-600 dark:text-blue-300"
           >
             <Circle className="h-2.5 w-2.5 fill-current stroke-0" />
             {sessionType === "focus"
@@ -888,7 +888,7 @@ export default function PomodoroTimer({
               className="absolute inset-0 rounded-full border-8 border-slate-100 dark:border-slate-800" 
             />
             
-            <div className="flex h-40 w-40 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-900 shadow-inner sm:h-48 sm:w-48">
+            <div className="flex h-40 w-40 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 shadow-inner sm:h-48 sm:w-48">
               <span className="tabular-nums text-4xl font-medium tracking-tight text-slate-700 dark:text-slate-100 sm:text-5xl">
                 {timeLabel}
               </span>
@@ -900,7 +900,7 @@ export default function PomodoroTimer({
               type="button"
               onClick={handleReset}
               disabled={isFinishing}
-              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 shadow-sm ring-1 ring-slate-200 dark:ring-slate-800 transition hover:scale-110 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 transition hover:scale-110 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
               aria-label="Reiniciar"
             >
               <RotateCcw className="h-4 w-4" />
@@ -950,7 +950,7 @@ export default function PomodoroTimer({
               type="button"
               onClick={handleSkip}
               disabled={isFinishing}
-              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 shadow-sm ring-1 ring-slate-200 dark:ring-slate-800 transition hover:scale-110 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 transition hover:scale-110 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
               aria-label="Próximo ciclo"
             >
               <SkipForward className="h-4 w-4" />
@@ -998,21 +998,21 @@ export default function PomodoroTimer({
               value: String(stats.pomodoros),
               subtitle: "sessões concluídas",
               icon: <Target className="h-5 w-5" />,
-              iconTone: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+              iconTone: "bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
             },
             {
               title: "Minutos",
               value: String(stats.minutes),
               subtitle: "tempo focado",
               icon: <Clock className="h-5 w-5" />,
-              iconTone: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+              iconTone: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
             },
             {
               title: "Pontos",
               value: String(stats.points),
               subtitle: "XP acumulado",
               icon: <Star className="h-5 w-5" />,
-              iconTone: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+              iconTone: "bg-amber-50 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
             },
           ].map((stat, i) => (
             <motion.div
@@ -1038,7 +1038,7 @@ export default function PomodoroTimer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-3 backdrop-blur-[2px] sm:p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 backdrop-blur-sm sm:p-4"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -1072,7 +1072,7 @@ export default function PomodoroTimer({
                 <button
                   type="button"
                   onClick={() => setShowSettings(false)}
-                  className="grid h-10 w-10 cursor-pointer place-items-center rounded-xl bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-800 transition hover:scale-105 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 sm:h-9 sm:w-9"
+                  className="grid h-10 w-10 cursor-pointer place-items-center rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-slate-700 transition hover:scale-105 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 sm:h-9 sm:w-9"
                   aria-label="Fechar configurações"
                 >
                   <X className="h-5 w-5 sm:h-4 sm:w-4" />

@@ -37,10 +37,7 @@ export default function PomodoroFocusView({
   const isRunning = runningSession && !isPaused;
 
   return (
-    /* fixed inset-0 força a tela a ocupar 100% do navegador, ignorando pais */
     <div className="fixed inset-0 flex flex-col bg-slate-950 text-white overflow-hidden">
-      
-      /* justify-evenly espalha os itens verticalmente no espaço disponível, sem precisar de margens fixas */
       <section className="flex flex-1 flex-col items-center justify-evenly px-4 py-6 sm:px-6 sm:py-8 text-center h-full min-h-0">
         
         {/* Header Animado */}
@@ -88,7 +85,6 @@ export default function PomodoroFocusView({
           transition={{ duration: 0.7, type: "spring", bounce: 0.3 }}
           className="relative flex items-center justify-center shrink-0"
         >
-          {/* Anéis de pulso de fundo */}
           <motion.div
             animate={isRunning ? { scale: [1, 1.15, 1], opacity: [0.1, 0.3, 0.1] } : { scale: 1, opacity: 0 }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -100,7 +96,6 @@ export default function PomodoroFocusView({
             className="absolute inset-0 rounded-full border border-white/10"
           />
 
-          {/* Tamanho do relógio reduzido em telas muito pequenas (h-56) para caber sem rolar */}
           <div className="relative z-10 flex h-56 w-56 sm:h-72 sm:w-72 md:h-80 md:w-80 items-center justify-center rounded-full border border-white/10 bg-white/10 shadow-2xl backdrop-blur-sm">
             <span className="text-5xl font-semibold tracking-tight sm:text-7xl tabular-nums">
               {timeLabel}
