@@ -37,15 +37,18 @@ export default function PomodoroFocusView({
   const isRunning = runningSession && !isPaused;
 
   return (
-    <div className="flex h-[100dvh] w-full flex-col bg-slate-950 text-white overflow-hidden">
-      <section className="flex h-full w-full flex-col items-center justify-center px-4 sm:px-6 text-center">
+    /* fixed inset-0 força a tela a ocupar 100% do navegador, ignorando pais */
+    <div className="fixed inset-0 flex flex-col bg-slate-950 text-white overflow-hidden">
+      
+      /* justify-evenly espalha os itens verticalmente no espaço disponível, sem precisar de margens fixas */
+      <section className="flex flex-1 flex-col items-center justify-evenly px-4 py-6 sm:px-6 sm:py-8 text-center h-full min-h-0">
         
         {/* Header Animado */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="flex flex-col items-center"
+          className="flex flex-col items-center shrink-0"
         >
           <AnimatePresence mode="wait">
             <motion.p
@@ -67,7 +70,7 @@ export default function PomodoroFocusView({
               animate={{ opacity: 1, filter: "blur(0px)" }}
               exit={{ opacity: 0, filter: "blur(4px)" }}
               transition={{ duration: 0.4 }}
-              className="mt-2 sm:mt-3 max-w-2xl text-lg sm:text-2xl font-semibold line-clamp-2"
+              className="mt-2 max-w-2xl text-lg sm:text-2xl font-semibold line-clamp-2"
             >
               {sessionType === "focus"
                 ? runningSession?.task_title ||
@@ -83,9 +86,9 @@ export default function PomodoroFocusView({
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.7, type: "spring", bounce: 0.3 }}
-          className="relative mt-8 sm:mt-12 flex items-center justify-center"
+          className="relative flex items-center justify-center shrink-0"
         >
-          {/* Anéis de pulso de fundo (visíveis apenas rodando) */}
+          {/* Anéis de pulso de fundo */}
           <motion.div
             animate={isRunning ? { scale: [1, 1.15, 1], opacity: [0.1, 0.3, 0.1] } : { scale: 1, opacity: 0 }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -97,8 +100,9 @@ export default function PomodoroFocusView({
             className="absolute inset-0 rounded-full border border-white/10"
           />
 
-          <div className="relative z-10 flex h-64 w-64 items-center justify-center rounded-full border border-white/10 bg-white/10 shadow-2xl backdrop-blur-sm sm:h-80 sm:w-80">
-            <span className="text-6xl font-semibold tracking-tight sm:text-7xl tabular-nums">
+          {/* Tamanho do relógio reduzido em telas muito pequenas (h-56) para caber sem rolar */}
+          <div className="relative z-10 flex h-56 w-56 sm:h-72 sm:w-72 md:h-80 md:w-80 items-center justify-center rounded-full border border-white/10 bg-white/10 shadow-2xl backdrop-blur-sm">
+            <span className="text-5xl font-semibold tracking-tight sm:text-7xl tabular-nums">
               {timeLabel}
             </span>
           </div>
@@ -109,7 +113,7 @@ export default function PomodoroFocusView({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-          className="mt-8 sm:mt-12 flex items-center gap-4 sm:gap-6"
+          className="flex items-center gap-4 sm:gap-6 shrink-0"
         >
           <motion.button
             whileHover={{ scale: 1.1 }}
@@ -192,18 +196,18 @@ export default function PomodoroFocusView({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.4 }}
+          className="shrink-0"
         >
           {(() => {
             const fullCycles = Math.floor(completedFocusCycles / cyclesBeforeLongBreak);
             const currentProgress = completedFocusCycles % cyclesBeforeLongBreak;
 
             return (
-              <div className="mt-8 sm:mt-10 flex flex-col items-center gap-1.5">
+              <div className="flex flex-col items-center gap-1.5">
                 <p className="text-xs sm:text-sm font-medium text-slate-400">
                   {fullCycles} {fullCycles === 1 ? "ciclo completo" : "ciclos completos"}
                 </p>
                 <div className="flex items-center gap-1.5 mt-1">
-                  {/* Bolinhas indicadoras de progresso até a pausa longa */}
                   {Array.from({ length: cyclesBeforeLongBreak }).map((_, i) => (
                     <div
                       key={i}
