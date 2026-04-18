@@ -1,4 +1,4 @@
-import { Play, Pause, RotateCcw, SkipForward, Minimize } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/cn";
 import type { PomodoroSession, SessionType } from "./types";
@@ -17,7 +17,6 @@ type Props = {
   onTogglePause: () => void;
   onReset: () => void;
   onSkip: () => void;
-  onExitMode: () => void; // <-- Nova prop adicionada para o botão de sair
 };
 
 export default function PomodoroFocusView({
@@ -34,65 +33,46 @@ export default function PomodoroFocusView({
   onTogglePause,
   onReset,
   onSkip,
-  onExitMode,
 }: Props) {
   const isRunning = runningSession && !isPaused;
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-slate-950 text-white overflow-hidden">
-      
-      {/* Cabeçalho do Modo Foco */}
-      <header className="flex w-full shrink-0 items-center justify-between px-6 py-6 sm:px-8">
-        <div className="flex flex-col">
-          <span className="text-xs font-bold tracking-[0.2em] text-slate-500 uppercase">
-            Focusflow
-          </span>
-          <h1 className="text-xl sm:text-2xl font-bold text-white mt-1">
-            Modo Foco
-          </h1>
-        </div>
+    <div className="h-screen w-full bg-slate-950 text-white flex flex-col overflow-hidden">
 
-        <button
-          onClick={onExitMode}
-          className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
-        >
-          <Minimize className="h-4 w-4" />
-          <span className="hidden sm:inline">Sair do modo foco</span>
-          <span className="sm:hidden">Sair</span>
-        </button>
-      </header>
+      <section className="flex flex-1 flex-col items-center justify-between py-6 px-6 text-center">
 
-      {/* Conteúdo Central */}
-      <section className="flex flex-1 flex-col items-center justify-evenly px-4 pb-6 sm:px-6 sm:pb-8 text-center h-full min-h-0">
-        
-        {/* Header Animado */}
+        {/* HEADER */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="flex flex-col items-center shrink-0"
+          transition={{ duration: 0.5 }}
+          className="flex flex-col items-center gap-2"
         >
           <AnimatePresence mode="wait">
             <motion.p
               key={sessionType}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="text-xs sm:text-sm font-medium text-slate-400 uppercase tracking-widest"
             >
-              {sessionType === "focus" ? "Tarefa atual" : "Momento de descanso"}
+              {sessionType === "focus"
+                ? "Tarefa atual"
+                : "Momento de descanso"}
             </motion.p>
           </AnimatePresence>
 
           <AnimatePresence mode="wait">
             <motion.h2
-              key={sessionType === "focus" ? runningSession?.task_title || selectedTaskLabel : "descanso"}
-              initial={{ opacity: 0, filter: "blur(4px)" }}
-              animate={{ opacity: 1, filter: "blur(0px)" }}
-              exit={{ opacity: 0, filter: "blur(4px)" }}
-              transition={{ duration: 0.4 }}
-              className="mt-2 max-w-2xl text-lg sm:text-2xl font-semibold line-clamp-2"
+              key={
+                sessionType === "focus"
+                  ? runningSession?.task_title || selectedTaskLabel
+                  : "descanso"
+              }
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="max-w-xl text-lg sm:text-xl font-semibold"
             >
               {sessionType === "focus"
                 ? runningSession?.task_title ||
@@ -103,149 +83,161 @@ export default function PomodoroFocusView({
           </AnimatePresence>
         </motion.div>
 
-        {/* Relógio com Efeito de Respiração */}
+
+        {/* RELÓGIO CENTRAL */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
+          initial={{ opacity: 0, scale: 0.85 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.7, type: "spring", bounce: 0.3 }}
-          className="relative flex items-center justify-center shrink-0"
+          transition={{ duration: 0.6 }}
+          className="relative flex items-center justify-center"
         >
+          {/* pulso animado */}
           <motion.div
-            animate={isRunning ? { scale: [1, 1.15, 1], opacity: [0.1, 0.3, 0.1] } : { scale: 1, opacity: 0 }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            animate={
+              isRunning
+                ? { scale: [1, 1.15, 1], opacity: [0.1, 0.3, 0.1] }
+                : { scale: 1, opacity: 0 }
+            }
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
             className="absolute inset-0 rounded-full border border-white/20 bg-white/5"
           />
-          <motion.div
-            animate={isRunning ? { scale: [1, 1.25, 1], opacity: [0.05, 0.15, 0.05] } : { scale: 1, opacity: 0 }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            className="absolute inset-0 rounded-full border border-white/10"
-          />
 
-          <div className="relative z-10 flex h-56 w-56 sm:h-72 sm:w-72 md:h-80 md:w-80 items-center justify-center rounded-full border border-white/10 bg-white/10 shadow-2xl backdrop-blur-sm">
-            <span className="text-5xl font-semibold tracking-tight sm:text-7xl tabular-nums">
+          <div
+            className="
+              relative z-10
+              flex items-center justify-center
+              rounded-full border border-white/10
+              bg-white/10 backdrop-blur-sm shadow-2xl
+            "
+            style={{
+              width: "clamp(220px, 35vh, 300px)",
+              height: "clamp(220px, 35vh, 300px)",
+            }}
+          >
+            <span className="text-[clamp(2.8rem,6vh,4.5rem)] font-semibold tracking-tight tabular-nums">
               {timeLabel}
             </span>
           </div>
         </motion.div>
 
-        {/* Controles */}
+
+        {/* CONTROLES */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-          className="flex items-center gap-4 sm:gap-6 shrink-0"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex items-center gap-6"
         >
           <motion.button
-            whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             type="button"
             onClick={onReset}
             disabled={isFinishing}
-            className="grid h-12 w-12 sm:h-14 sm:w-14 cursor-pointer place-items-center rounded-full bg-white/10 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white/10"
-            aria-label="Reiniciar"
+            className="grid h-14 w-14 place-items-center rounded-full bg-white/10 hover:bg-white/15"
           >
-            <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
+            <RotateCcw className="h-5 w-5" />
           </motion.button>
+
 
           <AnimatePresence mode="wait">
             {!runningSession ? (
               <motion.button
                 key="start"
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.5, opacity: 0 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                type="button"
+                initial={{ scale: 0.6 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.6 }}
+                whileTap={{ scale: 0.9 }}
                 onClick={onStart}
                 disabled={isStarting}
-                className="grid h-16 w-16 sm:h-20 sm:w-20 cursor-pointer place-items-center rounded-full bg-blue-600 shadow-[0_0_30px_rgba(37,99,235,0.4)] transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                aria-label="Iniciar"
+                className="grid h-20 w-20 place-items-center rounded-full bg-blue-600 shadow-[0_0_30px_rgba(37,99,235,0.4)]"
               >
-                <Play className="ml-1 h-6 w-6 sm:h-8 sm:w-8 fill-current" />
+                <Play className="ml-1 h-8 w-8 fill-current" />
               </motion.button>
             ) : (
               <motion.button
                 key="pause-play"
-                initial={{ scale: 0.5, opacity: 0, rotate: -90 }}
-                animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                exit={{ scale: 0.5, opacity: 0, rotate: 90 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                type="button"
+                initial={{ scale: 0.6 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.6 }}
+                whileTap={{ scale: 0.9 }}
                 onClick={onTogglePause}
                 disabled={isFinishing}
                 className={cn(
-                  "grid h-16 w-16 sm:h-20 sm:w-20 cursor-pointer place-items-center rounded-full shadow-lg transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                  "grid h-20 w-20 place-items-center rounded-full shadow-lg",
                   isPaused
-                    ? "bg-blue-600 hover:bg-blue-700 shadow-[0_0_30px_rgba(37,99,235,0.4)]"
-                    : "bg-amber-500 hover:bg-amber-600 shadow-[0_0_30px_rgba(245,158,11,0.4)]"
+                    ? "bg-blue-600"
+                    : "bg-amber-500"
                 )}
-                aria-label={isPaused ? "Retomar" : "Pausar"}
               >
-                <AnimatePresence mode="wait">
-                  {isPaused ? (
-                    <motion.div key="play-icon" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                      <Play className="ml-1 h-6 w-6 sm:h-8 sm:w-8 fill-current" />
-                    </motion.div>
-                  ) : (
-                    <motion.div key="pause-icon" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                      <Pause className="h-6 w-6 sm:h-8 sm:w-8 fill-current" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {isPaused ? (
+                  <Play className="ml-1 h-8 w-8 fill-current" />
+                ) : (
+                  <Pause className="h-8 w-8 fill-current" />
+                )}
               </motion.button>
             )}
           </AnimatePresence>
 
+
           <motion.button
-            whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             type="button"
             onClick={onSkip}
             disabled={isFinishing}
-            className="grid h-12 w-12 sm:h-14 sm:w-14 cursor-pointer place-items-center rounded-full bg-white/10 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white/10"
-            aria-label="Pular"
+            className="grid h-14 w-14 place-items-center rounded-full bg-white/10 hover:bg-white/15"
           >
-            <SkipForward className="h-4 w-4 sm:h-5 sm:w-5" />
+            <SkipForward className="h-5 w-5" />
           </motion.button>
         </motion.div>
 
-        {/* Progresso de Ciclos */}
+
+        {/* PROGRESSO CICLOS */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="shrink-0"
+          className="flex flex-col items-center gap-1"
         >
           {(() => {
-            const fullCycles = Math.floor(completedFocusCycles / cyclesBeforeLongBreak);
-            const currentProgress = completedFocusCycles % cyclesBeforeLongBreak;
+            const fullCycles = Math.floor(
+              completedFocusCycles / cyclesBeforeLongBreak
+            );
+
+            const currentProgress =
+              completedFocusCycles % cyclesBeforeLongBreak;
 
             return (
-              <div className="flex flex-col items-center gap-1.5">
-                <p className="text-xs sm:text-sm font-medium text-slate-400">
-                  {fullCycles} {fullCycles === 1 ? "ciclo completo" : "ciclos completos"}
+              <>
+                <p className="text-sm text-slate-400">
+                  {fullCycles} ciclos completos
                 </p>
-                <div className="flex items-center gap-1.5 mt-1">
-                  {Array.from({ length: cyclesBeforeLongBreak }).map((_, i) => (
+
+                <div className="flex gap-1">
+                  {Array.from({
+                    length: cyclesBeforeLongBreak,
+                  }).map((_, i) => (
                     <div
                       key={i}
                       className={cn(
-                        "h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full transition-all duration-500",
-                        i < currentProgress ? "bg-blue-500" : "bg-white/20"
+                        "h-2 w-2 rounded-full",
+                        i < currentProgress
+                          ? "bg-blue-500"
+                          : "bg-white/20"
                       )}
                     />
                   ))}
                 </div>
-                <p className="mt-1 text-[10px] sm:text-xs text-slate-500/70 uppercase tracking-wide">
-                  Sessões para a pausa longa
+
+                <p className="text-xs text-slate-500">
+                  Sessões para pausa longa
                 </p>
-              </div>
+              </>
             );
           })()}
         </motion.div>
-        
+
       </section>
     </div>
   );
