@@ -254,6 +254,8 @@ def send_templated_email(
 
     text_content = render_to_string(f"{template_base}.txt", context)
     html_content = render_to_string(f"{template_base}.html", context)
+    print("HTML FINAL:")
+    print(html_content)     
 
     try:
         resend.Emails.send(
