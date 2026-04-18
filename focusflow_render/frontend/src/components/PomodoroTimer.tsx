@@ -268,32 +268,32 @@ function SettingControl({
   const canIncrease = value < max;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold text-slate-800">{label}</p>
+    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-3 transition-colors hover:bg-slate-50">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-1 sm:mb-0">
+          <p className="text-[15px] font-semibold text-slate-800 sm:text-sm">{label}</p>
           <p className="mt-1 text-xs text-slate-500">{description}</p>
-          <p className="mt-2 text-[11px] font-medium text-slate-400">
-            Mín: {min} {suffix} • Máx: {max} {suffix}
+          <p className="mt-2 inline-block rounded-md bg-white px-2 py-0.5 text-[10px] font-medium text-slate-400 ring-1 ring-slate-200">
+            Mín: {min} • Máx: {max} {suffix}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
           <button
             type="button"
             onClick={onDecrease}
             disabled={!canDecrease}
-            className={`grid h-10 w-10 place-items-center rounded-xl ring-1 transition-all ${
+            className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ring-1 transition-all sm:h-10 sm:w-10 ${
               canDecrease
-                ? "cursor-pointer bg-white text-slate-700 ring-slate-200 hover:bg-slate-50 hover:scale-105 active:scale-95"
+                ? "cursor-pointer bg-white text-slate-700 ring-slate-200 hover:scale-105 hover:bg-slate-50 active:scale-95"
                 : "cursor-not-allowed bg-slate-100 text-slate-300 ring-slate-100"
             }`}
             aria-label={`Diminuir ${label}`}
           >
-            <Minus className="h-4 w-4" />
+            <Minus className="h-4 w-4 sm:h-4 sm:w-4" />
           </button>
 
-          <div className="min-w-22.5 rounded-2xl bg-white px-4 py-2 text-center ring-1 ring-slate-200">
+          <div className="flex-1 rounded-xl bg-white px-3 py-2 text-center ring-1 ring-slate-200 sm:min-w-[5.5rem] sm:flex-none sm:rounded-2xl">
             <motion.div
               key={value}
               initial={{ opacity: 0, y: -5 }}
@@ -302,21 +302,21 @@ function SettingControl({
             >
               {value}
             </motion.div>
-            <div className="text-xs font-medium text-slate-500">{suffix}</div>
+            <div className="text-[10px] font-medium text-slate-500 sm:text-xs">{suffix}</div>
           </div>
 
           <button
             type="button"
             onClick={onIncrease}
             disabled={!canIncrease}
-            className={`grid h-10 w-10 place-items-center rounded-xl ring-1 transition-all ${
+            className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl ring-1 transition-all sm:h-10 sm:w-10 ${
               canIncrease
-                ? "cursor-pointer bg-white text-slate-700 ring-slate-200 hover:bg-slate-50 hover:scale-105 active:scale-95"
+                ? "cursor-pointer bg-white text-slate-700 ring-slate-200 hover:scale-105 hover:bg-slate-50 active:scale-95"
                 : "cursor-not-allowed bg-slate-100 text-slate-300 ring-slate-100"
             }`}
             aria-label={`Aumentar ${label}`}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 sm:h-4 sm:w-4" />
           </button>
         </div>
       </div>
@@ -494,8 +494,8 @@ export default function PomodoroTimer({
     const isActive = activePreset === presetKey;
 
     return isActive
-      ? "cursor-pointer rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 shadow-sm"
-      : "cursor-pointer rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:scale-105 active:scale-95";
+      ? "w-full cursor-pointer rounded-xl bg-blue-600 py-2.5 px-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:py-2"
+      : "w-full cursor-pointer rounded-xl py-2.5 px-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:scale-[1.02] hover:bg-slate-50 active:scale-[0.98] sm:py-2";
   }
 
   async function refreshTasks() {
@@ -845,10 +845,10 @@ export default function PomodoroTimer({
           <button
             type="button"
             onClick={() => setShowSettings(true)}
-            className="grid h-14.5 w-13 shrink-0 cursor-pointer place-items-center rounded-[18px] bg-white text-slate-600 ring-1 ring-slate-200 shadow-sm transition-all hover:bg-slate-50 hover:scale-[1.03] active:scale-[0.97] sm:w-14.5"
+            className="grid h-14.5 w-14.5 shrink-0 cursor-pointer place-items-center rounded-[18px] bg-white text-slate-600 shadow-sm ring-1 ring-slate-200 transition-all hover:scale-[1.03] hover:bg-slate-50 active:scale-[0.97]"
             aria-label="Configurações"
           >
-            <Settings className="h-5 w-5 transition-transform hover:rotate-90 duration-300" />
+            <Settings className="h-5 w-5 transition-transform duration-300 hover:rotate-90" />
           </button>
         </div>
 
@@ -890,8 +890,8 @@ export default function PomodoroTimer({
               className="absolute inset-0 rounded-full border-8 border-slate-100" 
             />
             
-            <div className="flex h-40 w-40 items-center justify-center rounded-full bg-slate-50 sm:h-48 sm:w-48 shadow-inner">
-              <span className="text-4xl font-medium tracking-tight text-slate-700 sm:text-5xl tabular-nums">
+            <div className="flex h-40 w-40 items-center justify-center rounded-full bg-slate-50 shadow-inner sm:h-48 sm:w-48">
+              <span className="tabular-nums text-4xl font-medium tracking-tight text-slate-700 sm:text-5xl">
                 {timeLabel}
               </span>
             </div>
@@ -902,7 +902,7 @@ export default function PomodoroTimer({
               type="button"
               onClick={handleReset}
               disabled={isFinishing}
-              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200 shadow-sm transition hover:bg-slate-50 hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white text-slate-600 shadow-sm ring-1 ring-slate-200 transition hover:scale-110 hover:bg-slate-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
               aria-label="Reiniciar"
             >
               <RotateCcw className="h-4 w-4" />
@@ -952,7 +952,7 @@ export default function PomodoroTimer({
               type="button"
               onClick={handleSkip}
               disabled={isFinishing}
-              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200 shadow-sm transition hover:bg-slate-50 hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-white text-slate-600 shadow-sm ring-1 ring-slate-200 transition hover:scale-110 hover:bg-slate-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
               aria-label="Próximo ciclo"
             >
               <SkipForward className="h-4 w-4" />
@@ -1040,14 +1040,14 @@ export default function PomodoroTimer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-[2px]"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-3 backdrop-blur-[2px] sm:p-4"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", bounce: 0.3, duration: 0.4 }}
-              className="scrollbar-hide max-h-[80vh] w-full max-w-md overflow-y-auto rounded-[24px] border border-slate-200 bg-white p-4 shadow-2xl sm:p-6"
+              className="scrollbar-hide max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[28px] border border-slate-200 bg-white p-5 shadow-2xl sm:p-6"
               style={{
                 msOverflowStyle: "none",
                 scrollbarWidth: "none",
@@ -1064,7 +1064,7 @@ export default function PomodoroTimer({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-800">
-                    Configurações do Pomodoro
+                    Configurações
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
                     Ajuste os tempos das sessões.
@@ -1074,19 +1074,19 @@ export default function PomodoroTimer({
                 <button
                   type="button"
                   onClick={() => setShowSettings(false)}
-                  className="grid h-9 w-9 cursor-pointer place-items-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:scale-105 active:scale-95"
+                  className="grid h-10 w-10 cursor-pointer place-items-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 transition hover:scale-105 hover:bg-slate-50 active:scale-95 sm:h-9 sm:w-9"
                   aria-label="Fechar configurações"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-5 w-5 sm:h-4 sm:w-4" />
                 </button>
               </div>
 
               <div className="mt-6">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-3">
+                <p className="mb-3 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                   Presets rápidos
                 </p>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => applyPreset("minimo")}
@@ -1113,7 +1113,7 @@ export default function PomodoroTimer({
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-3">
+              <div className="mt-6 grid gap-4 sm:gap-3">
                 <SettingControl
                   label="Tempo de foco"
                   description="Duração da sessão."
@@ -1178,7 +1178,7 @@ export default function PomodoroTimer({
                 />
 
                 <SettingControl
-                  label="Ciclos até pausa longa"
+                  label="Ciclos até pausa"
                   description="Sessões antes da pausa longa."
                   value={settings.cyclesBeforeLongBreak}
                   min={2}
@@ -1204,7 +1204,7 @@ export default function PomodoroTimer({
                   type="button"
                   onClick={handleSaveSettings}
                   disabled={isSavingSettings}
-                  className="cursor-pointer rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full cursor-pointer rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:scale-[1.02] hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:py-2.5"
                 >
                   {isSavingSettings ? "Salvando..." : "Concluir"}
                 </button>

@@ -37,8 +37,8 @@ export default function PomodoroFocusView({
   const isRunning = runningSession && !isPaused;
 
   return (
-    <div className="flex flex-1 flex-col bg-slate-950 text-white overflow-hidden">
-      <section className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+    <div className="flex h-[100dvh] w-full flex-col bg-slate-950 text-white overflow-hidden">
+      <section className="flex h-full w-full flex-col items-center justify-center px-4 sm:px-6 text-center">
         
         {/* Header Animado */}
         <motion.div
@@ -54,7 +54,7 @@ export default function PomodoroFocusView({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="text-sm font-medium text-slate-400 uppercase tracking-widest"
+              className="text-xs sm:text-sm font-medium text-slate-400 uppercase tracking-widest"
             >
               {sessionType === "focus" ? "Tarefa atual" : "Momento de descanso"}
             </motion.p>
@@ -67,7 +67,7 @@ export default function PomodoroFocusView({
               animate={{ opacity: 1, filter: "blur(0px)" }}
               exit={{ opacity: 0, filter: "blur(4px)" }}
               transition={{ duration: 0.4 }}
-              className="mt-3 max-w-2xl text-xl font-semibold sm:text-2xl"
+              className="mt-2 sm:mt-3 max-w-2xl text-lg sm:text-2xl font-semibold line-clamp-2"
             >
               {sessionType === "focus"
                 ? runningSession?.task_title ||
@@ -83,7 +83,7 @@ export default function PomodoroFocusView({
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.7, type: "spring", bounce: 0.3 }}
-          className="relative mt-12 flex items-center justify-center"
+          className="relative mt-8 sm:mt-12 flex items-center justify-center"
         >
           {/* Anéis de pulso de fundo (visíveis apenas rodando) */}
           <motion.div
@@ -97,7 +97,7 @@ export default function PomodoroFocusView({
             className="absolute inset-0 rounded-full border border-white/10"
           />
 
-          <div className="relative z-10 flex h-72 w-72 items-center justify-center rounded-full border border-white/10 bg-white/10 shadow-2xl backdrop-blur-sm sm:h-80 sm:w-80">
+          <div className="relative z-10 flex h-64 w-64 items-center justify-center rounded-full border border-white/10 bg-white/10 shadow-2xl backdrop-blur-sm sm:h-80 sm:w-80">
             <span className="text-6xl font-semibold tracking-tight sm:text-7xl tabular-nums">
               {timeLabel}
             </span>
@@ -109,7 +109,7 @@ export default function PomodoroFocusView({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-          className="mt-12 flex items-center gap-6"
+          className="mt-8 sm:mt-12 flex items-center gap-4 sm:gap-6"
         >
           <motion.button
             whileHover={{ scale: 1.1 }}
@@ -117,10 +117,10 @@ export default function PomodoroFocusView({
             type="button"
             onClick={onReset}
             disabled={isFinishing}
-            className="grid h-14 w-14 cursor-pointer place-items-center rounded-full bg-white/10 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white/10"
+            className="grid h-12 w-12 sm:h-14 sm:w-14 cursor-pointer place-items-center rounded-full bg-white/10 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white/10"
             aria-label="Reiniciar"
           >
-            <RotateCcw className="h-5 w-5" />
+            <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
           </motion.button>
 
           <AnimatePresence mode="wait">
@@ -135,10 +135,10 @@ export default function PomodoroFocusView({
                 type="button"
                 onClick={onStart}
                 disabled={isStarting}
-                className="grid h-20 w-20 cursor-pointer place-items-center rounded-full bg-blue-600 shadow-[0_0_30px_rgba(37,99,235,0.4)] transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="grid h-16 w-16 sm:h-20 sm:w-20 cursor-pointer place-items-center rounded-full bg-blue-600 shadow-[0_0_30px_rgba(37,99,235,0.4)] transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Iniciar"
               >
-                <Play className="ml-1 h-8 w-8 fill-current" />
+                <Play className="ml-1 h-6 w-6 sm:h-8 sm:w-8 fill-current" />
               </motion.button>
             ) : (
               <motion.button
@@ -152,7 +152,7 @@ export default function PomodoroFocusView({
                 onClick={onTogglePause}
                 disabled={isFinishing}
                 className={cn(
-                  "grid h-20 w-20 cursor-pointer place-items-center rounded-full shadow-lg transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                  "grid h-16 w-16 sm:h-20 sm:w-20 cursor-pointer place-items-center rounded-full shadow-lg transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                   isPaused
                     ? "bg-blue-600 hover:bg-blue-700 shadow-[0_0_30px_rgba(37,99,235,0.4)]"
                     : "bg-amber-500 hover:bg-amber-600 shadow-[0_0_30px_rgba(245,158,11,0.4)]"
@@ -162,11 +162,11 @@ export default function PomodoroFocusView({
                 <AnimatePresence mode="wait">
                   {isPaused ? (
                     <motion.div key="play-icon" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                      <Play className="ml-1 h-8 w-8 fill-current" />
+                      <Play className="ml-1 h-6 w-6 sm:h-8 sm:w-8 fill-current" />
                     </motion.div>
                   ) : (
                     <motion.div key="pause-icon" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                      <Pause className="h-8 w-8 fill-current" />
+                      <Pause className="h-6 w-6 sm:h-8 sm:w-8 fill-current" />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -180,10 +180,10 @@ export default function PomodoroFocusView({
             type="button"
             onClick={onSkip}
             disabled={isFinishing}
-            className="grid h-14 w-14 cursor-pointer place-items-center rounded-full bg-white/10 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white/10"
+            className="grid h-12 w-12 sm:h-14 sm:w-14 cursor-pointer place-items-center rounded-full bg-white/10 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white/10"
             aria-label="Pular"
           >
-            <SkipForward className="h-5 w-5" />
+            <SkipForward className="h-4 w-4 sm:h-5 sm:w-5" />
           </motion.button>
         </motion.div>
 
@@ -198,8 +198,8 @@ export default function PomodoroFocusView({
             const currentProgress = completedFocusCycles % cyclesBeforeLongBreak;
 
             return (
-              <div className="mt-10 flex flex-col items-center gap-1.5">
-                <p className="text-sm font-medium text-slate-400">
+              <div className="mt-8 sm:mt-10 flex flex-col items-center gap-1.5">
+                <p className="text-xs sm:text-sm font-medium text-slate-400">
                   {fullCycles} {fullCycles === 1 ? "ciclo completo" : "ciclos completos"}
                 </p>
                 <div className="flex items-center gap-1.5 mt-1">
@@ -208,13 +208,13 @@ export default function PomodoroFocusView({
                     <div
                       key={i}
                       className={cn(
-                        "h-2 w-2 rounded-full transition-all duration-500",
+                        "h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full transition-all duration-500",
                         i < currentProgress ? "bg-blue-500" : "bg-white/20"
                       )}
                     />
                   ))}
                 </div>
-                <p className="mt-1 text-xs text-slate-500/70">
+                <p className="mt-1 text-[10px] sm:text-xs text-slate-500/70 uppercase tracking-wide">
                   Sessões para a pausa longa
                 </p>
               </div>
