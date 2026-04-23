@@ -1,5 +1,6 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from django.contrib.auth import get_user_model
+from django.db import close_old_connections
 from django.utils import timezone
 
 from accounts.emailing import (
@@ -25,18 +26,22 @@ scheduler = BackgroundScheduler(timezone=str(timezone.get_current_timezone()))
 
 
 def sync_all_users_notifications():
+    close_old_connections()
     User = get_user_model()
 
     for user in User.objects.filter(is_active=True):
         sync_user_notifications(user)
 
+    close_old_connections()
+
 
 def dispatch_automated_emails(reference_dt=None):
+    close_old_connections()
     User = get_user_model()
     now = reference_dt or timezone.now()
-    local_now = timezone.localtime(now)
 
     for user in User.objects.filter(is_active=True):
+        local_now = timezone.localtime(now)
         user_offline = is_user_offline(user, reference_dt=now)
 
         if user_offline:
@@ -107,22 +112,26 @@ def dispatch_automated_emails(reference_dt=None):
                     },
                 )
 
+    close_old_connections()
+
 
 def start_scheduler():
     if not scheduler.running:
         scheduler.add_job(
             sync_all_users_notifications,
             "interval",
-            seconds=10,
+            seconds=30,
             id="notifications_sync_job",
             replace_existing=True,
+            max_instances=1,
         )
         scheduler.add_job(
             dispatch_automated_emails,
             "interval",
-            seconds=10,
+            seconds=30,
             id="notifications_email_job",
             replace_existing=True,
+            max_instances=1,
         )
 
         scheduler.start()
