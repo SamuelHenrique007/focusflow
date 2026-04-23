@@ -358,7 +358,7 @@ export default function EstatisticasPage() {
       tempoTotal: formatMinutesToHours(totalFocusMinutes),
       tarefasConcluidas: String(totalTasksCompleted),
       pomodoros: String(totalPomodoros),
-      maiorSequencia: `${streakDays} ${streakDays === 1 ? "dia" : "dias"}`,
+      maiorSequencia: `${streakDays} ${streakDays === 1 ? "dia" : "dias em foco"}`,
     };
   }, [gameStats, tasks, streakDays]);
 
@@ -437,7 +437,7 @@ export default function EstatisticasPage() {
           >
             <Badge tone="warning">
               <Flame className="h-4 w-4" />
-              {streakDays} {streakDays === 1 ? "dia" : "dias"}
+              {streakDays} {streakDays === 1 ? "dia" : "dias em foco"}
             </Badge>
           </motion.div>
         </motion.div>

@@ -37,6 +37,7 @@ import { useGameStore } from "@/store/useGameStore";
 /* =========================
    Cores Estáticas (Imunes ao Tema)
 ========================= */
+
 const PRIORITY_COLORS: Record<string, string> = {
   alta: "bg-red-500",
   media: "bg-amber-500",
@@ -158,8 +159,8 @@ function TaskRow({ task }: { task: Task }) {
           layoutId={`indicator-${task.id}`}
           className={cn(
             "absolute left-0 top-0 h-full w-1.5",
-            isOverdue 
-              ? "bg-red-500" 
+            isOverdue
+              ? "bg-red-500"
               : CATEGORY_BG_COLORS[task.category as string] || "bg-blue-500",
           )}
         />
@@ -189,11 +190,11 @@ function TaskRow({ task }: { task: Task }) {
 
               <Badge tone={priorityTone}>
                 <span className="inline-flex items-center gap-1">
-                  <span 
+                  <span
                     className={cn(
                       "h-1.5 w-1.5 rounded-full",
                       PRIORITY_COLORS[task.priority as string] || "bg-current opacity-70"
-                    )} 
+                    )}
                   />
                   {task.priority}
                 </span>
@@ -366,10 +367,10 @@ export default function FocusFlowDashboard() {
 
   useEffect(() => {
     fetchStatus();
-    loadDashboardData(); 
+    loadDashboardData();
 
     const intervalId = setInterval(() => {
-      loadDashboardData(true); 
+      loadDashboardData(true);
     }, 30000);
 
     const handleVisibilityChange = () => {
@@ -408,6 +409,7 @@ export default function FocusFlowDashboard() {
   const userName = useMemo(() => getFirstAndSecondName(user?.name), [user?.name]);
   const todayLabel = getTodayLabel();
 
+  const streakDays = gameStats?.streak ?? 0;
   const xpCurrent = gameStats?.current_xp || 0;
   const xpTotal = gameStats?.xp_to_next_level || 100;
   const userLevel = gameStats?.level || 1;
@@ -529,18 +531,17 @@ export default function FocusFlowDashboard() {
     };
   }, [overdueTasks.length, inProgressTodayTasks.length, todayTasks.length]);
 
-  // --- Função de Criação Otimizada (Fecha o Modal na hora) ---
   async function handleCreateTask(
     payload: CreateTaskRequest | UpdateTaskRequest,
   ) {
-    setNewTaskOpen(false); // Fecha instantaneamente
+    setNewTaskOpen(false);
     try {
       setIsSubmitting(true);
       const newTask = await createTask(payload as CreateTaskRequest);
       setTasks((prev) => [newTask, ...prev]);
     } catch {
       alert("Não foi possível criar a tarefa.");
-      setNewTaskOpen(true); // Reabre se falhar
+      setNewTaskOpen(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -565,7 +566,7 @@ export default function FocusFlowDashboard() {
             <Badge tone="warning">
               <span className="inline-flex items-center gap-1">
                 <Flame className="h-4 w-4" />
-                {pomodoroStats.active_days} dias com foco
+                {streakDays} {streakDays === 1 ? "dia em foco" : "dias em foco"}
               </span>
             </Badge>
 
@@ -592,7 +593,7 @@ export default function FocusFlowDashboard() {
             <Badge tone="warning">
               <span className="inline-flex items-center gap-1">
                 <Flame className="h-4 w-4" />
-                {pomodoroStats.active_days} dias com foco
+                {streakDays} {streakDays === 1 ? "dia em foco" : "dias em foco"}
               </span>
             </Badge>
 
