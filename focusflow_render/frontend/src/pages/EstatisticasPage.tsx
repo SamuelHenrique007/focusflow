@@ -437,7 +437,7 @@ export default function EstatisticasPage() {
           >
             <Badge tone="warning">
               <Flame className="h-4 w-4" />
-              {streakDays} {streakDays === 1 ? "dia" : "dias em foco"}
+              {streakDays} {streakDays === 1 ? "dia" : "dias"}
             </Badge>
           </motion.div>
         </motion.div>
