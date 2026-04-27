@@ -59,7 +59,7 @@ class GameStatusView(APIView):
 
     def get(self, request):
         profile = get_profile(request.user)
-        refresh_daily_progress(profile)
+        sync_profile_progress(profile)
         metrics = build_profile_metrics(profile)
         badges = build_badges(profile, metrics=metrics)
         challenges = build_daily_challenges(

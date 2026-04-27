@@ -211,13 +211,15 @@ def update_focus_streak_after_session(profile, focus_date=None):
     return profile.streak
 
 
-def calculate_focus_streak(user, extra_active_date=None):
+def calculate_focus_streak_info(user, extra_active_date=None):
     """
-    Calcula a sequência de dias com foco concluído.
+    Calcula a sequência atual de dias com foco concluído e retorna:
+    (quantidade_da_streak, ultimo_dia_contabilizado).
 
-    - Se o usuário tem foco hoje, a streak conta a partir de hoje.
-    - Se ainda não focou hoje mas focou ontem, mantém a streak a partir de ontem.
-    - Se o último foco foi antes de ontem, retorna 0.
+    Regra aplicada:
+    - se focou hoje, a streak conta a partir de hoje;
+    - se ainda não focou hoje, mas focou ontem, a streak continua válida;
+    - se o último foco foi antes de ontem, a streak é quebrada e retorna 0.
 
     `extra_active_date` permite contabilizar uma sessão recém-concluída que ainda
     não foi persistida no banco.
@@ -240,7 +242,7 @@ def calculate_focus_streak(user, extra_active_date=None):
         focus_days.add(extra_active_date)
 
     if not focus_days:
-        return 0
+        return 0, None
 
     today = get_local_today()
     yesterday = today - timedelta(days=1)
@@ -250,13 +252,23 @@ def calculate_focus_streak(user, extra_active_date=None):
     elif yesterday in focus_days:
         current_day = yesterday
     else:
-        return 0
+        return 0, max(focus_days)
 
+    last_counted_day = current_day
     streak = 0
+
     while current_day in focus_days:
         streak += 1
         current_day -= timedelta(days=1)
 
+    return streak, last_counted_day
+
+
+def calculate_focus_streak(user, extra_active_date=None):
+    """
+    Mantém compatibilidade com chamadas antigas que esperam apenas o número da streak.
+    """
+    streak, _ = calculate_focus_streak_info(user, extra_active_date=extra_active_date)
     return streak
 
 
@@ -380,12 +392,13 @@ def sync_profile_progress(profile, extra_active_date=None, save=True):
     refresh_daily_progress(profile)
 
     profile.daily_goal_progress = calculate_daily_goal_progress(profile)
-    profile.streak = calculate_focus_streak(
+    profile.streak, last_counted_focus_date = calculate_focus_streak_info(
         profile.user,
         extra_active_date=extra_active_date,
     )
-    if profile.streak > 0:
-        profile.last_focus_session_date = extra_active_date or get_local_today()
+
+    if last_counted_focus_date:
+        profile.last_focus_session_date = last_counted_focus_date
 
     if save:
         profile.save(update_fields=["daily_goal_progress", "streak", "last_focus_session_date"])
