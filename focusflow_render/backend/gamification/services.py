@@ -85,10 +85,6 @@ def get_local_today():
 
 
 def refresh_daily_progress(profile):
-    """
-    Reseta apenas os dados diários quando realmente mudou o dia local.
-    Mantém os dados globais intactos.
-    """
     today = get_local_today()
 
     state = profile.daily_challenge_state or {}
@@ -126,10 +122,6 @@ def refresh_daily_progress(profile):
 
 
 def ensure_single_equipped_item(user, category, current_item):
-    """
-    Garante que apenas um item por categoria fique equipado.
-    Mantém compatibilidade com o estado legado do inventário.
-    """
     from .models import UserInventory
 
     UserInventory.objects.filter(
@@ -148,12 +140,6 @@ def ensure_single_equipped_item(user, category, current_item):
 
 
 def apply_level_up(profile):
-    """
-    Aplica evolução de nível em cascata, se o XP atual ultrapassar
-    o XP necessário para o próximo nível.
-
-    Retorna a lista de níveis alcançados nesta atualização.
-    """
     gained_levels = []
 
     while profile.current_xp >= profile.xp_to_next_level and profile.xp_to_next_level > 0:
@@ -166,10 +152,6 @@ def apply_level_up(profile):
 
 
 def finalize_gamification_notifications(profile, gained_levels=None):
-    """
-    Centraliza a sincronização das notificações de gamificação
-    e dispara aviso de subida de nível quando necessário.
-    """
     from notifications.services import notify_level_up, sync_user_notifications
 
     for level in gained_levels or []:
@@ -190,10 +172,6 @@ def calculate_daily_goal_progress(profile):
 
 
 def update_focus_streak_after_session(profile, focus_date=None):
-    """
-    Atualiza a streak de forma incremental no término de uma sessão de foco,
-    evitando recalcular todo o histórico em cada finalização.
-    """
     focus_date = focus_date or get_local_today()
     previous_focus_date = profile.last_focus_session_date
 
@@ -212,18 +190,6 @@ def update_focus_streak_after_session(profile, focus_date=None):
 
 
 def calculate_focus_streak_info(user, extra_active_date=None):
-    """
-    Calcula a sequência atual de dias com foco concluído e retorna:
-    (quantidade_da_streak, ultimo_dia_contabilizado).
-
-    Regra aplicada:
-    - se focou hoje, a streak conta a partir de hoje;
-    - se ainda não focou hoje, mas focou ontem, a streak continua válida;
-    - se o último foco foi antes de ontem, a streak é quebrada e retorna 0.
-
-    `extra_active_date` permite contabilizar uma sessão recém-concluída que ainda
-    não foi persistida no banco.
-    """
     from pomodoro.models import PomodoroSession
 
     focus_days = set(
@@ -265,9 +231,6 @@ def calculate_focus_streak_info(user, extra_active_date=None):
 
 
 def calculate_focus_streak(user, extra_active_date=None):
-    """
-    Mantém compatibilidade com chamadas antigas que esperam apenas o número da streak.
-    """
     streak, _ = calculate_focus_streak_info(user, extra_active_date=extra_active_date)
     return streak
 
@@ -446,13 +409,6 @@ def grant_daily_challenge_rewards(profile, save=True, metrics=None):
 
 
 def grant_focus_progress(profile, focus_minutes, completed_pomodoro=False, save=True):
-    """
-    Aplica toda a progressão de gamificação derivada de foco.
-
-    Também consolida a evolução de nível, recompensas diárias e
-    sincronização de notificações para que a interface reflita o novo
-    estado imediatamente após o término do pomodoro.
-    """
     refresh_daily_progress(profile)
 
     focus_minutes = max(int(focus_minutes or 0), 0)

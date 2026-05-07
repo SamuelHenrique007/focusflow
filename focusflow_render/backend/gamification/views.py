@@ -363,15 +363,6 @@ class AddProgressView(APIView):
 
     @transaction.atomic
     def post(self, request):
-        """
-        Endpoint utilitário para testes ou integrações internas.
-        Espera:
-        {
-            "focus_minutes": 25,
-            "completed_pomodoro": true,
-            "completed_task": false
-        }
-        """
         profile = get_profile(request.user)
 
         focus_minutes = int(request.data.get("focus_minutes", 0))

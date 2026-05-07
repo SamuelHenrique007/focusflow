@@ -132,10 +132,6 @@ class ResetPasswordView(APIView):
             status=status.HTTP_200_OK,
         )
 
-
+# Endpoint simples para verificar se o servidor está rodando
 def health_check(request):
-    """
-    Rota ultra leve apenas para manter o Render acordado.
-    Não faz consultas ao banco de dados.
-    """
     return JsonResponse({"status": "ok", "message": "FocusFlow server is awake!"}, status=200)

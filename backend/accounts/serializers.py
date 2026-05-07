@@ -174,8 +174,6 @@ class ForgotPasswordSerializer(serializers.Serializer):
         email = self.validated_data["email"]
         user = User.objects.filter(email=email).first()
 
-        # Por segurança, mesmo que o usuário não exista,
-        # retornamos a mesma resposta no endpoint.
         if not user:
             return
 
