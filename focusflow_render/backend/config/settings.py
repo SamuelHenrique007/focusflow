@@ -55,7 +55,6 @@ INSTALLED_APPS = [
     "tasks",
     "pomodoro",
     "gamification",
-    "statistics_app",
     "notifications",
 ]
 
